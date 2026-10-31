@@ -119,6 +119,40 @@
 		if (source) read(() => prepareCropForScan(source!.file, crop));
 	}
 
+	/** Parsed label → form fields (strings, as the form keeps them) */
+	function toFields(parsed: ReturnType<typeof parseLabel>): Partial<WineFormValues> {
+		const out: Record<string, unknown> = {};
+		for (const [k, x] of Object.entries(parsed)) {
+			if (x === undefined) continue;
+			out[k] = k === 'grapes' ? [...(x as string[])] : String(x);
+		}
+		return out as Partial<WineFormValues>;
+	}
+
+	// the back label: alcohol, size, grapes and producer are often only there
+	let wineForm: ReturnType<typeof WineForm> | undefined = $state();
+	let backBusy = $state(false);
+	async function scanBack(e: Event) {
+		const input = e.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		input.value = '';
+		if (!file || !wineForm) return;
+		backBusy = true;
+		try {
+			const { ocr } = await preparePhotoForScan(file);
+			const { readLabel } = await import('#lib/ocr.ts');
+			const { lines, text } = await readLabel(ocr, () => {});
+			const filled = wineForm.fillEmpty({ ...toFields(parseLabel(lines)), ocr_text: text });
+			scanned = [...scanned, ...filled];
+			notice = filled.length ? t('add.backFilled', { n: filled.length }) : t('add.backNothing');
+		} catch (err) {
+			console.error(err);
+			notice = t('add.backNothing');
+		} finally {
+			backBusy = false;
+		}
+	}
+
 	async function read(prepare: () => Promise<{ photo: { image: Blob; thumb: Blob }; ocr: Blob }>) {
 		const run = ++scanRun;
 		same = null;
@@ -147,15 +181,8 @@
 			});
 			if (run !== scanRun) return; // cancelled while reading
 			const parsed = parseLabel(lines);
-			const v = emptyValues();
-			const found: string[] = [];
-			const target = v as unknown as Record<string, unknown>;
-			for (const [k, x] of Object.entries(parsed)) {
-				if (x === undefined) continue;
-				found.push(k);
-				if (k === 'grapes') v.grapes = x as string[];
-				else target[k] = String(x);
-			}
+			const v = { ...emptyValues(), ...toFields(parsed) };
+			const found = Object.keys(toFields(parsed));
 			v.ocr_text = text.slice(0, 5000);
 			same = findSameWine(parsed, data.owned);
 			values = v;
@@ -278,12 +305,26 @@
 			<div class="notice small">
 				<p>{notice}</p>
 				{#if source}
-					<button class="btn small" onclick={() => (step = 'crop')}>{t('add.recrop')}</button>
+					<div class="notice-actions">
+						<button class="btn small" onclick={() => (step = 'crop')}>{t('add.recrop')}</button>
+						<label class="btn small" aria-disabled={backBusy}>
+							{backBusy ? t('add.reading') : t('add.scanBack')}
+							<input
+								class="visually-hidden"
+								type="file"
+								accept="image/*"
+								capture="environment"
+								disabled={backBusy}
+								onchange={scanBack}
+							/>
+						</label>
+					</div>
 				{/if}
 			</div>
 		{/if}
 		{#key formKey}
 			<WineForm
+				bind:this={wineForm}
 				initial={values}
 				{scanned}
 				bind:photo
@@ -413,7 +454,10 @@
 	.notice p {
 		margin: 0;
 	}
-	.notice .btn {
+	.notice-actions {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
 		margin-top: 8px;
 	}
 	.crop-frame {

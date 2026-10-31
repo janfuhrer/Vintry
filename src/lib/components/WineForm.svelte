@@ -125,6 +125,27 @@
 	const { t } = i18n;
 
 	let v = $state(untrack(() => structuredClone($state.snapshot(initial)) as WineFormValues));
+
+	/**
+	 * Fills in what a second scan (the back label) found, but only fields still at their
+	 * default and not already scanned: nothing read from the front or typed here is replaced.
+	 * Returns the fields it filled, for marking them.
+	 */
+	export function fillEmpty(found: Partial<WineFormValues>): string[] {
+		const blank = emptyValues() as unknown as Record<string, unknown>;
+		const target = v as unknown as Record<string, unknown>;
+		const filled: string[] = [];
+		for (const [key, x] of Object.entries(found)) {
+			if (key === 'ocr_text') {
+				v.ocr_text = `${v.ocr_text}\n${x}`.trim().slice(0, 5000);
+				continue;
+			}
+			if (scanned.includes(key) || JSON.stringify(target[key]) !== JSON.stringify(blank[key])) continue;
+			target[key] = Array.isArray(x) ? [...x] : x;
+			filled.push(key);
+		}
+		return filled;
+	}
 	// a wine that already has taste values was set by hand
 	let touched = $state(
 		untrack(() =>

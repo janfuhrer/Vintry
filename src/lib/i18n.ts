@@ -111,6 +111,9 @@ const en = {
 	'add.cropHint': 'Drag the frame over the label, or its corners to resize it.',
 	'add.cropKeys': 'Arrow keys move the frame; with Shift they resize it.',
 	'add.readAgain': 'Read again',
+	'add.scanBack': 'Scan the back label too',
+	'add.backFilled': 'From the back label: {n} more field(s), marked.',
+	'add.backNothing': 'The back label added nothing new.',
 
 	'form.wine': 'Wine',
 	'form.name': 'Name',
@@ -395,6 +398,9 @@ const de: Record<Key, string> = {
 	'add.cropHint': 'Zieh den Rahmen über die Etikette, an den Ecken änderst du die Grösse.',
 	'add.cropKeys': 'Pfeiltasten verschieben den Rahmen, mit Shift ändern sie die Grösse.',
 	'add.readAgain': 'Neu lesen',
+	'add.scanBack': 'Auch die Rückseite scannen',
+	'add.backFilled': 'Von der Rückseite: {n} weitere(s) Feld(er), markiert.',
+	'add.backNothing': 'Die Rückseite brachte nichts Neues.',
 
 	'form.wine': 'Wein',
 	'form.name': 'Name',
