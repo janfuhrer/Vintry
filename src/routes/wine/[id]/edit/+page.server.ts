@@ -1,12 +1,12 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import { parsePhoto, parseWineForm } from '#lib/server/wine-form.ts';
-import { getWine, updateWine } from '#lib/server/wines.ts';
+import { getWine, suggestions, updateWine } from '#lib/server/wines.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const wine = await getWine(locals.user!.id, params.id);
 	if (!wine) error(404, 'Not found');
-	return { wine };
+	return { wine, suggestions: await suggestions(locals.user!.id) };
 };
 
 export const actions: Actions = {

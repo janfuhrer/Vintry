@@ -51,6 +51,12 @@ const en = {
 	'cellar.emptyHint': 'Scan a label to add your first bottle.',
 	'cellar.noMatch': 'Nothing matches.',
 	'cellar.showEmpty': 'Show finished',
+	'cellar.sort': 'Sort',
+	'cellar.sort.recent': 'Recent',
+	'cellar.sort.name': 'Name',
+	'cellar.sort.vintage': 'Vintage',
+	'cellar.sort.window': 'Drink by',
+	'cellar.drinkNow': 'Drink now',
 	'cellar.unknown': 'Unknown',
 
 	'color.red': 'Red',
@@ -76,6 +82,7 @@ const en = {
 	'add.scanned': 'Filled in from the label. Check the marked fields.',
 	'add.scanFailed': 'Could not read the label. Fill in what you know.',
 	'add.retake': 'Retake',
+	'add.copied': 'Copied from {name}. Check the vintage and bottles.',
 
 	'form.wine': 'Wine',
 	'form.name': 'Name',
@@ -127,6 +134,7 @@ const en = {
 	'wine.notes': 'Notes',
 	'wine.details': 'Details',
 	'wine.gift': 'Gift from {name}',
+	'wine.buyAgain': 'Buy again',
 
 	'drink.title': 'Drink one',
 	'drink.date': 'Date',
@@ -213,6 +221,12 @@ const de: Record<Key, string> = {
 	'cellar.emptyHint': 'Scanne eine Etikette, um die erste Flasche zu erfassen.',
 	'cellar.noMatch': 'Nichts gefunden.',
 	'cellar.showEmpty': 'Getrunkene zeigen',
+	'cellar.sort': 'Sortieren',
+	'cellar.sort.recent': 'Neueste',
+	'cellar.sort.name': 'Name',
+	'cellar.sort.vintage': 'Jahrgang',
+	'cellar.sort.window': 'Trinken bis',
+	'cellar.drinkNow': 'Jetzt trinken',
 	'cellar.unknown': 'Unbekannt',
 
 	'color.red': 'Rot',
@@ -238,6 +252,7 @@ const de: Record<Key, string> = {
 	'add.scanned': 'Von der Etikette übernommen. Prüfe die markierten Felder.',
 	'add.scanFailed': 'Etikette nicht lesbar. Fülle aus, was du weisst.',
 	'add.retake': 'Neues Foto',
+	'add.copied': 'Von {name} übernommen. Prüfe Jahrgang und Flaschen.',
 
 	'form.wine': 'Wein',
 	'form.name': 'Name',
@@ -289,6 +304,7 @@ const de: Record<Key, string> = {
 	'wine.notes': 'Notizen',
 	'wine.details': 'Details',
 	'wine.gift': 'Geschenk von {name}',
+	'wine.buyAgain': 'Nachkaufen',
 
 	'drink.title': 'Eine trinken',
 	'drink.date': 'Datum',

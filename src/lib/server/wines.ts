@@ -208,9 +208,20 @@ export async function drinksForWine(userId: string, wineId: string): Promise<Dri
 	`;
 }
 
+/** Undoes a "drink one": removes the entry and puts the bottle back */
 export async function deleteDrink(userId: string, id: string) {
 	if (!isUuid(id)) return;
-	await sql`delete from drinks where id = ${id} and user_id = ${userId}`;
+	await sql.begin(async (tx) => {
+		const [drink] = await tx<{ wine_id: string }[]>`
+			delete from drinks where id = ${id} and user_id = ${userId} returning wine_id
+		`;
+		if (drink) {
+			await tx`
+				update wines set quantity = quantity + 1, updated_at = now()
+				where id = ${drink.wine_id} and user_id = ${userId}
+			`;
+		}
+	});
 }
 
 export type HistoryItem = Drink &
@@ -227,4 +238,28 @@ export async function history(userId: string): Promise<HistoryItem[]> {
 		order by d.drunk_on desc, d.created_at desc
 		limit 500
 	`;
+}
+
+export interface Suggestions {
+	locations: string[];
+	shops: string[];
+	givers: string[];
+}
+
+/** Values the user typed before, most recent first, for the form's datalists */
+export async function suggestions(userId: string): Promise<Suggestions> {
+	const pick = async (column: 'location' | 'purchased_at' | 'gifted_by') => {
+		const rows = await sql<{ v: string }[]>`
+			select ${sql(column)} as v from wines
+			where user_id = ${userId} and ${sql(column)} is not null
+			group by ${sql(column)} order by max(updated_at) desc limit 30
+		`;
+		return rows.map((r) => r.v);
+	};
+	const [locations, shops, givers] = await Promise.all([
+		pick('location'),
+		pick('purchased_at'),
+		pick('gifted_by')
+	]);
+	return { locations, shops, givers };
 }

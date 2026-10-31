@@ -23,6 +23,7 @@
 		existingPhoto={data.wine.has_photo
 			? `/photo/${data.wine.id}?s=t&v=${data.wine.photo_version ?? 0}`
 			: null}
+		suggestions={data.suggestions}
 		errors={form?.errors ?? {}}
 		submitLabel={t('common.save')}
 	/>

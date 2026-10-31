@@ -109,6 +109,47 @@ describe('cellar', () => {
 		assert.ok(html.includes('Cornalin Test'));
 	});
 
+	test('"buy again" opens a pre-filled form without purchase details', async () => {
+		const html = await (await alice.req(`/add?from=${wineId}`, { page: true })).text();
+		assert.match(html, /name="name"[^>]*value="Cornalin Test"/);
+		assert.match(html, /name="quantity"[^>]*value="1"/);
+		assert.doesNotMatch(html, /value="32.5"/, 'price is not copied');
+		assert.equal(
+			(await bob.req(`/add?from=${wineId}`, { page: true })).status,
+			303,
+			'signed-out (Bob has no session yet)'
+		);
+	});
+
+	test('earlier shops are suggested in the form', async () => {
+		const fd = new FormData();
+		for (const [k, v] of Object.entries({
+			name: 'Shop test',
+			color: 'white',
+			quantity: '1',
+			purchased_at: 'Weinhandlung Muster'
+		}))
+			fd.append(k, v);
+		await alice.req('/add', { method: 'POST', form: fd, page: true });
+		// the add page starts with the scan choice; the edit form renders the datalists directly
+		const html = await (await alice.req(`${wineUrl}/edit`, { page: true })).text();
+		assert.match(html, /<datalist id="shop-list">[\s\S]*Weinhandlung Muster/);
+	});
+
+	test('removing a drink entry puts the bottle back', async () => {
+		const qty = async () => {
+			const html = await (await alice.req(wineUrl, { page: true })).text();
+			return Number(html.match(/class="qty[^"]*"[^>]*>(\d+)</)[1]);
+		};
+		const before = await qty();
+		await alice.action(`${wineUrl}?/drink`, { drunk_on: '2026-10-31', note: 'oops' });
+		assert.equal(await qty(), before - 1);
+		const html = await (await alice.req(wineUrl, { page: true })).text();
+		const id = html.match(/name="id" value="([0-9a-f-]{36})"/)[1];
+		assert.equal((await alice.action(`${wineUrl}?/deleteDrink`, { id })).type, 'success');
+		assert.equal(await qty(), before);
+	});
+
 	test('quantity never goes below zero', async () => {
 		for (let i = 0; i < 4; i++) await alice.action(`${wineUrl}?/quantity`, { delta: '-1' });
 		const r = await alice.action(`${wineUrl}?/drink`, { drunk_on: '2026-10-31' });

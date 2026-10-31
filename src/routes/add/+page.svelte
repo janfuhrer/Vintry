@@ -1,23 +1,56 @@
 <script lang="ts">
+	import { untrack } from 'svelte';
 	import Icon from '#lib/components/Icon.svelte';
-	import WineForm, { emptyValues, type WineFormValues } from '#lib/components/WineForm.svelte';
+	import WineForm, { emptyValues, toValues, type WineFormValues } from '#lib/components/WineForm.svelte';
 	import { useI18n } from '#lib/i18n.ts';
 	import { preparePhoto } from '#lib/image.ts';
 	import { parseLabel } from '#lib/parse.ts';
 	import type { PageProps } from './$types';
 
-	let { form }: PageProps = $props();
+	let { form, data }: PageProps = $props();
 	const { t } = useI18n();
 
 	type Step = 'choose' | 'scanning' | 'form';
-	let step = $state<Step>('choose');
+	type Copy = NonNullable<typeof data.copy>;
+
+	// "Buy again" starts from a copy of an existing wine, without the purchase details
+	const fromCopy = (copy: Copy): WineFormValues => ({
+		...toValues(copy),
+		quantity: 1,
+		purchased_on: '',
+		purchased_at: '',
+		price: '',
+		gifted_by: '',
+		notes: '',
+		ocr_text: ''
+	});
+
+	// initialised from data so the server already renders the copied form
+	const initial = untrack(() => data.copy);
+	let step = $state<Step>(initial ? 'form' : 'choose');
 	let stage = $state<'loading' | 'reading'>('loading');
 	let progress = $state(0);
-	let values = $state<WineFormValues>(emptyValues());
+	let values = $state<WineFormValues>(initial ? fromCopy(initial) : emptyValues());
 	let scanned = $state<string[]>([]);
 	let photo = $state<{ image: Blob; thumb: Blob } | null>(null);
-	let notice = $state('');
+	let notice = $state(initial ? t('add.copied', { name: initial.name }) : '');
 	let formKey = $state(0);
+
+	// a later client-side navigation to /add?from=… reuses this component
+	let copiedId = initial?.id;
+	$effect.pre(() => {
+		const copy = data.copy;
+		if (!copy || copy.id === copiedId) return;
+		copiedId = copy.id;
+		untrack(() => {
+			values = fromCopy(copy);
+			scanned = [];
+			photo = null;
+			notice = t('add.copied', { name: copy.name });
+			formKey++;
+			step = 'form';
+		});
+	});
 
 	async function scan(e: Event) {
 		const input = e.currentTarget as HTMLInputElement;
@@ -108,6 +141,7 @@
 				initial={values}
 				{scanned}
 				bind:photo
+				suggestions={data.suggestions}
 				errors={form?.errors ?? {}}
 				submitLabel={t('common.save')}
 			/>

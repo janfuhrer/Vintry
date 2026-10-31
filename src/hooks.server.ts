@@ -1,4 +1,4 @@
-import { redirect } from '@sveltejs/kit';
+import { redirect, type RequestEvent } from '@sveltejs/kit';
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { building, dev } from '$app/env';
 import { bootstrap, cleanup, readSession } from '#lib/server/auth.ts';
@@ -22,13 +22,25 @@ const PUBLIC_FILES = new Set([
 	'/service-worker.js'
 ]);
 
+/**
+ * adapter-node throws when ADDRESS_HEADER is configured but the proxy didn't send it.
+ * Rate limiting must never take sign-in down, so fall back to one shared bucket.
+ */
+function clientAddress(event: RequestEvent): string {
+	try {
+		return event.getClientAddress();
+	} catch {
+		return 'unknown';
+	}
+}
+
 const isPublic = (path: string) =>
 	PUBLIC_FILES.has(path) || PUBLIC_PREFIXES.some((p) => path === p || path.startsWith(p));
 
 export const handle: Handle = async ({ event, resolve }) => {
 	const path = event.url.pathname;
 
-	if (path.startsWith('/api/auth/') && !allow(event.getClientAddress())) {
+	if (path.startsWith('/api/auth/') && !allow(clientAddress(event))) {
 		return new Response('Too many requests', { status: 429, headers: { 'retry-after': '60' } });
 	}
 

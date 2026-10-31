@@ -21,30 +21,39 @@
 
 	type Group = 'none' | 'country' | 'grape' | 'window';
 	const GROUPS: Group[] = ['none', 'country', 'grape', 'window'];
+	type Sort = 'recent' | 'name' | 'vintage' | 'window';
+	const SORTS: Sort[] = ['recent', 'name', 'vintage', 'window'];
 	const STATUS_ORDER: WindowStatus[] = ['soon', 'ready', 'wait', 'past', 'unknown'];
 
 	let query = $state('');
 	let color = $state<Color | null>(null);
-	// SSR renders ungrouped; the stored choice applies after hydration
+	// SSR renders the defaults; stored choices apply after hydration
 	let group = $state<Group>('none');
+	let sort = $state<Sort>('recent');
 	let showEmpty = $state(false);
 
-	function readGroup(): Group {
+	function readPref<T extends string>(key: string, allowed: T[], fallback: T): T {
 		try {
-			const g = localStorage.getItem('vintry.group') as Group;
-			return GROUPS.includes(g) ? g : 'none';
+			const v = localStorage.getItem(`vintry.${key}`) as T;
+			return allowed.includes(v) ? v : fallback;
 		} catch {
-			return 'none';
+			return fallback;
 		}
 	}
-	onMount(() => (group = readGroup()));
-	function saveGroup() {
+	function savePref(key: string, value: string) {
 		try {
-			localStorage.setItem('vintry.group', group);
+			localStorage.setItem(`vintry.${key}`, value);
 		} catch {
 			// private mode
 		}
 	}
+	onMount(() => {
+		group = readPref('group', GROUPS, 'none');
+		sort = readPref('sort', SORTS, 'recent');
+	});
+
+	const byName = (a: { name: string }, b: { name: string }) => a.name.localeCompare(b.name, i18n.locale);
+	const nullsLast = (a: number | null, b: number | null) => (a ?? Infinity) - (b ?? Infinity);
 
 	const bottles = $derived(data.wines.reduce((n, w) => n + w.quantity, 0));
 	const colorsPresent = $derived(
@@ -52,9 +61,16 @@
 	);
 	const hasEmpty = $derived(data.wines.some((w) => w.quantity === 0));
 
+	// bottles at the end of their window, or past it
+	const drinkNow = $derived(
+		data.wines
+			.filter((w) => w.quantity > 0 && ['soon', 'past'].includes(windowStatus(w.drink_from, w.drink_to)))
+			.sort((a, b) => nullsLast(a.drink_to, b.drink_to))
+	);
+
 	const filtered = $derived.by(() => {
 		const q = normalize(query);
-		return data.wines.filter((w) => {
+		const list = data.wines.filter((w) => {
 			if (!showEmpty && w.quantity === 0) return false;
 			if (color && w.color !== color) return false;
 			if (!q) return true;
@@ -73,6 +89,10 @@
 			);
 			return q.split(' ').every((part) => hay.includes(part));
 		});
+		if (sort === 'name') list.sort(byName);
+		else if (sort === 'vintage') list.sort((a, b) => nullsLast(a.vintage, b.vintage) || byName(a, b));
+		else if (sort === 'window') list.sort((a, b) => nullsLast(a.drink_to, b.drink_to) || byName(a, b));
+		return list;
 	});
 
 	const groups = $derived.by(() => {
@@ -133,8 +153,14 @@
 			<div class="row group-row">
 				<label class="row small muted">
 					{t('cellar.group')}
-					<select class="group-select" bind:value={group} onchange={saveGroup}>
+					<select class="group-select" bind:value={group} onchange={() => savePref('group', group)}>
 						{#each GROUPS as g (g)}<option value={g}>{t(`cellar.group.${g}`)}</option>{/each}
+					</select>
+				</label>
+				<label class="row small muted">
+					{t('cellar.sort')}
+					<select class="group-select" bind:value={sort} onchange={() => savePref('sort', sort)}>
+						{#each SORTS as s (s)}<option value={s}>{t(`cellar.sort.${s}`)}</option>{/each}
 					</select>
 				</label>
 				<span class="spacer"></span>
@@ -145,6 +171,26 @@
 				{/if}
 			</div>
 		</div>
+
+		{#if drinkNow.length && !query && !color}
+			<section class="drink-now" aria-labelledby="drink-now-title">
+				<h2 id="drink-now-title" class="group-title">
+					{t('cellar.drinkNow')} <span class="muted">{drinkNow.length}</span>
+				</h2>
+				<div class="strip">
+					{#each drinkNow as w (w.id)}
+						{@const status = windowStatus(w.drink_from, w.drink_to)}
+						<a class="now-card status-{status}" href="/wine/{w.id}">
+							<span class="now-name">{w.name}</span>
+							<span class="small muted"
+								>{[w.vintage, w.drink_to && `→ ${w.drink_to}`].filter(Boolean).join(' ')}</span
+							>
+							<span class="now-status small"><span class="dot"></span>{t(`status.${status}`)}</span>
+						</a>
+					{/each}
+				</div>
+			</section>
+		{/if}
 
 		{#if filtered.length === 0}
 			<p class="muted center">{t('cellar.noMatch')}</p>
@@ -222,6 +268,50 @@
 	}
 	.group {
 		margin-top: 12px;
+	}
+	.drink-now {
+		margin: 4px 0 8px;
+	}
+	.strip {
+		display: flex;
+		gap: 10px;
+		overflow-x: auto;
+		scrollbar-width: none;
+		margin: 0 -16px;
+		padding: 2px 16px 6px;
+		scroll-snap-type: x mandatory;
+	}
+	.strip::-webkit-scrollbar {
+		display: none;
+	}
+	.now-card {
+		flex: none;
+		width: 150px;
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		padding: 12px;
+		border-radius: var(--radius);
+		background: var(--surface);
+		box-shadow: var(--shadow);
+		border-top: 3px solid var(--status);
+		scroll-snap-align: start;
+	}
+	.now-name {
+		font-weight: 650;
+		overflow: hidden;
+		text-overflow: ellipsis;
+		white-space: nowrap;
+	}
+	.now-status {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		color: var(--status);
+		font-weight: 600;
+	}
+	.now-status .dot {
+		background: var(--status);
 	}
 	.group-title {
 		margin: 8px 4px;

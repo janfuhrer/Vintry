@@ -98,6 +98,7 @@
 		scanned = [],
 		photo = $bindable(null),
 		existingPhoto = null,
+		suggestions = { locations: [], shops: [], givers: [] },
 		errors = {},
 		submitLabel,
 		action = ''
@@ -107,6 +108,8 @@
 		scanned?: string[];
 		photo?: Photo | null;
 		existingPhoto?: string | null;
+		/** Earlier values for the free-text fields */
+		suggestions?: { locations: string[]; shops: string[]; givers: string[] };
 		errors?: Record<string, string>;
 		submitLabel: string;
 		action?: string;
@@ -397,6 +400,7 @@
 			<input
 				class="input"
 				name="location"
+				list="location-list"
 				bind:value={v.location}
 				maxlength="100"
 				placeholder={t('form.locationHint')}
@@ -451,11 +455,17 @@
 			</div>
 			<label class="field">
 				{t('form.purchasedAt')}
-				<input class="input" name="purchased_at" bind:value={v.purchased_at} maxlength="200" />
+				<input
+					class="input"
+					name="purchased_at"
+					list="shop-list"
+					bind:value={v.purchased_at}
+					maxlength="200"
+				/>
 			</label>
 			<label class="field">
 				{t('form.giftedBy')}
-				<input class="input" name="gifted_by" bind:value={v.gifted_by} maxlength="200" />
+				<input class="input" name="gifted_by" list="giver-list" bind:value={v.gifted_by} maxlength="200" />
 			</label>
 			<label class="field">
 				{t('form.notes')}
@@ -465,6 +475,15 @@
 	</details>
 
 	<input type="hidden" name="ocr_text" value={v.ocr_text} />
+	<datalist id="location-list">
+		{#each suggestions.locations as s (s)}<option value={s}></option>{/each}
+	</datalist>
+	<datalist id="shop-list">
+		{#each suggestions.shops as s (s)}<option value={s}></option>{/each}
+	</datalist>
+	<datalist id="giver-list">
+		{#each suggestions.givers as s (s)}<option value={s}></option>{/each}
+	</datalist>
 
 	{#if Object.keys(errors).length}<p class="error" role="alert">{t('form.invalid')}</p>{/if}
 	<div class="submit">

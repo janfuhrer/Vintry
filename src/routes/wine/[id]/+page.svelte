@@ -199,6 +199,8 @@
 		{/if}
 	</section>
 
+	<a class="btn block" href="/add?from={wine.id}"><Icon name="plus" size={18} />{t('wine.buyAgain')}</a>
+
 	<form
 		method="POST"
 		action="?/delete"
