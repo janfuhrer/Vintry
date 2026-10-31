@@ -61,5 +61,13 @@ export function tiltOf(page: OcrPage): number | null {
 	return angles[Math.floor(angles.length / 2)];
 }
 
-/** Below about 2° tesseract reads fine; above, a straightened second pass is worth it */
+/**
+ * Past about 2° a straightened second pass is worth its time. Not higher: on a fragmented
+ * reading the measured tilt comes out well below the real one (a 12° photo can measure under
+ * 5° with Linux fonts), so a higher limit skips exactly the photos that need it. The cost is
+ * one more reading for a photo tilted a few degrees.
+ */
 export const TILT_LIMIT = (2 * Math.PI) / 180;
+
+/** Once straightening, what is left above 1° is worth correcting too (the first measure is rough) */
+export const TILT_RESIDUAL = Math.PI / 180;

@@ -1,5 +1,6 @@
 import type { Color } from '#lib/wine.ts';
 import type { Owned } from '#lib/match.ts';
+import type { Purchase } from './wine-form';
 import { sql } from './db';
 
 export interface Wine {
@@ -184,14 +185,35 @@ export async function restock(
 	userId: string,
 	id: string,
 	photo?: { image: Buffer; thumb: Buffer },
-	bottles = 1
+	bottles = 1,
+	purchase: Partial<Purchase> = {}
 ) {
 	if (!isUuid(id)) return false;
+	const p = {
+		location: null,
+		purchased_on: null,
+		purchased_at: null,
+		price: null,
+		gifted_by: null,
+		notes: null,
+		...purchase
+	};
 	return sql.begin(async (tx) => {
+		// the latest purchase's details win; a new note is added to the old ones
 		const [wine] = await tx<{ has_photo: boolean }[]>`
 			update wines set
 				quantity = case when wishlist then greatest(quantity, ${bottles}) else quantity + ${bottles} end,
-				wishlist = false, updated_at = now()
+				wishlist = false, updated_at = now(),
+				location = coalesce(${p.location}::text, location),
+				purchased_on = coalesce(${p.purchased_on}::date, purchased_on),
+				purchased_at = coalesce(${p.purchased_at}::text, purchased_at),
+				price = coalesce(${p.price}::numeric, price),
+				gifted_by = coalesce(${p.gifted_by}::text, gifted_by),
+				notes = case
+					when ${p.notes}::text is null or position(${p.notes}::text in coalesce(notes, '')) > 0 then notes
+					when notes is null then ${p.notes}::text
+					else notes || E'\n' || ${p.notes}::text
+				end
 			where id = ${id} and user_id = ${userId}
 			returning has_photo
 		`;
@@ -376,7 +398,6 @@ export interface Suggestions {
 	givers: string[];
 }
 
-/** Values the user typed before, most recent first, for the form's datalists */
 /** The same wine (name, producer and vintage, ignoring case) the user has already, if any */
 export async function findDuplicate(userId: string, w: Pick<WineInput, 'name' | 'producer' | 'vintage'>) {
 	const [row] = await sql<
@@ -398,6 +419,7 @@ export async function ownedWines(userId: string): Promise<Owned[]> {
 	`;
 }
 
+/** Values the user typed before, most recent first, for the form's datalists */
 export async function suggestions(userId: string): Promise<Suggestions> {
 	const pick = async (column: 'location' | 'purchased_at' | 'gifted_by') => {
 		const rows = await sql<{ v: string }[]>`
@@ -452,32 +474,62 @@ export async function exportData(userId: string) {
 	return { wines, drinks };
 }
 
-/** Adds many wines at once (CSV import), all or nothing */
 /** Same name, producer and vintage, ignoring case: how imports recognise a wine already there */
 const wineKey = (w: { name: string; producer: string | null; vintage: number | null }) =>
-	[w.name.toLowerCase(), (w.producer ?? '').toLowerCase(), w.vintage ?? ''].join('\u0000');
+	[
+		w.name.normalize('NFC').toLowerCase(),
+		(w.producer ?? '').normalize('NFC').toLowerCase(),
+		w.vintage ?? ''
+	].join('\u0000');
 
+/**
+ * Adds many wines at once (CSV import), all or nothing. With skipOwned, a row for a wine
+ * already in the cellar is left out; one for a wish or a finished wine brings its bottles
+ * to that entry instead of making a second one.
+ */
 export async function importWines(
 	userId: string,
 	inputs: WineInput[],
 	{ skipOwned = false } = {}
-): Promise<{ imported: number; skipped: number }> {
-	let fresh = inputs;
-	if (skipOwned) {
-		const owned = await sql<{ name: string; producer: string | null; vintage: number | null }[]>`
-			select name, producer, vintage from wines where user_id = ${userId}
-		`;
-		const keys = new Set(owned.map(wineKey));
-		fresh = inputs.filter((w) => !keys.has(wineKey(w)));
-	}
-	const skipped = inputs.length - fresh.length;
-	if (!fresh.length) return { imported: 0, skipped };
+): Promise<{ imported: number; skipped: number; restocked: number }> {
 	return sql.begin(async (tx) => {
+		let fresh = inputs;
+		let skipped = 0;
+		let restocked = 0;
+		if (skipOwned) {
+			const owned = await tx<
+				{
+					id: string;
+					name: string;
+					producer: string | null;
+					vintage: number | null;
+					quantity: number;
+					wishlist: boolean;
+				}[]
+			>`select id, name, producer, vintage, quantity, wishlist from wines where user_id = ${userId}`;
+			const byKey = new Map(owned.map((w) => [wineKey(w), w]));
+			fresh = [];
+			for (const input of inputs) {
+				const match = byKey.get(wineKey(input));
+				if (!match) fresh.push(input);
+				else if ((match.wishlist || match.quantity === 0) && input.quantity > 0 && !input.wishlist) {
+					await tx`
+						update wines set quantity = ${input.quantity}, wishlist = false, updated_at = now()
+						where id = ${match.id} and user_id = ${userId}
+					`;
+					// a second row for it in the same sheet is then a wine in the cellar
+					match.quantity = input.quantity;
+					match.wishlist = false;
+					restocked++;
+				} else skipped++;
+			}
+		}
+		if (!fresh.length) return { imported: 0, skipped, restocked };
 		const rows = fresh.map((input) => ({ ...input, user_id: userId, has_photo: false }));
 		const result = await tx`
 			insert into wines ${tx(rows, ...columns, 'user_id', 'has_photo')}
 		`;
-		return { imported: result.count, skipped };
+		return { imported: result.count, skipped, restocked };
 	});
 }
 

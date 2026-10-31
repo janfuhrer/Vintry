@@ -27,7 +27,7 @@ const server = await createServer({
 	server: { middlewareMode: true, hmr: false }
 });
 const { parseLabel } = await server.ssrLoadModule('/src/lib/parse.ts');
-const { extractLines, needsInvertedPass, betterPass, tiltOf, TILT_LIMIT } =
+const { extractLines, needsInvertedPass, betterPass, tiltOf, TILT_LIMIT, TILT_RESIDUAL } =
 	await server.ssrLoadModule('/src/lib/ocr-lines.ts');
 const worker = await createWorker(['eng', 'fra', 'deu'], 1, {
 	langPath: `${root}static/ocr/lang`,
@@ -79,7 +79,7 @@ for (const { name, svg, expect, width } of cases) {
 		const turn = -pass.tilt;
 		let straight = await read(source, turn);
 		// what is left of the tilt after one turn, corrected once more
-		if (straight.tilt !== null && Math.abs(straight.tilt) > TILT_LIMIT / 2)
+		if (straight.tilt !== null && Math.abs(straight.tilt) > TILT_RESIDUAL)
 			straight = betterPass(straight, await read(source, turn - straight.tilt));
 		pass = betterPass(pass, straight);
 	}

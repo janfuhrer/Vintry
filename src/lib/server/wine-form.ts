@@ -11,7 +11,8 @@ export type FieldErrors = Partial<Record<keyof WineInput | 'photo', string>>;
 function str(fd: FormData, key: string, max = 200): string | null {
 	const v = fd.get(key);
 	if (typeof v !== 'string') return null;
-	const s = v.trim().slice(0, max);
+	// one Unicode form, so "Côtes" typed on a phone and pasted from a Mac CSV are the same text
+	const s = v.normalize('NFC').trim().slice(0, max);
 	return s || null;
 }
 
@@ -35,6 +36,25 @@ function decimal(fd: FormData, key: string, max: number, errors: FieldErrors): n
 		return null;
 	}
 	return Math.round(n * 100) / 100;
+}
+
+export type Purchase = Pick<
+	WineInput,
+	'location' | 'purchased_on' | 'purchased_at' | 'price' | 'gifted_by' | 'notes'
+>;
+
+/** Where and how a new purchase came in, validated like the wine form; invalid values are left out */
+export function parsePurchase(fd: FormData): Purchase {
+	const errors: FieldErrors = {};
+	const day = str(fd, 'purchased_on', 10);
+	return {
+		location: str(fd, 'location', 100),
+		purchased_on: day && isISODate(day) ? day : null,
+		purchased_at: str(fd, 'purchased_at'),
+		price: decimal(fd, 'price', 99_999_999, errors),
+		gifted_by: str(fd, 'gifted_by'),
+		notes: str(fd, 'notes', 5000)
+	};
 }
 
 export function parseWineForm(fd: FormData): { input: WineInput; errors: FieldErrors } {

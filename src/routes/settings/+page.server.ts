@@ -166,8 +166,8 @@ export const actions: Actions = {
 			if (Object.keys(errors).length) rejected.push(line);
 			else inputs.push(withSuggestions(input));
 		}
-		const { imported, skipped } = await importWines(locals.user!.id, inputs, { skipOwned });
-		return { imported, skipped, rejected: rejected.slice(0, 20), rejectedCount: rejected.length };
+		const { imported, skipped, restocked } = await importWines(locals.user!.id, inputs, { skipOwned });
+		return { imported, skipped, restocked, rejected: rejected.slice(0, 20), rejectedCount: rejected.length };
 	},
 	addDevice: async ({ locals }) => {
 		const { url } = await createInvite({ createdBy: locals.user!.id, forUser: locals.user!.id, hours: 24 });

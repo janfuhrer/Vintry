@@ -1,6 +1,6 @@
 import type { Worker } from 'tesseract.js';
 import { encode } from './image';
-import { betterPass, extractLines, needsInvertedPass, TILT_LIMIT, tiltOf } from './ocr-lines';
+import { betterPass, extractLines, needsInvertedPass, TILT_LIMIT, TILT_RESIDUAL, tiltOf } from './ocr-lines';
 import type { OcrLine } from './parse';
 
 let worker: Promise<Worker> | undefined;
@@ -86,7 +86,7 @@ export async function readLabel(
 	if (pass.tilt !== null && Math.abs(pass.tilt) > TILT_LIMIT) {
 		const turn = -pass.tilt;
 		let straight = await read(source, turn);
-		if (straight.tilt !== null && Math.abs(straight.tilt) > TILT_LIMIT / 2)
+		if (straight.tilt !== null && Math.abs(straight.tilt) > TILT_RESIDUAL)
 			straight = betterPass(straight, await read(source, turn - straight.tilt));
 		pass = betterPass(pass, straight);
 	}

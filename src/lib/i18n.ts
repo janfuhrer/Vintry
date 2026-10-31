@@ -277,6 +277,7 @@ const en = {
 	'import.button': 'Import {n} wines',
 	'import.done': '{n} wines imported.',
 	'import.skipped': '{n} already in your cellar, left out.',
+	'import.restocked': '{n} from your wishlist or finished wines got their bottles.',
 	'import.includeOwned': 'Also import wines I already have (same name, producer and vintage)',
 	'import.rejected': 'Skipped rows with invalid values: {rows}',
 	'import.error': 'The file could not be read.',
@@ -559,6 +560,7 @@ const de: Record<Key, string> = {
 	'settings.exportHint': 'Für Tabellen oder als Sicherung. Die Fotos gibt es als separates ZIP.',
 	'import.title': 'Aus einer Tabelle importieren',
 	'import.skipped': '{n} schon in deinem Keller, ausgelassen.',
+	'import.restocked': '{n} von der Merkliste oder ausgetrunkene Weine haben ihre Flaschen bekommen.',
 	'import.includeOwned': 'Auch Weine importieren, die ich schon habe (gleicher Name, Produzent und Jahrgang)',
 	'import.hint':
 		'Eine CSV-Datei mit einem Wein pro Zeile und Spaltennamen in der ersten Zeile (Name, Weingut, Jahrgang, …). Excel: Speichern unter → CSV. Ein Vivino-Export funktioniert direkt.',

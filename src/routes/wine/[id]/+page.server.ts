@@ -12,7 +12,7 @@ import {
 	setQuantity,
 	setRating
 } from '#lib/server/wines.ts';
-import { parsePhoto, type FieldErrors } from '#lib/server/wine-form.ts';
+import { parsePhoto, parsePurchase, type FieldErrors } from '#lib/server/wine-form.ts';
 import { isISODate } from '#lib/dates.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -46,8 +46,10 @@ export const actions: Actions = {
 		const photo = (await parsePhoto(fd, errors)) ?? undefined;
 		if (Object.keys(errors).length) return fail(400, { errors });
 		// how many were bought, from the add form; one for a quick "add a bottle"
-		const bottles = Math.min(999, Math.max(1, Math.trunc(Number(fd.get('bottles'))) || 1));
-		if (!(await restock(locals.user!.id, params.id, photo, bottles))) error(404, 'Not found');
+		const bottles = Math.min(9999, Math.max(1, Math.trunc(Number(fd.get('bottles'))) || 1));
+		// from the add form: where it goes and what this purchase cost
+		if (!(await restock(locals.user!.id, params.id, photo, bottles, parsePurchase(fd))))
+			error(404, 'Not found');
 	},
 	quantity: async ({ request, locals, params }) => {
 		const delta = Number((await request.formData()).get('delta'));

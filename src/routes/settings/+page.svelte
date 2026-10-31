@@ -327,6 +327,7 @@
 		{#if form?.imported !== undefined}
 			<p class="success" role="status">
 				{form.imported === 1 ? t('import.doneOne') : t('import.done', { n: form.imported })}
+				{#if form.restocked}{t('import.restocked', { n: form.restocked })}{/if}
 				{#if form.skipped}{t('import.skipped', { n: form.skipped })}{/if}
 			</p>
 			{#if form.rejectedCount}

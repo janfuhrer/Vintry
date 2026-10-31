@@ -348,6 +348,22 @@ describe('cellar', () => {
 		assert.equal((await count()).length, 2, 'a separate entry when asked for');
 		const otherVintage = await alice.action('/add', form({ vintage: '2019' }));
 		assert.equal(otherVintage.type, 'redirect', 'another vintage is another wine');
+
+		// adding the bottles keeps what was typed for this purchase
+		await alice.action(`/wine/${again.duplicate.id}?/restock`, {
+			bottles: '1',
+			price: '31.50',
+			purchased_at: 'Weinkeller Neu',
+			notes: 'second case'
+		});
+		const restocked = (await count()).find((w) => w.id === again.duplicate.id);
+		assert.deepEqual(
+			[restocked.quantity, restocked.price, restocked.purchased_at, restocked.notes],
+			[6, 31.5, 'Weinkeller Neu', 'second case']
+		);
+		// a wish adds no bottles: nothing to ask
+		const wish = await alice.action('/add', form({ wishlist: 'on' }));
+		assert.equal(wish.type, 'redirect');
 	});
 
 	test('removing a drink entry puts the bottle back', async () => {
@@ -580,6 +596,27 @@ describe('your data', () => {
 			).data
 		);
 		assert.deepEqual([forced.imported, forced.skipped], [1, 0]);
+
+		// a wish or a finished wine in the sheet with bottles gets them, instead of a second entry
+		const fd = new FormData();
+		for (const [k, v] of Object.entries({ name: 'Sheet Wish', color: 'red', wishlist: 'on' }))
+			fd.append(k, v);
+		await alice.req('/add', { method: 'POST', form: fd, page: true });
+		const sheet = devalue.parse(
+			(
+				await alice.action('/settings?/import', {
+					rows: JSON.stringify([{ name: 'sheet wish', quantity: '6' }])
+				})
+			).data
+		);
+		assert.deepEqual([sheet.imported, sheet.restocked], [0, 1]);
+		const wish = (await (await alice.req('/export/vintry.json')).json()).wines.filter(
+			(w) => w.name === 'Sheet Wish'
+		);
+		assert.deepEqual(
+			wish.map((w) => [w.wishlist, w.quantity]),
+			[[false, 6]]
+		);
 	});
 
 	test('a formula in a wine name stays text in the CSV', async () => {

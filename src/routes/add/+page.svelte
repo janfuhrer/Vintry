@@ -317,6 +317,12 @@
 									formData.set('photo', new File([photo.image], 'photo.jpg', { type: 'image/jpeg' }));
 									formData.set('thumb', new File([photo.thumb], 'thumb.jpg', { type: 'image/jpeg' }));
 								}
+								// what was typed for this purchase goes along: place, shop, date, price, notes
+								const typed = wineForm?.snapshot();
+								if (typed) {
+									formData.set('bottles', String(typed.quantity || 1));
+									for (const k of KEPT) if (k !== 'quantity') formData.set(k, String(typed[k] ?? ''));
+								}
 								return async ({ result }) => {
 									if (result.type === 'success') await goto(`/wine/${dup.id}`);
 									else await applyAction(result);

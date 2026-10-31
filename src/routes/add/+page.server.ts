@@ -17,7 +17,8 @@ export const actions: Actions = {
 		const photo = await parsePhoto(fd, errors);
 		if (Object.keys(errors).length) return fail(400, { errors });
 		// the same wine again is usually more bottles of it; a second entry only when asked for
-		if (!fd.has('allow_duplicate')) {
+		// (a wish or a wine without bottles adds nothing to an entry, so there is nothing to ask)
+		if (!fd.has('allow_duplicate') && !input.wishlist && input.quantity > 0) {
 			const duplicate = await findDuplicate(locals.user!.id, input);
 			if (duplicate) return fail(409, { errors: {}, duplicate, bottles: input.quantity });
 		}
