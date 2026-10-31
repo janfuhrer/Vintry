@@ -144,4 +144,14 @@ describe('pairings', () => {
 		).toBeLessThanOrEqual(5);
 		expect(pairings({ grapes: ['Unknown'], color: 'red' }, 'en')).toEqual([]);
 	});
+
+	test('sweet, fortified and sparkling wines get what their style asks for', async () => {
+		const { pairings } = await import('./wine');
+		const port = pairings({ grapes: ['Touriga Nacional'], color: 'fortified' }, 'en');
+		expect(port[0]).toBe('dark chocolate');
+		expect(port.length).toBeLessThanOrEqual(5);
+		expect(pairings({ grapes: ['Riesling'], color: 'sweet' }, 'de')).toContain('Blauschimmelkäse');
+		expect(pairings({ grapes: ['Riesling'], color: 'sweet' }, 'en')).not.toContain('sushi');
+		expect(pairings({ grapes: ['Chardonnay'], color: 'sparkling' }, 'en')).toContain('oysters');
+	});
 });

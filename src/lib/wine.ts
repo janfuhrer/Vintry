@@ -198,10 +198,29 @@ export function servingTemp(color: Color, body: number | null | undefined): [num
 }
 
 /** What goes with the wine: its grapes' pairings, else those of the region's typical grapes */
+/**
+ * What the style asks for, whatever the grape: a Port made from Touriga Nacional wants
+ * chocolate rather than the roast lamb its dry wines suit.
+ */
+const STYLE_PAIRING: Partial<Record<Color, { en: string[]; de: string[] }>> = {
+	sweet: {
+		en: ['fruit desserts', 'blue cheese', 'foie gras', 'crème brûlée'],
+		de: ['Fruchtdesserts', 'Blauschimmelkäse', 'Foie gras', 'Crème brûlée']
+	},
+	fortified: {
+		en: ['dark chocolate', 'blue cheese', 'nuts', 'dried fruit'],
+		de: ['dunkle Schokolade', 'Blauschimmelkäse', 'Nüsse', 'Trockenfrüchte']
+	},
+	sparkling: { en: ['aperitif', 'oysters', 'fried food'], de: ['Apéro', 'Austern', 'Frittiertes'] }
+};
+
 export function pairings(
 	input: { grapes: string[]; region?: string | null; color: Color },
 	locale: 'en' | 'de'
 ): string[] {
+	const style = STYLE_PAIRING[input.color]?.[locale] ?? [];
+	// a sweet wine's grape pairings describe its dry wines; the others add to the style
+	if (input.color === 'sweet') return style;
 	let known = input.grapes.map(findGrape).filter((g): g is Grape => !!g);
 	if (!known.length && input.region) {
 		known = (findRegion(input.region)?.grapes ?? [])
@@ -209,5 +228,5 @@ export function pairings(
 			.filter((g): g is Grape => !!g && matchesColor(g, input.color))
 			.slice(0, 2);
 	}
-	return [...new Set(known.flatMap((g) => g.pairing[locale]))].slice(0, 5);
+	return [...new Set([...style, ...known.flatMap((g) => g.pairing[locale])])].slice(0, 5);
 }
