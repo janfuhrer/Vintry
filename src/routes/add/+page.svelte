@@ -142,6 +142,11 @@
 		return out as Partial<WineFormValues>;
 	}
 
+	/** Brings a notice into view: Save is at the bottom of a long form */
+	function reveal(node: HTMLElement) {
+		node.scrollIntoView({ behavior: 'smooth', block: 'center' });
+	}
+
 	// the back label: alcohol, size, grapes and producer are often only there
 	let wineForm: ReturnType<typeof WineForm> | undefined = $state();
 	let backBusy = $state(false);
@@ -291,6 +296,43 @@
 		{/if}
 		<!-- hidden, not unmounted, while cropping: what was typed or read from the back stays -->
 		<div hidden={step === 'crop'}>
+			{#if form?.duplicate}
+				{@const dup = form.duplicate}
+				{@const label = [dup.name, dup.vintage].filter(Boolean).join(' ')}
+				<div class="notice same small" role="alert" use:reveal>
+					<p>
+						{dup.wishlist
+							? t('add.sameWish', { name: label })
+							: dup.quantity > 0
+								? t('add.same', { name: label, count: dup.quantity })
+								: t('add.sameFinished', { name: label })}
+					</p>
+					<div class="notice-actions">
+						<form
+							method="POST"
+							action="/wine/{dup.id}?/restock"
+							enctype="multipart/form-data"
+							use:enhance={({ formData }) => {
+								if (photo) {
+									formData.set('photo', new File([photo.image], 'photo.jpg', { type: 'image/jpeg' }));
+									formData.set('thumb', new File([photo.thumb], 'thumb.jpg', { type: 'image/jpeg' }));
+								}
+								return async ({ result }) => {
+									if (result.type === 'success') await goto(`/wine/${dup.id}`);
+									else await applyAction(result);
+								};
+							}}
+						>
+							<input type="hidden" name="bottles" value={form.bottles || 1} />
+							<button class="btn primary small">{t('add.addBottles', { n: form.bottles || 1 })}</button>
+						</form>
+						<!-- submits the wine form itself, once more, with the go-ahead -->
+						<button class="btn small" type="submit" form="wine-form" name="allow_duplicate" value="1"
+							>{t('add.saveSeparately')}</button
+						>
+					</div>
+				</div>
+			{/if}
 			{#if same}
 				{@const label = [[same.name, same.vintage].filter(Boolean).join(' '), same.producer]
 					.filter(Boolean)

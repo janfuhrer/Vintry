@@ -244,6 +244,7 @@
 </script>
 
 <form
+	id="wine-form"
 	method="POST"
 	{action}
 	enctype="multipart/form-data"

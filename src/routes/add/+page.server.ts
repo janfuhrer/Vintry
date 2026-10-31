@@ -1,6 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { parsePhoto, parseWineForm } from '#lib/server/wine-form.ts';
-import { createWine, getWine, ownedWines, suggestions } from '#lib/server/wines.ts';
+import { createWine, findDuplicate, getWine, ownedWines, suggestions } from '#lib/server/wines.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
@@ -16,6 +16,11 @@ export const actions: Actions = {
 		const { input, errors } = parseWineForm(fd);
 		const photo = await parsePhoto(fd, errors);
 		if (Object.keys(errors).length) return fail(400, { errors });
+		// the same wine again is usually more bottles of it; a second entry only when asked for
+		if (!fd.has('allow_duplicate')) {
+			const duplicate = await findDuplicate(locals.user!.id, input);
+			if (duplicate) return fail(409, { errors: {}, duplicate, bottles: input.quantity });
+		}
 		const id = await createWine(locals.user!.id, input, photo);
 		redirect(303, `/wine/${id}`);
 	}

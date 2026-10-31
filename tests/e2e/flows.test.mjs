@@ -322,6 +322,34 @@ describe('cellar', () => {
 		assert.ok(!html.includes(`href="${other}"`), 'another producer is another wine');
 	});
 
+	test('adding a wine you already have asks first', async () => {
+		const fields = { name: 'Twice', producer: 'Same Estate', vintage: '2018', color: 'red', quantity: '2' };
+		const form = (extra = {}) => {
+			const fd = new FormData();
+			for (const [k, v] of Object.entries({ ...fields, ...extra })) fd.append(k, v);
+			return fd;
+		};
+		const first = await alice.req('/add', { method: 'POST', form: form(), page: true });
+		assert.equal(first.status, 303);
+		const again = devalue.parse((await alice.action('/add', form({ name: 'twice', quantity: '3' }))).data);
+		assert.equal(again.duplicate.name, 'Twice', 'same wine, whatever the case');
+		assert.equal(again.bottles, 3);
+		const count = async () =>
+			(await (await alice.req('/export/vintry.json')).json()).wines.filter(
+				(w) => w.name.toLowerCase() === 'twice'
+			);
+		assert.equal((await count()).length, 1, 'nothing saved yet');
+
+		await alice.action(`/wine/${again.duplicate.id}?/restock`, { bottles: '3' });
+		assert.equal((await count())[0].quantity, 5, 'the three bottles went to the existing wine');
+
+		const separate = await alice.action('/add', form({ allow_duplicate: '1' }));
+		assert.equal(separate.type, 'redirect');
+		assert.equal((await count()).length, 2, 'a separate entry when asked for');
+		const otherVintage = await alice.action('/add', form({ vintage: '2019' }));
+		assert.equal(otherVintage.type, 'redirect', 'another vintage is another wine');
+	});
+
 	test('removing a drink entry puts the bottle back', async () => {
 		const qty = async () => {
 			const html = await (await alice.req(wineUrl, { page: true })).text();

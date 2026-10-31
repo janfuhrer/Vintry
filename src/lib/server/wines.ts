@@ -177,15 +177,20 @@ export async function setQuantity(userId: string, id: string, delta: number) {
 }
 
 /**
- * One more bottle of a wine the user scanned again (or the first, for a wish), plus the
+ * More bottles of a wine the user has already (or the first ones, for a wish), plus the
  * label photo when the wine had none. An existing photo is never replaced from here.
  */
-export async function restock(userId: string, id: string, photo?: { image: Buffer; thumb: Buffer }) {
+export async function restock(
+	userId: string,
+	id: string,
+	photo?: { image: Buffer; thumb: Buffer },
+	bottles = 1
+) {
 	if (!isUuid(id)) return false;
 	return sql.begin(async (tx) => {
 		const [wine] = await tx<{ has_photo: boolean }[]>`
 			update wines set
-				quantity = case when wishlist then greatest(quantity, 1) else quantity + 1 end,
+				quantity = case when wishlist then greatest(quantity, ${bottles}) else quantity + ${bottles} end,
 				wishlist = false, updated_at = now()
 			where id = ${id} and user_id = ${userId}
 			returning has_photo
@@ -372,6 +377,20 @@ export interface Suggestions {
 }
 
 /** Values the user typed before, most recent first, for the form's datalists */
+/** The same wine (name, producer and vintage, ignoring case) the user has already, if any */
+export async function findDuplicate(userId: string, w: Pick<WineInput, 'name' | 'producer' | 'vintage'>) {
+	const [row] = await sql<
+		{ id: string; name: string; vintage: number | null; quantity: number; wishlist: boolean }[]
+	>`
+		select id, name, vintage, quantity, wishlist from wines
+		where user_id = ${userId} and lower(name) = lower(${w.name})
+			and lower(coalesce(producer, '')) = lower(${w.producer ?? ''})
+			and vintage is not distinct from ${w.vintage}
+		order by wishlist, quantity desc limit 1
+	`;
+	return row ?? null;
+}
+
 /** Just enough to recognise a scanned label as a wine the user already has */
 export async function ownedWines(userId: string): Promise<Owned[]> {
 	return sql<Owned[]>`

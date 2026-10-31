@@ -45,7 +45,9 @@ export const actions: Actions = {
 		const errors: FieldErrors = {};
 		const photo = (await parsePhoto(fd, errors)) ?? undefined;
 		if (Object.keys(errors).length) return fail(400, { errors });
-		if (!(await restock(locals.user!.id, params.id, photo))) error(404, 'Not found');
+		// how many were bought, from the add form; one for a quick "add a bottle"
+		const bottles = Math.min(999, Math.max(1, Math.trunc(Number(fd.get('bottles'))) || 1));
+		if (!(await restock(locals.user!.id, params.id, photo, bottles))) error(404, 'Not found');
 	},
 	quantity: async ({ request, locals, params }) => {
 		const delta = Number((await request.formData()).get('delta'));
