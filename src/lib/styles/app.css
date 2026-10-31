@@ -78,6 +78,9 @@ body {
 body {
 	min-height: 100dvh;
 	overscroll-behavior-y: none;
+	/* nothing may make the page wider than the phone: in the installed app a too-wide element
+	   lets the whole page pan sideways. clip, not hidden, so sticky headers keep working */
+	overflow-x: clip;
 }
 
 h1,

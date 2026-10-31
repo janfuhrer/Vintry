@@ -382,7 +382,14 @@
 	.chips::-webkit-scrollbar {
 		display: none;
 	}
+	/* German labels and the wider selects don't fit one line on a phone */
+	.group-row {
+		flex-wrap: wrap;
+		row-gap: 2px;
+	}
 	.group-select {
+		/* as wide as the chosen option, not the longest one, where supported */
+		field-sizing: content;
 		border: 0;
 		background: none;
 		color: var(--text);
