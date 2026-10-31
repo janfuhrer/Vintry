@@ -257,6 +257,19 @@ describe('people', () => {
 		assert.equal(await phone.login(new Client(base)), true);
 	});
 
+	test('an admin can create a device link for someone who lost their phone', async () => {
+		const html = await (await alice.req('/settings', { page: true })).text();
+		const bobId = html.match(/action="\?\/deviceLinkFor"[\s\S]*?name="id" value="([0-9a-f-]{36})"/)[1];
+		const r = await alice.action('/settings?/deviceLinkFor', { id: bobId });
+		assert.equal(r.type, 'success');
+		const newPhone = new Authenticator(rpId);
+		assert.equal((await newPhone.register(new Client(base), inviteFrom(r.data), 'ignored')).ok, true);
+		const c = new Client(base);
+		assert.equal(await newPhone.login(c), true);
+		assert.match(await (await c.req('/settings', { page: true })).text(), /Bob/);
+		assert.equal((await bob.action('/settings?/deviceLinkFor', { id: bobId })).type, 'error', 'admins only');
+	});
+
 	test('the last passkey cannot be deleted', async () => {
 		const c = new Client(base);
 		const solo = new Authenticator(rpId);

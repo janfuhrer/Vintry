@@ -12,5 +12,10 @@ export const variables = defineEnvVars({
 			const url = new URL(value || 'http://localhost:5173');
 			return url.origin;
 		}
+	},
+	RECOVERY_USER: {
+		description:
+			'Name of a user who lost all passkeys. On start, a one-time link to add a device for them is written to the log. Remove it again afterwards.',
+		schema: (value) => value?.trim() || undefined
 	}
 });

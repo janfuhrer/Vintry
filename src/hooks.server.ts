@@ -1,7 +1,8 @@
 import { redirect, type RequestEvent } from '@sveltejs/kit';
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { building, dev } from '$app/env';
-import { bootstrap, cleanup, readSession } from '#lib/server/auth.ts';
+import { RECOVERY_USER } from '$app/env/private';
+import { bootstrap, cleanup, readSession, recoveryLink } from '#lib/server/auth.ts';
 import { closeDb, migrate } from '#lib/server/db.ts';
 import { allow } from '#lib/server/ratelimit.ts';
 import { pickLocale } from '#lib/i18n.ts';
@@ -10,6 +11,7 @@ export const init: ServerInit = async () => {
 	if (building) return;
 	await migrate();
 	await bootstrap();
+	await recoveryLink(RECOVERY_USER);
 	setInterval(() => cleanup().catch((e) => console.error('[vintry] cleanup failed', e)), 3_600_000).unref();
 	// adapter-node closes the HTTP server on SIGTERM and then emits this. Open database
 	// connections would keep Node alive until the platform kills it at the end of its grace

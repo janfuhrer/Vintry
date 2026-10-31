@@ -208,6 +208,9 @@
 			{/if}
 
 			<h2>{t('settings.users')}</h2>
+			{#if form?.recoveryLink}
+				{@render linkBox(form.recoveryLink, t('settings.deviceLinkForHint', { name: form.recoveryFor }))}
+			{/if}
 			<ul class="list">
 				{#each data.admin.users as u (u.id)}
 					<li class="row">
@@ -219,6 +222,13 @@
 							</div>
 							<div class="muted small">{fmt(u.created_at)} · {u.wines} 🍷</div>
 						</div>
+						{#if u.id !== data.admin.me}
+							<!-- someone lost their phone: a one-time link to add a passkey for them -->
+							<form method="POST" action="?/deviceLinkFor" use:enhance>
+								<input type="hidden" name="id" value={u.id} />
+								<button class="btn small">{t('settings.deviceLinkFor')}</button>
+							</form>
+						{/if}
 						{#if !u.is_admin}
 							<form method="POST" action="?/makeAdmin" use:enhance>
 								<input type="hidden" name="id" value={u.id} />

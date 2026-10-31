@@ -50,7 +50,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		order by created_at desc
 	`;
 	// the id is a token hash: fine to use as a handle, it can't be turned back into a link
-	return { passkeys, sessions, admin: { users, invites } };
+	return { passkeys, sessions, admin: { users, invites, me: user.id } };
 };
 
 export const actions: Actions = {
@@ -162,6 +162,21 @@ export const actions: Actions = {
 			hours: 24 * 7
 		});
 		return { inviteLink: url };
+	},
+	deviceLinkFor: async ({ request, locals }) => {
+		// for someone who lost their phone: a one-time link to add a passkey to their account
+		if (!locals.user!.is_admin) error(403, 'Forbidden');
+		const id = String((await request.formData()).get('id'));
+		if (!/^[0-9a-f-]{36}$/i.test(id)) return fail(400);
+		const [user] = await sql<{ name: string }[]>`select name from users where id = ${id}`;
+		if (!user) return fail(404);
+		const { url } = await createInvite({
+			createdBy: locals.user!.id,
+			forUser: id,
+			note: 'recovery',
+			hours: 24
+		});
+		return { recoveryLink: url, recoveryFor: user.name };
 	},
 	makeAdmin: async ({ request, locals }) => {
 		if (!locals.user!.is_admin) error(403, 'Forbidden');

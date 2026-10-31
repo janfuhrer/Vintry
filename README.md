@@ -69,6 +69,13 @@ Passkeys work on `localhost` over plain HTTP. Any other host needs HTTPS.
 
 The production server is the SvelteKit Node adapter. Behind a reverse proxy it uses the `Host` header and assumes HTTPS. See the [adapter-node docs](https://svelte.dev/docs/kit/adapter-node) for `PROTOCOL_HEADER`, `HOST_HEADER` and `ADDRESS_HEADER`.
 
+## Lost passkeys
+
+- **Someone else lost their phone:** an admin opens Settings → People → _Device link_ and passes
+  the one-time link on. Opened on the new device, it adds a passkey to that person's account.
+- **The only admin lost every passkey:** set `RECOVERY_USER=<name>` and restart. The server logs a
+  one-time device link for that user, like the first-start invite. Remove the variable afterwards.
+
 ## Deployment
 
 The `Dockerfile` builds a small production image that runs as a non-root user on port 3000:

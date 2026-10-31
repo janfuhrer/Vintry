@@ -216,6 +216,9 @@ const en = {
 	'settings.signOutDevice': 'Sign out',
 	'settings.signOutOthers': 'Sign out all other devices',
 	'settings.makeAdmin': 'Make admin',
+	'settings.deviceLinkFor': 'Device link',
+	'settings.deviceLinkForHint':
+		'For {name}: opens on their new device and adds a passkey to their account. Valid 24 hours, works once.',
 	'settings.data': 'Your data',
 	'settings.exportWines': 'Cellar (CSV)',
 	'settings.exportDrinks': 'History (CSV)',
@@ -458,6 +461,9 @@ const de: Record<Key, string> = {
 	'settings.signOutDevice': 'Abmelden',
 	'settings.signOutOthers': 'Alle anderen Geräte abmelden',
 	'settings.makeAdmin': 'Zum Admin machen',
+	'settings.deviceLinkFor': 'Geräte-Link',
+	'settings.deviceLinkForHint':
+		'Für {name}: auf dem neuen Gerät öffnen, fügt dem Konto einen Passkey hinzu. 24 Stunden gültig, einmal nutzbar.',
 	'settings.data': 'Deine Daten',
 	'settings.exportWines': 'Keller (CSV)',
 	'settings.exportDrinks': 'Verlauf (CSV)',

@@ -134,6 +134,28 @@ export async function bootstrap() {
 	console.log(`[vintry] No users yet. Open this link within 24 h to create the admin account:\n${url}`);
 }
 
+/**
+ * Recovery when someone lost every passkey, the only admin included: with RECOVERY_USER set,
+ * start-up logs a one-time "add a device" link for that user. Needs access to the hosting's
+ * environment and logs, which is the point.
+ */
+export async function recoveryLink(name: string | undefined) {
+	if (!name) return;
+	const users = await sql<{ id: string; name: string }[]>`
+		select id, name from users where lower(name) = lower(${name})
+	`;
+	if (users.length !== 1) {
+		console.log(
+			`[vintry] RECOVERY_USER: ${users.length ? 'several' : 'no'} users named "${name}"; no link created.`
+		);
+		return;
+	}
+	const { url } = await createInvite({ createdBy: null, forUser: users[0].id, note: 'recovery', hours: 24 });
+	console.log(
+		`[vintry] Recovery for "${users[0].name}": open this link within 24 h on the new device, then remove RECOVERY_USER:\n${url}`
+	);
+}
+
 export async function cleanup() {
 	await sql`delete from sessions where expires_at < now()`;
 	await sql`delete from challenges where expires_at < now()`;
