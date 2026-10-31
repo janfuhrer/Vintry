@@ -309,3 +309,15 @@ export async function exportData(userId: string) {
 	`;
 	return { wines, drinks };
 }
+
+/** Adds many wines at once (CSV import), all or nothing */
+export async function importWines(userId: string, inputs: WineInput[]): Promise<number> {
+	if (!inputs.length) return 0;
+	return sql.begin(async (tx) => {
+		const rows = inputs.map((input) => ({ ...input, user_id: userId, has_photo: false }));
+		const result = await tx`
+			insert into wines ${tx(rows, ...columns, 'user_id', 'has_photo')}
+		`;
+		return result.count;
+	});
+}

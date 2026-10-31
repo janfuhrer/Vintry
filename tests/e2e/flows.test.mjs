@@ -3,6 +3,7 @@
 import assert from 'node:assert/strict';
 import { randomBytes } from 'node:crypto';
 import { describe, test } from 'node:test';
+import * as devalue from 'devalue';
 import { Authenticator, Client } from './client.mjs';
 
 const base = process.env.E2E_BASE;
@@ -270,6 +271,25 @@ describe('your data', () => {
 		const bobCsv = await (await bob.req('/export/wines.csv')).text();
 		assert.ok(!bobCsv.includes('Cornalin Test'), "Bob's export has no Alice wines");
 		assert.equal((await alice.req('/export/secrets.txt')).status, 404);
+	});
+
+	test('import wines from a spreadsheet; invalid rows are skipped', async () => {
+		const rows = [
+			{ name: 'Imported Merlot', vintage: '2020', color: 'red', grapes: ['merlot'], quantity: '6' },
+			{ name: 'Imported Riesling', country: 'DE', purchased_on: '2024-05-01' },
+			{ name: 'Broken vintage', vintage: 'next year' },
+			{ vintage: '2019' }
+		];
+		const r = await alice.action('/settings?/import', { rows: JSON.stringify(rows) });
+		assert.equal(r.type, 'success');
+		const data = devalue.parse(r.data);
+		assert.equal(data.imported, 2);
+		assert.deepEqual(data.rejected, [4, 5], 'spreadsheet rows: header is row 1');
+		const html = await (await alice.req('/', { page: true })).text();
+		assert.ok(html.includes('Imported Merlot') && html.includes('Imported Riesling'));
+		assert.ok(!html.includes('Broken vintage'));
+		const bad = await alice.action('/settings?/import', { rows: 'not json' });
+		assert.equal(bad.type, 'failure');
 	});
 
 	test('a formula in a wine name stays text in the CSV', async () => {

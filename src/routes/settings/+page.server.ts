@@ -7,6 +7,8 @@ import {
 	SESSION_COOKIE
 } from '#lib/server/auth.ts';
 import { deviceLabel } from '#lib/server/device.ts';
+import { parseWineForm } from '#lib/server/wine-form.ts';
+import { importWines } from '#lib/server/wines.ts';
 import { sql } from '#lib/server/db.ts';
 import { isLocale } from '#lib/i18n.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -115,6 +117,32 @@ export const actions: Actions = {
 	revokeOtherSessions: async ({ locals, cookies }) => {
 		const current = currentSessionId(cookies);
 		await sql`delete from sessions where user_id = ${locals.user!.id} and id <> ${current ?? ''}`;
+	},
+	import: async ({ request, locals }) => {
+		let rows: unknown;
+		try {
+			rows = JSON.parse(String((await request.formData()).get('rows') ?? '[]'));
+		} catch {
+			return fail(400, { importError: 'format' });
+		}
+		if (!Array.isArray(rows) || rows.length === 0) return fail(400, { importError: 'empty' });
+		if (rows.length > 2000) return fail(400, { importError: 'tooMany' });
+		// every row goes through the same validation as the wine form
+		const inputs = [];
+		const rejected: number[] = [];
+		for (const [i, row] of rows.entries()) {
+			const fd = new FormData();
+			if (row && typeof row === 'object')
+				for (const [k, v] of Object.entries(row))
+					for (const x of Array.isArray(v) ? v : [v]) if (typeof x === 'string') fd.append(k, x);
+			if (!fd.has('quantity')) fd.set('quantity', '1');
+			const { input, errors } = parseWineForm(fd);
+			if (Object.keys(errors).length)
+				rejected.push(i + 2); // spreadsheet row: header is row 1
+			else inputs.push(input);
+		}
+		const imported = await importWines(locals.user!.id, inputs);
+		return { imported, rejected: rejected.slice(0, 20), rejectedCount: rejected.length };
 	},
 	addDevice: async ({ locals }) => {
 		const { url } = await createInvite({ createdBy: locals.user!.id, forUser: locals.user!.id, hours: 24 });

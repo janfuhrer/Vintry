@@ -1,7 +1,9 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import Icon from '#lib/components/Icon.svelte';
+	import { parseCsv } from '#lib/csv.ts';
 	import { LOCALES, useI18n } from '#lib/i18n.ts';
+	import { mapTable, type ColumnMapping, type ImportRow } from '#lib/import.ts';
 	import type { PageProps } from './$types';
 
 	let { data, form }: PageProps = $props();
@@ -13,6 +15,24 @@
 		new Date(d).toLocaleDateString(i18n.locale, { day: 'numeric', month: 'short', year: 'numeric' });
 
 	let renaming = $state<string | null>(null);
+
+	// CSV import: parsed in the browser for the preview, validated again on the server
+	let preview = $state<{ columns: ColumnMapping[]; rows: ImportRow[] } | null>(null);
+	let readError = $state(false);
+	async function pickCsv(e: Event) {
+		const input = e.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		input.value = '';
+		readError = false;
+		preview = null;
+		if (!file) return;
+		try {
+			preview = mapTable(parseCsv(await file.text()));
+		} catch {
+			readError = true;
+		}
+	}
+	const hasName = $derived(preview?.columns.some((c) => c.field === 'name') ?? false);
 	let copied = $state('');
 	async function copy(text: string) {
 		try {
@@ -227,6 +247,76 @@
 		<p class="muted small">{t('settings.exportHint')}</p>
 	</section>
 
+	<section class="card stack">
+		<h2>{t('import.title')}</h2>
+		<p class="muted small">{t('import.hint')}</p>
+		{#if form?.imported !== undefined}
+			<p class="success" role="status">{t('import.done', { n: form.imported })}</p>
+			{#if form.rejectedCount}
+				<p class="error">
+					{t('import.rejected', {
+						rows: form.rejected.join(', ') + (form.rejectedCount > form.rejected.length ? ' …' : '')
+					})}
+				</p>
+			{/if}
+		{/if}
+		{#if form?.importError}
+			<p class="error" role="alert">
+				{form.importError === 'tooMany' ? t('import.tooMany') : t('import.error')}
+			</p>
+		{/if}
+		{#if readError}<p class="error" role="alert">{t('import.error')}</p>{/if}
+		<label class="btn small">
+			{t('import.choose')}
+			<input class="visually-hidden" type="file" accept=".csv,text/csv,text/plain" onchange={pickCsv} />
+		</label>
+		{#if preview}
+			{#if !hasName}
+				<p class="error">{t('import.noName')}</p>
+			{:else}
+				<p>
+					<strong
+						>{preview.rows.length === 1
+							? t('import.foundOne')
+							: t('import.found', { n: preview.rows.length })}</strong
+					>
+				</p>
+				<div class="small">
+					<span class="muted">{t('import.columns')}:</span>
+					{#each preview.columns as c (c.header)}
+						<span class="chip import-col" class:ignored={!c.field}>
+							{c.header}{#if !c.field}<span class="sep">·</span>{t('import.ignored')}{/if}
+						</span>
+					{/each}
+				</div>
+				<ul class="list small">
+					{#each preview.rows.slice(0, 5) as r, i (i)}
+						<li>
+							{r.name}{#if r.vintage}<span class="sep">·</span>{r.vintage}{/if}{#if r.producer}<span
+									class="sep">·</span
+								><span class="muted">{r.producer}</span>{/if}
+						</li>
+					{/each}
+					{#if preview.rows.length > 5}<li class="muted">…</li>{/if}
+				</ul>
+				<form
+					method="POST"
+					action="?/import"
+					use:enhance={() =>
+						async ({ update }) => {
+							await update();
+							preview = null;
+						}}
+				>
+					<input type="hidden" name="rows" value={JSON.stringify(preview.rows)} />
+					<button class="btn primary block" disabled={!preview.rows.length}>
+						{t('import.button', { n: preview.rows.length })}
+					</button>
+				</form>
+			{/if}
+		{/if}
+	</section>
+
 	<form method="POST" action="?/signOut">
 		<button class="btn block">{t('settings.signOut')}</button>
 	</form>
@@ -300,6 +390,17 @@
 	.rename {
 		min-height: 40px;
 		padding: 8px 10px;
+	}
+	.import-col {
+		margin: 2px;
+	}
+	.import-col.ignored {
+		color: var(--muted);
+		text-decoration: line-through;
+	}
+	.success {
+		color: var(--ready);
+		margin: 0;
 	}
 	.downloads {
 		display: flex;
