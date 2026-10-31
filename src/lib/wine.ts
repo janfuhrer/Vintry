@@ -196,3 +196,18 @@ export function servingTemp(color: Color, body: number | null | undefined): [num
 			return body && body >= 4 ? [16, 18] : body && body <= 2 ? [12, 14] : [14, 16];
 	}
 }
+
+/** What goes with the wine: its grapes' pairings, else those of the region's typical grapes */
+export function pairings(
+	input: { grapes: string[]; region?: string | null; color: Color },
+	locale: 'en' | 'de'
+): string[] {
+	let known = input.grapes.map(findGrape).filter((g): g is Grape => !!g);
+	if (!known.length && input.region) {
+		known = (findRegion(input.region)?.grapes ?? [])
+			.map(findGrape)
+			.filter((g): g is Grape => !!g && matchesColor(g, input.color))
+			.slice(0, 2);
+	}
+	return [...new Set(known.flatMap((g) => g.pairing[locale]))].slice(0, 5);
+}

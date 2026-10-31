@@ -20,6 +20,8 @@ export interface Grape {
 	age: Aging;
 	/** 3–4 plain aroma words per language */
 	aroma: { en: string[]; de: string[] };
+	/** 3–4 dishes or foods it goes well with, short and everyday, per language */
+	pairing: { en: string[]; de: string[] };
 }
 
 export interface Region {

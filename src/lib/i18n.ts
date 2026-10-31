@@ -161,6 +161,7 @@ const en = {
 	'wine.share': 'Share',
 	'wine.serve': 'Serving',
 	'wine.serveAt': 'Best at {from}–{to} °C',
+	'wine.goesWith': 'Goes with',
 	'wine.shared': 'Copied',
 
 	'drink.title': 'Drink one',
@@ -400,6 +401,7 @@ const de: Record<Key, string> = {
 	'wine.share': 'Teilen',
 	'wine.serve': 'Servieren',
 	'wine.serveAt': 'Am besten bei {from}–{to} °C',
+	'wine.goesWith': 'Passt zu',
 	'wine.shared': 'Kopiert',
 
 	'drink.title': 'Eine trinken',

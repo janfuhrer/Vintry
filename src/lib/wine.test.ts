@@ -133,3 +133,15 @@ describe('serving temperature', () => {
 		expect(servingTemp('red', null)).toEqual([14, 16]);
 	});
 });
+
+describe('pairings', () => {
+	test('from the grapes, then from the region', async () => {
+		const { pairings } = await import('./wine');
+		expect(pairings({ grapes: ['Chasselas'], color: 'white' }, 'de')).toContain('Raclette');
+		expect(pairings({ grapes: [], region: 'Barolo', color: 'red' }, 'en').length).toBeGreaterThan(0);
+		expect(
+			pairings({ grapes: ['Merlot', 'Cabernet Sauvignon'], color: 'red' }, 'en').length
+		).toBeLessThanOrEqual(5);
+		expect(pairings({ grapes: ['Unknown'], color: 'red' }, 'en')).toEqual([]);
+	});
+});

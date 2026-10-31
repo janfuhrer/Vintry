@@ -17,6 +17,7 @@
 		flag,
 		grapeSlug,
 		regionSlug,
+		pairings,
 		servingTemp,
 		windowStatus
 	} from '#lib/wine.ts';
@@ -32,6 +33,7 @@
 	const status = $derived(windowStatus(wine.drink_from, wine.drink_to));
 	const aromaWords = $derived(aromas(wine.grapes, i18n.locale));
 	const temp = $derived(servingTemp(wine.color, wine.body));
+	const foods = $derived(pairings(wine, i18n.locale));
 	const hasTaste = $derived([wine.body, wine.acidity, wine.tannin, wine.sweetness].some((x) => x !== null));
 
 	// sharing tells others about the wine: no price, shop, notes or location
@@ -194,6 +196,9 @@
 		<p class="serve-line">
 			<Icon name="thermo" size={18} />{t('wine.serveAt', { from: temp[0], to: temp[1] })}
 		</p>
+		{#if foods.length}
+			<p class="serve-line"><Icon name="plate" size={18} />{t('wine.goesWith')}: {foods.join(', ')}</p>
+		{/if}
 	</section>
 
 	{#if hasTaste || aromaWords.length}
@@ -460,9 +465,12 @@
 	}
 	.serve-line {
 		display: flex;
-		align-items: center;
+		align-items: flex-start;
 		gap: 8px;
 		margin: 0;
+	}
+	.serve-line + .serve-line {
+		margin-top: 8px;
 	}
 	.serve-line :global(svg) {
 		color: var(--muted);

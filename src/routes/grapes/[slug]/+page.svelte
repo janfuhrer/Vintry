@@ -36,6 +36,7 @@
 			<span class="muted small">{t('taste.aroma')}</span><br />{grape.aroma[i18n.locale].join(' · ')}
 		</p>
 		<p class="muted small">{t('grapes.aging', { from: grape.age[0], to: grape.age[1] })}</p>
+		<p class="small">{t('wine.goesWith')}: {grape.pairing[i18n.locale].join(', ')}</p>
 	</section>
 
 	{#if regions.length}
