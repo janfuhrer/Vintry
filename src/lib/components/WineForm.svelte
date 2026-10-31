@@ -131,6 +131,11 @@
 	 * default and not already scanned: nothing read from the front or typed here is replaced.
 	 * Returns the fields it filled, for marking them.
 	 */
+	/** The form as it is now, typed changes included */
+	export function snapshot(): WineFormValues {
+		return $state.snapshot(v) as WineFormValues;
+	}
+
 	export function fillEmpty(found: Partial<WineFormValues>): string[] {
 		const blank = emptyValues() as unknown as Record<string, unknown>;
 		const target = v as unknown as Record<string, unknown>;

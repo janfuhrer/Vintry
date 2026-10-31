@@ -53,6 +53,22 @@ describe('zipStream', () => {
 		]);
 	});
 
+	test('a failing entry ends the source, so a database cursor lets go', async () => {
+		let closed = false;
+		async function* gen() {
+			try {
+				yield { name: 'ok.jpg', data: Buffer.from('fine'), date };
+				// not bytes: the checksum throws
+				yield { name: 'bad.jpg', data: 42 as unknown as Uint8Array, date };
+				yield { name: 'never.jpg', data: Buffer.from('x'), date };
+			} finally {
+				closed = true;
+			}
+		}
+		await expect(new Response(zipStream(gen())).arrayBuffer()).rejects.toThrow();
+		expect(closed).toBe(true);
+	});
+
 	test('an empty archive is valid', async () => {
 		expect(list(await zip([]))).toEqual([]);
 	});

@@ -120,9 +120,10 @@
 			.filter((w) => visible(shelf(w)))
 			.map((w) => ({ w, by: matchOf(w, q) }))
 			.filter((h) => h.by);
-		// dishes only when nothing matches by name: "bar" is Barolo, not everything for barbecue
-		const byWine = hits.filter((h) => h.by === 'wine');
-		const list = (byWine.length ? byWine : hits).map((h) => h.w);
+		// dishes only when no wine on any shelf matches by name: "bar" is Barolo, even one on the
+		// wishlist (the hint below points there), not everything for barbecue
+		const nameHit = !!q && data.wines.some((w) => matchOf(w, q) === 'wine');
+		const list = hits.filter((h) => !nameHit || h.by === 'wine').map((h) => h.w);
 		if (sort === 'name') list.sort(byName);
 		else if (sort === 'vintage') list.sort((a, b) => nullsLast(a.vintage, b.vintage) || byName(a, b));
 		else if (sort === 'window') list.sort((a, b) => nullsLast(a.drink_to, b.drink_to) || byName(a, b));

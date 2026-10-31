@@ -116,8 +116,21 @@
 
 	// "crop to the label and read again": the same reading on the framed part, cut from the original
 	function readCrop() {
-		if (source) read(() => prepareCropForScan(source!.file, crop));
+		if (!source) return;
+		// a new reading replaces the label's fields; where it is kept and what it cost stay
+		const typed = wineForm?.snapshot();
+		const keep = typed && Object.fromEntries(KEPT.map((k) => [k, typed[k]]));
+		read(() => prepareCropForScan(source!.file, crop), keep);
 	}
+	const KEPT = [
+		'quantity',
+		'location',
+		'purchased_on',
+		'purchased_at',
+		'price',
+		'gifted_by',
+		'notes'
+	] as const;
 
 	/** Parsed label → form fields (strings, as the form keeps them) */
 	function toFields(parsed: ReturnType<typeof parseLabel>): Partial<WineFormValues> {
@@ -137,11 +150,15 @@
 		const file = input.files?.[0];
 		input.value = '';
 		if (!file || !wineForm) return;
+		// a result for a form that was left or replaced meanwhile belongs to another wine
+		const run = scanRun;
+		const key = formKey;
 		backBusy = true;
 		try {
 			const { ocr } = await preparePhotoForScan(file);
 			const { readLabel } = await import('#lib/ocr.ts');
 			const { lines, text } = await readLabel(ocr, () => {});
+			if (run !== scanRun || key !== formKey || !wineForm) return;
 			const filled = wineForm.fillEmpty({ ...toFields(parseLabel(lines)), ocr_text: text });
 			scanned = [...scanned, ...filled];
 			notice = filled.length ? t('add.backFilled', { n: filled.length }) : t('add.backNothing');
@@ -153,7 +170,10 @@
 		}
 	}
 
-	async function read(prepare: () => Promise<{ photo: { image: Blob; thumb: Blob }; ocr: Blob }>) {
+	async function read(
+		prepare: () => Promise<{ photo: { image: Blob; thumb: Blob }; ocr: Blob }>,
+		keep: Partial<WineFormValues> = {}
+	) {
 		const run = ++scanRun;
 		same = null;
 		step = 'scanning';
@@ -181,7 +201,7 @@
 			});
 			if (run !== scanRun) return; // cancelled while reading
 			const parsed = parseLabel(lines);
-			const v = { ...emptyValues(), ...toFields(parsed) };
+			const v = { ...emptyValues(), ...keep, ...toFields(parsed) };
 			const found = Object.keys(toFields(parsed));
 			v.ocr_text = text.slice(0, 5000);
 			same = findSameWine(parsed, data.owned);
@@ -192,7 +212,7 @@
 			// keep the photo: the wine can still be entered by hand
 			console.error(err);
 			if (run !== scanRun) return;
-			values = emptyValues();
+			values = { ...emptyValues(), ...keep };
 			scanned = [];
 			notice = t('add.scanFailed');
 		}
@@ -201,6 +221,7 @@
 	}
 
 	function manual() {
+		scanRun++;
 		source = null;
 		same = null;
 		values = emptyValues();
@@ -256,83 +277,89 @@
 			<p>{stage === 'loading' ? t('add.loading') : t('add.reading')}</p>
 			<progress max="1" value={progress}></progress>
 		</div>
-	{:else if step === 'crop'}
-		<div class="crop stack">
-			<p class="muted small">{t('add.cropHint')}</p>
-			{#if cropUrl}
-				<div class="crop-frame">
-					<CropBox src={cropUrl} bind:crop label={t('add.cropTitle')} hint={t('add.cropKeys')} />
-				</div>
-			{/if}
-			<button class="btn primary block" onclick={readCrop}>{t('add.readAgain')}</button>
-		</div>
 	{:else}
-		{#if same}
-			{@const label = [[same.name, same.vintage].filter(Boolean).join(' '), same.producer]
-				.filter(Boolean)
-				.join(', ')}
-			{@const id = same.id}
-			<div class="notice same small" role="status">
-				<p>
-					{same.wishlist
-						? t('add.sameWish', { name: label })
-						: same.quantity > 0
-							? t('add.same', { name: label, count: same.quantity })
-							: t('add.sameFinished', { name: label })}
-				</p>
-				<form
-					method="POST"
-					action="/wine/{id}?/restock"
-					enctype="multipart/form-data"
-					use:enhance={({ formData }) => {
-						// the label photo goes along when the wine has none yet
-						if (photo && !same?.has_photo) {
-							formData.set('photo', new File([photo.image], 'photo.jpg', { type: 'image/jpeg' }));
-							formData.set('thumb', new File([photo.thumb], 'thumb.jpg', { type: 'image/jpeg' }));
-						}
-						return async ({ result }) => {
-							if (result.type === 'success') await goto(`/wine/${id}`);
-							else await applyAction(result);
-						};
-					}}
-				>
-					<button class="btn primary small">{same.wishlist ? t('wine.bought') : t('add.addBottle')}</button>
-					<a class="btn small" href="/wine/{id}">{t('add.openWine')}</a>
-				</form>
-			</div>
-		{/if}
-		{#if notice}
-			<div class="notice small">
-				<p>{notice}</p>
-				{#if source}
-					<div class="notice-actions">
-						<button class="btn small" onclick={() => (step = 'crop')}>{t('add.recrop')}</button>
-						<label class="btn small" aria-disabled={backBusy}>
-							{backBusy ? t('add.reading') : t('add.scanBack')}
-							<input
-								class="visually-hidden"
-								type="file"
-								accept="image/*"
-								capture="environment"
-								disabled={backBusy}
-								onchange={scanBack}
-							/>
-						</label>
+		{#if step === 'crop'}
+			<div class="crop stack">
+				<p class="muted small">{t('add.cropHint')}</p>
+				{#if cropUrl}
+					<div class="crop-frame">
+						<CropBox src={cropUrl} bind:crop label={t('add.cropTitle')} hint={t('add.cropKeys')} />
 					</div>
 				{/if}
+				<button class="btn primary block" onclick={readCrop}>{t('add.readAgain')}</button>
 			</div>
 		{/if}
-		{#key formKey}
-			<WineForm
-				bind:this={wineForm}
-				initial={values}
-				{scanned}
-				bind:photo
-				suggestions={data.suggestions}
-				errors={form?.errors ?? {}}
-				submitLabel={t('common.save')}
-			/>
-		{/key}
+		<!-- hidden, not unmounted, while cropping: what was typed or read from the back stays -->
+		<div hidden={step === 'crop'}>
+			{#if same}
+				{@const label = [[same.name, same.vintage].filter(Boolean).join(' '), same.producer]
+					.filter(Boolean)
+					.join(', ')}
+				{@const id = same.id}
+				<div class="notice same small" role="status">
+					<p>
+						{same.wishlist
+							? t('add.sameWish', { name: label })
+							: same.quantity > 0
+								? t('add.same', { name: label, count: same.quantity })
+								: t('add.sameFinished', { name: label })}
+					</p>
+					<form
+						method="POST"
+						action="/wine/{id}?/restock"
+						enctype="multipart/form-data"
+						use:enhance={({ formData }) => {
+							// the label photo goes along when the wine has none yet
+							if (photo && !same?.has_photo) {
+								formData.set('photo', new File([photo.image], 'photo.jpg', { type: 'image/jpeg' }));
+								formData.set('thumb', new File([photo.thumb], 'thumb.jpg', { type: 'image/jpeg' }));
+							}
+							return async ({ result }) => {
+								if (result.type === 'success') await goto(`/wine/${id}`);
+								else await applyAction(result);
+							};
+						}}
+					>
+						<button class="btn primary small">{same.wishlist ? t('wine.bought') : t('add.addBottle')}</button>
+						<a class="btn small" href="/wine/{id}">{t('add.openWine')}</a>
+					</form>
+				</div>
+			{/if}
+			{#if notice}
+				<div class="notice small">
+					<p>{notice}</p>
+					{#if source}
+						<div class="notice-actions">
+							<button class="btn small" disabled={backBusy} onclick={() => (step = 'crop')}
+								>{t('add.recrop')}</button
+							>
+							<label class="btn small" aria-disabled={backBusy}>
+								{backBusy ? t('add.reading') : t('add.scanBack')}
+								<input
+									class="visually-hidden"
+									type="file"
+									accept="image/*"
+									capture="environment"
+									disabled={backBusy}
+									onchange={scanBack}
+								/>
+							</label>
+						</div>
+					{/if}
+				</div>
+			{/if}
+			{#key formKey}
+				<WineForm
+					bind:this={wineForm}
+					initial={values}
+					{scanned}
+					bind:photo
+					suggestions={data.suggestions}
+					errors={form?.errors ?? {}}
+					submitLabel={t('common.save')}
+				/>
+			{/key}
+		</div>
 	{/if}
 </main>
 
