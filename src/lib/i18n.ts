@@ -21,7 +21,7 @@ const en = {
 	'common.close': 'Close',
 	'common.optional': 'optional',
 	'common.error': 'Something went wrong.',
-	'common.offline': 'You are offline.',
+	'common.offline': 'Offline · showing the copy saved on this device',
 	'common.notFound': 'Not found.',
 
 	'login.title': 'Sign in',
@@ -278,7 +278,7 @@ const de: Record<Key, string> = {
 	'common.close': 'Schliessen',
 	'common.optional': 'optional',
 	'common.error': 'Etwas ist schiefgelaufen.',
-	'common.offline': 'Du bist offline.',
+	'common.offline': 'Offline · gespeicherter Stand auf diesem Gerät',
 	'common.notFound': 'Nicht gefunden.',
 
 	'login.title': 'Anmelden',

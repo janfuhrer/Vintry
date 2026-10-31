@@ -111,8 +111,16 @@ only, for the OCR engine. `handle` adds HSTS, `nosniff`, `Referrer-Policy: same-
 ## PWA
 
 `static/manifest.webmanifest`, icons rendered from `static/logo.svg` by `scripts/icons.mjs`.
-The service worker never caches pages, data or photos, because they are private. The OCR engine is
-cached on first use under a name that carries the tesseract version.
+The OCR engine is cached on first use under a name that carries the tesseract version.
+
+Reading pages (cellar, wine, history, grapes, regions) are fetched network first; the service
+worker keeps the last copy of each (`src/lib/offline.ts`) so the cellar can be read without signal.
+Data (`__data.json`) is kept across builds, HTML only per build, because it references that build's
+scripts; on activation the new build saves the cellar page once. Only real page data is kept, not
+Kit's redirect answers. The copies stay on the device and are dropped on any redirect to sign-in,
+when `/login` or an invite is opened, and when the sign-in page loads, so a shared device doesn't
+show the previous person's cellar. Settings, forms and exports are never saved; photos rely on their
+`immutable` HTTP cache headers.
 
 ## Operations
 

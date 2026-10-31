@@ -3,6 +3,7 @@
 	import { onMount } from 'svelte';
 	import Logo from '#lib/components/Logo.svelte';
 	import { useI18n } from '#lib/i18n.ts';
+	import { clearSaved } from '#lib/offline.ts';
 
 	const { t } = useI18n();
 	let busy = $state(false);
@@ -11,6 +12,8 @@
 
 	onMount(() => {
 		supported = browserSupportsWebAuthn();
+		// pages saved for offline reading belong to whoever was signed in before
+		clearSaved();
 	});
 
 	async function signIn() {

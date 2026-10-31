@@ -32,7 +32,7 @@
 - **Drink log.** "Drink one" takes a bottle out of the cellar and records the date, your rating and a note.
 - **Private by design.** Every person has their own cellar. Sign-in is by passkey only, and new accounts come from invite links.
 - **Your data stays yours.** Export the cellar and history as CSV or JSON, import an existing spreadsheet, delete your account any time.
-- **Installable PWA.** Works like an app on iOS and Android, in English and German.
+- **Installable PWA.** Works like an app on iOS and Android, in English and German. The cellar stays readable without signal, from a copy kept on your phone.
 - **Self-contained.** No external requests at all: no CDN, no web fonts, no analytics.
 
 ## Quick start (development)
