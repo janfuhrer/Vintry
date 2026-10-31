@@ -12,6 +12,7 @@
 		flag,
 		grapeSlug,
 		normalize,
+		pairings,
 		windowStatus,
 		type Color,
 		type WindowStatus
@@ -80,9 +81,14 @@
 			.sort((a, b) => nullsLast(a.drink_to, b.drink_to))
 	);
 
-	const matches = (w: (typeof data.wines)[number], q: string) => {
-		if (color && w.color !== color) return false;
-		if (!q) return true;
+	// what each wine goes with, so a search for "raclette" or "lamb" finds something to open
+	const dishes = $derived(
+		Object.fromEntries(data.wines.map((w) => [w.id, normalize(pairings(w, i18n.locale).join(' '))]))
+	);
+	/** How a wine matches the search: by its own details, only by a dish, or not at all */
+	const matchOf = (w: (typeof data.wines)[number], q: string): 'wine' | 'dish' | null => {
+		if (color && w.color !== color) return null;
+		if (!q) return 'wine';
 		const hay = normalize(
 			[
 				w.name,
@@ -98,8 +104,11 @@
 				.filter(Boolean)
 				.join(' ')
 		);
-		return q.split(' ').every((part) => hay.includes(part));
+		const parts = q.split(' ');
+		if (parts.every((part) => hay.includes(part))) return 'wine';
+		return parts.every((part) => dishes[w.id].includes(part)) ? 'dish' : null;
 	};
+	const matches = (w: (typeof data.wines)[number], q: string) => matchOf(w, q) !== null;
 	type Shelf = 'cellar' | 'finished' | 'wish';
 	const shelf = (w: (typeof data.wines)[number]): Shelf =>
 		w.wishlist ? 'wish' : w.quantity > 0 ? 'cellar' : 'finished';
@@ -107,12 +116,23 @@
 
 	const filtered = $derived.by(() => {
 		const q = normalize(query);
-		const list = data.wines.filter((w) => visible(shelf(w)) && matches(w, q));
+		const hits = data.wines
+			.filter((w) => visible(shelf(w)))
+			.map((w) => ({ w, by: matchOf(w, q) }))
+			.filter((h) => h.by);
+		// dishes only when nothing matches by name: "bar" is Barolo, not everything for barbecue
+		const byWine = hits.filter((h) => h.by === 'wine');
+		const list = (byWine.length ? byWine : hits).map((h) => h.w);
 		if (sort === 'name') list.sort(byName);
 		else if (sort === 'vintage') list.sort((a, b) => nullsLast(a.vintage, b.vintage) || byName(a, b));
 		else if (sort === 'window') list.sort((a, b) => nullsLast(a.drink_to, b.drink_to) || byName(a, b));
 		else if (sort === 'rating') list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || byName(a, b));
 		return list;
+	});
+	// every hit is there for a dish, not its name: say so, or the list looks random
+	const byDish = $derived.by(() => {
+		const q = normalize(query);
+		return !!q && filtered.length > 0 && filtered.every((w) => matchOf(w, q) === 'dish');
 	});
 
 	// "Do I have this?" shouldn't answer no when the wine is finished or only wished for
@@ -257,6 +277,9 @@
 			</section>
 		{/if}
 
+		{#if byDish}
+			<p class="muted small center">{t('cellar.byDish', { dish: query.trim() })}</p>
+		{/if}
 		{#if filtered.length === 0}
 			<p class="muted center">{t('cellar.noMatch')}</p>
 			{#if elsewhere.length}
