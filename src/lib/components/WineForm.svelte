@@ -185,7 +185,13 @@
 
 	// auto-suggest taste and window until the user changes one of them
 	$effect(() => {
-		const input = { vintage: Number(v.vintage) || null, color: v.color, region: v.region, grapes: v.grapes };
+		const input = {
+			vintage: Number(v.vintage) || null,
+			color: v.color,
+			name: v.name,
+			region: v.region,
+			grapes: v.grapes
+		};
 		if (untrack(() => touched)) return;
 		const taste = suggestTaste(input);
 		const win = suggestWindow(input);

@@ -83,8 +83,31 @@ const COLOR_AGING: Record<Color, Aging> = {
 
 const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 
-/** region.age ?? avg(grape.age) ?? color default, in years after the vintage */
-export function aging(input: { color: Color; region?: string | null; grapes?: string[] }): Aging {
+// aged longer before release, and made to keep: the terms are regulated in Italy and Spain
+const LONGER_LIVED: [RegExp, Aging][] = [
+	[/\bgran\s+(?:reserva|selezione)\b/i, [3, 8]],
+	[/\br[ie]serva\b/i, [2, 5]]
+];
+
+/**
+ * region.age ?? avg(grape.age) ?? color default, in years after the vintage; a Riserva
+ * or Gran Reserva in the name adds to it
+ */
+export function aging(input: {
+	color: Color;
+	name?: string | null;
+	region?: string | null;
+	grapes?: string[];
+}): Aging {
+	const [from, to] = baseAging(input);
+	const longer =
+		(input.color === 'red' || input.color === 'white') && input.name
+			? LONGER_LIVED.find(([re]) => re.test(input.name!))?.[1]
+			: undefined;
+	return longer ? [from + longer[0], to + longer[1]] : [from, to];
+}
+
+function baseAging(input: { color: Color; region?: string | null; grapes?: string[] }): Aging {
 	const region = input.region ? findRegion(input.region) : undefined;
 	if (region?.age) return region.age;
 	const known = (input.grapes ?? []).map(findGrape).filter((g): g is Grape => !!g);
@@ -100,6 +123,7 @@ export function aging(input: { color: Color; region?: string | null; grapes?: st
 export function suggestWindow(input: {
 	vintage?: number | null;
 	color: Color;
+	name?: string | null;
 	region?: string | null;
 	grapes?: string[];
 }): { from: number; to: number } | null {

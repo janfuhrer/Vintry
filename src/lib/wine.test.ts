@@ -45,6 +45,18 @@ describe('drinking window', () => {
 		expect(barolo.to).toBeGreaterThan(barolo.from);
 	});
 
+	test('Riserva and Gran Reserva keep longer', () => {
+		const plain = suggestWindow({ vintage: 2017, color: 'red', name: 'Chianti Classico' })!;
+		const riserva = suggestWindow({ vintage: 2017, color: 'red', name: 'Chianti Classico Riserva' })!;
+		const gran = suggestWindow({ vintage: 2017, color: 'red', name: 'Rioja Gran Reserva' })!;
+		expect(riserva).toEqual({ from: plain.from + 2, to: plain.to + 5 });
+		expect(gran).toEqual({ from: plain.from + 3, to: plain.to + 8 });
+		// a rosé or sparkling "Reserva" is a marketing word
+		expect(suggestWindow({ vintage: 2022, color: 'rose', name: 'Rosado Reserva' })).toEqual(
+			suggestWindow({ vintage: 2022, color: 'rose' })
+		);
+	});
+
 	test('colour default without grapes', () => {
 		expect(suggestWindow({ vintage: 2020, color: 'white' })).toEqual({ from: 2021, to: 2024 });
 		expect(suggestWindow({ color: 'red' })).toBeNull();
