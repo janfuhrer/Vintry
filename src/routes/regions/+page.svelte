@@ -1,8 +1,11 @@
 <script lang="ts">
+	import { replaceState } from '$app/navigation';
 	import CountryMap from '#lib/components/CountryMap.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import RegionDetails from '#lib/components/RegionDetails.svelte';
 	import { useI18n } from '#lib/i18n.ts';
-	import { countryName, findRegion, flag } from '#lib/wine.ts';
+	import { countryName, findRegion, findRegionBySlug, flag, normalize, regionIndex } from '#lib/wine.ts';
+	import { tick } from 'svelte';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -19,6 +22,23 @@
 	);
 	const list = $derived([...data.map.points].sort((a, b) => a.name.localeCompare(b.name, i18n.locale)));
 	const name = $derived(countryName(data.country, i18n.locale));
+
+	// the region picked on the map or in the list; it opens below the map, the page stays
+	let selected = $derived(data.selected);
+	const region = $derived(selected ? findRegionBySlug(selected) : undefined);
+	const regionWines = $derived(
+		region ? data.wines.filter((w) => regionIndex.get(normalize(w.region)) === region) : []
+	);
+	let mapCard: HTMLElement | undefined = $state();
+	async function pick(slug: string, fromList = false) {
+		selected = slug;
+		// in the address too, so a reload or a shared link opens the same region
+		replaceState(`?country=${data.country}&region=${slug}`, {});
+		if (fromList) {
+			await tick();
+			mapCard?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+		}
+	}
 
 	/** The chosen country may be far along the row */
 	function reveal(node: HTMLElement, active: boolean) {
@@ -50,9 +70,15 @@
 		{/each}
 	</nav>
 
-	<section class="card stack">
+	<section class="card stack map-card" bind:this={mapCard}>
 		<h2>{flag(data.country)} {name}</h2>
-		<CountryMap map={data.map} links label={t('regions.mapOf', { country: name })} />
+		<CountryMap
+			map={data.map}
+			links
+			{selected}
+			onselect={(slug) => pick(slug)}
+			label={t('regions.mapOf', { country: name })}
+		/>
 		<p class="legend muted small">
 			<span><span class="key has"></span>{t('regions.keyBottles')}</span>
 			<span><span class="key known"></span>{t('regions.keyDrunk')}</span>
@@ -60,11 +86,29 @@
 		</p>
 	</section>
 
+	<section class="card stack" aria-live="polite">
+		{#if region}
+			<h2>{region.name}</h2>
+			<RegionDetails {region} wines={regionWines} />
+		{:else}
+			<p class="muted small">{t('regions.pick')}</p>
+		{/if}
+	</section>
+
 	<section class="card">
 		<ul class="list">
 			{#each list as p (p.slug)}
 				<li>
-					<a href="/regions/{p.slug}" class="row">
+					<a
+						href="?country={data.country}&region={p.slug}"
+						class="row"
+						class:active={p.slug === selected}
+						aria-current={p.slug === selected ? 'true' : undefined}
+						onclick={(e) => {
+							e.preventDefault();
+							pick(p.slug, true);
+						}}
+					>
 						<span class="grow">
 							<span class="name">{p.name}</span>
 							<span class="muted small">{findRegion(p.name)?.grapes.slice(0, 3).join(', ')}</span>
@@ -130,7 +174,15 @@
 	}
 	.list a {
 		min-height: 52px;
-		padding: 6px 0;
+		padding: 6px 8px;
+		margin: 0 -8px;
+		border-radius: var(--radius-s);
+	}
+	.list a.active {
+		background: var(--accent-soft);
+	}
+	.map-card {
+		scroll-margin-top: calc(12px + var(--safe-t));
 	}
 	.grow {
 		flex: 1;

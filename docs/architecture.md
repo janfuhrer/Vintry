@@ -55,7 +55,7 @@ src/
     /history              this year's stats, drinks by month
     /settings             language, passkeys, devices, import/export, account, invites (admin)
     /grapes, /grapes/[slug], /regions/[slug]   the built-in tables as pages, with your wines
-    /regions              explore the regions of a country on its map
+    /regions              explore the regions of a country on its map; a region opens in place
     /export/[file]        wines.csv, drinks.csv, vintry.json (own data only)
     /api/label            label photos → Claude → form fields (opted-in users only)
     /login, /invite/[token], /api/auth/*

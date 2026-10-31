@@ -1,8 +1,9 @@
 <script lang="ts">
 	import CountryMap from '#lib/components/CountryMap.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import RegionDetails from '#lib/components/RegionDetails.svelte';
 	import { useI18n } from '#lib/i18n.ts';
-	import { countryName, findGrape, findRegion, flag, grapeSlug } from '#lib/wine.ts';
+	import { countryName, findRegion, flag, regionSlug } from '#lib/wine.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -10,8 +11,9 @@
 	const { t } = i18n;
 
 	const region = $derived(findRegion(data.name)!);
-	// only regions with their own ageing data; a guess from one grape misleads in mixed regions
-	const age = $derived(region.age ?? null);
+	const country = $derived(countryName(region.country, i18n.locale));
+	// the map opens the regions page with this region picked, to look around from there
+	const explore = $derived(`/regions?country=${region.country}&region=${regionSlug(region.name)}`);
 </script>
 
 <svelte:head><title>Vintry · {region.name}</title></svelte:head>
@@ -23,59 +25,19 @@
 		>
 		<div>
 			<h1>{region.name}</h1>
-			<p class="muted">{flag(region.country)} {countryName(region.country, i18n.locale)}</p>
-			{#if region.synonyms.length}
-				<p class="muted small">{t('regions.alsoKnown')}: {region.synonyms.join(', ')}</p>
-			{/if}
+			<p class="muted">{flag(region.country)} {country}</p>
 		</div>
 	</header>
 
 	{#if data.map}
-		<section class="card stack">
-			<CountryMap
-				map={data.map}
-				links
-				label={t('map.label', { region: region.name, country: countryName(region.country, i18n.locale) })}
-			/>
-			<a class="small" href="/regions?country={region.country}"
-				>{t('map.explore', { country: countryName(region.country, i18n.locale) })}</a
-			>
-		</section>
+		<a class="card stack map-card" href={explore}>
+			<CountryMap map={data.map} label={t('map.label', { region: region.name, country })} />
+			<span class="small explore">{t('map.explore', { country })} →</span>
+		</a>
 	{/if}
 
-	{#if region.grapes.length}
-		<section class="card stack">
-			<h2>{t('regions.grapes')}</h2>
-			<div class="chips">
-				{#each region.grapes as g (g)}
-					<a class="chip" href="/grapes/{grapeSlug(g)}">
-						<span class="dot swatch-{findGrape(g)?.color ?? 'red'}" style="background: var(--swatch)"
-						></span>{g}
-					</a>
-				{/each}
-			</div>
-			{#if region.color}<p class="small">{t('regions.style')}: {t(`color.${region.color}`)}</p>{/if}
-			{#if age}<p class="muted small">{t('regions.aging', { from: age[0], to: age[1] })}</p>{/if}
-		</section>
-	{/if}
-
-	<section class="card stack">
-		<h2>{t('grapes.yourWines')}</h2>
-		{#if data.wines.length === 0}
-			<p class="muted small">{t('grapes.noWines')}</p>
-		{:else}
-			<ul class="list">
-				{#each data.wines as w (w.id)}
-					<li>
-						<a href="/wine/{w.id}" class="row" class:empty={w.quantity === 0}>
-							<span class="grow">{w.name}</span>
-							<span class="muted small">{[w.producer, w.vintage].filter(Boolean).join(' · ')}</span>
-							<span class="qty">×{w.quantity}</span>
-						</a>
-					</li>
-				{/each}
-			</ul>
-		{/if}
+	<section class="card">
+		<RegionDetails {region} wines={data.wines} />
 	</section>
 </main>
 
@@ -85,35 +47,15 @@
 		align-items: flex-start;
 		gap: 4px;
 	}
-	.chips {
-		display: flex;
-		flex-wrap: wrap;
-		gap: 6px;
+	.head p {
+		margin: 2px 0 0;
 	}
-	.list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
+	.map-card {
+		color: inherit;
+		text-decoration: none;
 	}
-	.list li + li {
-		border-top: 1px solid var(--line);
-	}
-	.list a {
-		min-height: 44px;
-	}
-	.grow {
-		flex: 1;
-		min-width: 0;
+	.explore {
+		color: var(--accent);
 		font-weight: 600;
-	}
-	.qty {
-		font-weight: 650;
-		color: var(--muted);
-		font-variant-numeric: tabular-nums;
-	}
-	.empty,
-	.empty .grow {
-		color: var(--muted);
-		font-weight: 500;
 	}
 </style>

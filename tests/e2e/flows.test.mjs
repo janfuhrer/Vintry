@@ -98,9 +98,14 @@ describe('cellar', () => {
 		const page = await (await alice.req('/regions', { page: true })).text();
 		// the country you have most bottles from comes first
 		assert.match(page, /<h2[^>]*>🇨🇭 Switzerland<\/h2>/);
-		assert.match(page, /href="\/regions\/valais"/);
-		const italy = await (await alice.req('/regions?country=it', { page: true })).text();
-		assert.match(italy, /href="\/regions\/barolo"/);
+		// a region is picked in place: the links stay on this page
+		assert.match(page, /href="\?country=CH&amp;region=valais"/);
+		const italy = await (await alice.req('/regions?country=it&region=barolo', { page: true })).text();
+		assert.match(italy, /<h2[^>]*>Barolo<\/h2>/);
+		assert.match(
+			italy,
+			/aria-current="true"[^>]*>|href="\?country=IT&amp;region=barolo"[^>]*aria-current="true"/
+		);
 		assert.equal((await alice.req('/regions?country=zz', { page: true })).status, 200);
 	});
 

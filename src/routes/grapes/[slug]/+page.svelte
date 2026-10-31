@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Dots from '#lib/components/Dots.svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import WineRows from '#lib/components/WineRows.svelte';
 	import { useI18n } from '#lib/i18n.ts';
 	import { countryName, findGrape, flag, regionSlug, regionsForGrape } from '#lib/wine.ts';
 	import type { PageProps } from './$types';
@@ -57,17 +58,7 @@
 		{#if data.wines.length === 0}
 			<p class="muted small">{t('grapes.noWines')}</p>
 		{:else}
-			<ul class="list">
-				{#each data.wines as w (w.id)}
-					<li>
-						<a href="/wine/{w.id}" class="row" class:empty={w.quantity === 0}>
-							<span class="grow">{w.name}</span>
-							<span class="muted small">{[w.producer, w.vintage].filter(Boolean).join(' · ')}</span>
-							<span class="qty">×{w.quantity}</span>
-						</a>
-					</li>
-				{/each}
-			</ul>
+			<WineRows wines={data.wines} />
 		{/if}
 	</section>
 </main>
@@ -85,31 +76,5 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 6px;
-	}
-	.list {
-		list-style: none;
-		margin: 0;
-		padding: 0;
-	}
-	.list li + li {
-		border-top: 1px solid var(--line);
-	}
-	.list a {
-		min-height: 44px;
-	}
-	.grow {
-		flex: 1;
-		min-width: 0;
-		font-weight: 600;
-	}
-	.qty {
-		font-weight: 650;
-		color: var(--muted);
-		font-variant-numeric: tabular-nums;
-	}
-	.empty,
-	.empty .grow {
-		color: var(--muted);
-		font-weight: 500;
 	}
 </style>

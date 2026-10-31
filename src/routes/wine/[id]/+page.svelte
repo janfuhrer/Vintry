@@ -268,11 +268,12 @@
 			<div class="row">
 				<h2>{t('map.title')}</h2>
 				<span class="spacer"></span>
-				<a class="small" href="/regions?country={data.map.country}"
+				<a class="small" href="/regions?country={data.map.country}&region={regionSlug(region.name)}"
 					>{t('map.explore', { country: countryName(data.map.country, i18n.locale) })}</a
 				>
 			</div>
-			<a href="/regions/{regionSlug(region.name)}" class="map-link">
+			<!-- to the regions page with this one picked, to look around from there -->
+			<a href="/regions?country={data.map.country}&region={regionSlug(region.name)}" class="map-link">
 				<CountryMap
 					map={data.map}
 					label={t('map.label', { region: region.name, country: countryName(region.country, i18n.locale) })}
