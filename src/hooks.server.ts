@@ -2,7 +2,7 @@ import { redirect, type RequestEvent } from '@sveltejs/kit';
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { building, dev } from '$app/env';
 import { bootstrap, cleanup, readSession } from '#lib/server/auth.ts';
-import { migrate } from '#lib/server/db.ts';
+import { closeDb, migrate } from '#lib/server/db.ts';
 import { allow } from '#lib/server/ratelimit.ts';
 import { pickLocale } from '#lib/i18n.ts';
 
@@ -11,6 +11,12 @@ export const init: ServerInit = async () => {
 	await migrate();
 	await bootstrap();
 	setInterval(() => cleanup().catch((e) => console.error('[vintry] cleanup failed', e)), 3_600_000).unref();
+	// adapter-node closes the HTTP server on SIGTERM and then emits this. Open database
+	// connections would keep Node alive until the platform kills it at the end of its grace
+	// period, so every rollout would wait the full timeout.
+	process.once('sveltekit:shutdown', () => {
+		closeDb().catch((e) => console.error('[vintry] closing the database failed', e));
+	});
 };
 
 const PUBLIC_PREFIXES = ['/login', '/invite/', '/api/auth/', '/icons/', '/ocr/', '/_app/'];

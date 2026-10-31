@@ -163,3 +163,22 @@ test('origin adjectives name the country', () => {
 	expect(parseLabel(lines(['Schweizer Rotwein', 30]), 2026).country).toBe('CH');
 	expect(parseLabel(lines(['Vino rosso italiano', 30]), 2026).country).toBe('IT');
 });
+
+describe('font-dependent OCR readings', () => {
+	test('a lone | before capitals is the letter I', async () => {
+		const { joinSplitCaps } = await import('./parse');
+		expect(joinSplitCaps('| SODI')).toBe('I SODI');
+		expect(joinSplitCaps('l SODI DI SAN NICCOLO')).toBe('I SODI DI SAN NICCOLO');
+	});
+
+	test('a big appellation over a château: the château is the name', () => {
+		const p = parseLabel(lines(['CHÂTEAU LES TILLEULS', 40], ['Sauternes', 64], ['2015', 50]), 2026);
+		expect(p.name).toBe('Château Les Tilleuls');
+		expect(p.region).toBe('Sauternes');
+	});
+
+	test('a big region over a small estate line stays the name', () => {
+		const p = parseLabel(lines(['TENUTA SANTA LUCIA', 27], ['BAROLO', 80]), 2026);
+		expect(p.name).toBe('Barolo');
+	});
+});

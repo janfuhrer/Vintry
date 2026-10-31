@@ -179,6 +179,9 @@ function clean(line: string): string {
  * capital before a capitalised word is glued back, except letters that are words themselves.
  */
 export function joinSplitCaps(line: string): string {
+	// in capitals, a lone |, l or 1 is OCR's reading of the letter I ("| SODI" → "I SODI")
+	const capsOnly = line.replace(/(^|\s)[|l1](?=\s+\p{Lu}{2,})/gu, '$1I');
+	if (capsOnly !== line) line = capsOnly;
 	const letters = line.replace(/[^\p{L}]/gu, '');
 	if (letters.length < 4 || letters !== letters.toUpperCase()) return line;
 	// only right after a word of 2+ letters (or at the start), so initials like "J P MOUEIX"
@@ -309,8 +312,19 @@ export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): P
 	} else if (region) {
 		out.name = region.name;
 	}
+	// A region as the tallest line ("SAUTERNES" over the château) usually names the appellation:
+	// a producer line of at least 60 % of its height is the better name. A tiny estate line
+	// under a big "BAROLO" stays the producer.
+	if (out.name && findRegion(out.name) && producerLine && producerLine.height >= nameLine!.height * 0.6) {
+		out.name = titleCase(producerLine.text);
+	}
 	// a region line is a fine name ("Barolo"), but prefer a fancier one if it's as tall
-	if (out.name && findRegion(out.name) && candidates[1] && candidates[1].height >= nameLine!.height * 0.9) {
+	else if (
+		out.name &&
+		findRegion(out.name) &&
+		candidates[1] &&
+		candidates[1].height >= nameLine!.height * 0.9
+	) {
 		out.name = titleCase(candidates[1].text.replace(VINTAGE, '').trim().replace(APPELLATION_TAG, ''));
 	}
 

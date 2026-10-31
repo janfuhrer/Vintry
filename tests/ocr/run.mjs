@@ -73,7 +73,9 @@ for (const { name, svg, expect, width } of cases) {
 		const essential = key === 'name' || key === 'vintage';
 		if (!strict && !essential && got[field] === undefined) continue;
 		if (key === 'producerHas') {
-			if (!loose(got.producer)?.includes(loose(want)))
+			// a stray space ("Dela roche") is cosmetic, so compare without whitespace
+			const squash = (v) => loose(v)?.replace(/\s+/g, '');
+			if (!squash(got.producer)?.includes(squash(want)))
 				misses.push(`producer should contain "${want}", got "${got.producer}"`);
 		} else if (key === 'name') {
 			if (loose(got.name) !== loose(want)) misses.push(`name: got "${got.name}", want "${want}"`);

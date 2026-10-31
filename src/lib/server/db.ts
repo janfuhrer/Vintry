@@ -24,6 +24,12 @@ export const sql: Sql = new Proxy((() => {}) as unknown as Sql, {
 	apply: (_, __, args) => (instance ??= connect())(...(args as [TemplateStringsArray]))
 });
 
+/** Closes the pool so the process can exit; a pool that never connected is left alone */
+export async function closeDb() {
+	await instance?.end({ timeout: 5 });
+	instance = undefined;
+}
+
 const LOCK_ID = 7_312_004;
 
 export async function migrate() {

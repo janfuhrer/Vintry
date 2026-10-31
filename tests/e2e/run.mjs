@@ -67,5 +67,18 @@ try {
 	failed = true;
 } finally {
 	server.kill();
+	// a server that ignores SIGTERM would linger after the run; the suite checks it doesn't
+	const exited = await new Promise((resolve) => {
+		const timer = setTimeout(() => resolve(false), 5000);
+		server.once('exit', () => {
+			clearTimeout(timer);
+			resolve(true);
+		});
+	});
+	if (!exited) {
+		server.kill('SIGKILL');
+		console.error('✖ the server did not exit within 5 s of SIGTERM');
+		failed = true;
+	}
 }
 process.exit(failed ? 1 : 0);
