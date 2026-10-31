@@ -147,19 +147,31 @@
 	const useClaude = $derived(!!data.claude && data.claude.scansLeft > 0 && !claudeSpent);
 	type Found = Partial<WineFormValues>;
 
+	// the reading under way, ended when the user leaves the scan: an abandoned one still costs
+	// and keeps the server from starting the next
+	let claudeCall: AbortController | undefined;
+	function stopClaude() {
+		claudeCall?.abort();
+		claudeCall = undefined;
+	}
+
 	/** The label photos to Claude, front first. Null when it can't answer: the phone reads instead. */
 	async function askClaude(photos: Blob[]): Promise<{ fields: Found; label: boolean } | null> {
+		stopClaude();
+		const call = (claudeCall = new AbortController());
 		const body = new FormData();
 		photos.forEach((p, i) =>
 			body.set(i ? 'back' : 'front', new File([p], 'label.jpg', { type: 'image/jpeg' }))
 		);
 		try {
-			const res = await fetch('/api/label', { method: 'POST', body });
+			const res = await fetch('/api/label', { method: 'POST', body, signal: call.signal });
 			const answer = await res.json();
 			if (res.ok) return answer;
 			if (answer.error === 'budget' || answer.error === 'off') claudeSpent = true;
 		} catch (err) {
-			console.error(err);
+			if (!call.signal.aborted) console.error(err);
+		} finally {
+			if (claudeCall === call) claudeCall = undefined;
 		}
 		return null;
 	}
@@ -192,6 +204,7 @@
 			// Claude reads both sides together, so each can explain the other
 			const answer =
 				useClaude && photo ? await askClaude([photo.image, await resizeImage(file, 1280)]) : null;
+			if (run !== scanRun || key !== formKey) return;
 			const { fields, text } = answer
 				? { fields: answer.fields, text: '' }
 				: await readHere((await preparePhotoForScan(file)).ocr, () => {});
@@ -201,7 +214,7 @@
 			notice = filled.length ? t('add.backFilled', { n: filled.length }) : t('add.backNothing');
 		} catch (err) {
 			console.error(err);
-			notice = t('add.backNothing');
+			if (run === scanRun && key === formKey) notice = t('add.backNothing');
 		} finally {
 			backBusy = false;
 		}
@@ -212,6 +225,7 @@
 		keep: Partial<WineFormValues> = {}
 	) {
 		const run = ++scanRun;
+		stopClaude();
 		same = null;
 		step = 'scanning';
 		progress = 0;
@@ -276,6 +290,7 @@
 
 	function manual() {
 		scanRun++;
+		stopClaude();
 		source = null;
 		same = null;
 		values = emptyValues();
@@ -296,8 +311,10 @@
 				><Icon name="back" /></button
 			>
 		{:else if step === 'form' || step === 'scanning'}
-			<button class="icon-btn" aria-label={t('common.back')} onclick={() => (scanRun++, (step = 'choose'))}
-				><Icon name="back" /></button
+			<button
+				class="icon-btn"
+				aria-label={t('common.back')}
+				onclick={() => (scanRun++, stopClaude(), (step = 'choose'))}><Icon name="back" /></button
 			>
 		{/if}
 		<h1>{t('add.title')}</h1>

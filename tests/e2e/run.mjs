@@ -43,6 +43,7 @@ const fakeClaude = createServer(async (req, res) => {
 	});
 	const images = body.messages[0].content.filter((c) => c.type === 'image');
 	const marker = Buffer.from(images[0].source.data, 'base64').toString('latin1');
+	if (marker.includes('SLOW')) await new Promise((resolve) => setTimeout(resolve, 300));
 	const reading = marker.includes('NOTLABEL')
 		? { ...EMPTY, is_wine_label: false }
 		: {
@@ -70,8 +71,20 @@ const fakeClaude = createServer(async (req, res) => {
 			type: 'message',
 			role: 'assistant',
 			model: body.model,
-			content: marker.includes('REFUSE') ? [] : [{ type: 'text', text: JSON.stringify(reading) }],
-			stop_reason: marker.includes('REFUSE') ? 'refusal' : 'end_turn',
+			// a refusal comes as text, not JSON; an answer cut off at max_tokens is broken JSON
+			content: [
+				{
+					type: 'text',
+					text: marker.includes('REFUSE')
+						? 'I can’t help with that.'
+						: JSON.stringify(reading).slice(0, marker.includes('CUTOFF') ? 40 : undefined)
+				}
+			],
+			stop_reason: marker.includes('REFUSE')
+				? 'refusal'
+				: marker.includes('CUTOFF')
+					? 'max_tokens'
+					: 'end_turn',
 			stop_sequence: null,
 			usage: { input_tokens: 3000, output_tokens: 400 }
 		})
@@ -97,8 +110,8 @@ const server = spawn('node', ['build'], {
 		PROTOCOL_HEADER: 'x-forwarded-proto',
 		ANTHROPIC_API_KEY: 'test-key',
 		ANTHROPIC_BASE_URL: claudeBase,
-		// 3,400 tokens a scan: four scans, then the allowance is spent
-		CLAUDE_MONTHLY_TOKENS: '15000'
+		// 3,400 tokens a scan: six scans, then the allowance is spent
+		CLAUDE_MONTHLY_TOKENS: '21000'
 	},
 	stdio: ['ignore', 'pipe', 'pipe']
 });

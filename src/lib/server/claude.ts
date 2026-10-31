@@ -14,8 +14,10 @@ const WITH_FALLBACK = ['claude-fable-5-1', 'claude-opus-5-5', 'claude-opus-5', '
 
 let client: Anthropic | undefined;
 function api() {
-	// the key is passed on purpose: the SDK would otherwise pick up other credentials it finds
-	return (client ??= new Anthropic({ apiKey: ANTHROPIC_API_KEY, timeout: 90_000, maxRetries: 1 }));
+	// The key is passed on purpose: the SDK would otherwise pick up other credentials it finds.
+	// No retries: a timed-out attempt may still be billed, but only the last answer could be
+	// booked to the user. A failed reading falls back to the phone instead.
+	return (client ??= new Anthropic({ apiKey: ANTHROPIC_API_KEY, timeout: 90_000, maxRetries: 0 }));
 }
 
 export type Reader = 'local' | 'claude';
@@ -75,11 +77,18 @@ export class LabelError extends Error {
 	}
 }
 
+const FORMAT = betaZodOutputFormat(LabelReading);
+
 /**
  * Sends the label photos (JPEG; front first, then the back) to Claude and returns its
- * reading. What it cost is booked to the user even when the answer is unusable.
+ * reading. What it cost is booked to the user first, also when the answer is unusable.
+ * `signal` ends the call when the user gives up on the scan.
  */
-export async function readLabelPhotos(userId: string, photos: Uint8Array[]): Promise<LabelReading> {
+export async function readLabelPhotos(
+	userId: string,
+	photos: Uint8Array[],
+	signal?: AbortSignal
+): Promise<LabelReading> {
 	const content: Anthropic.Beta.BetaContentBlockParam[] = [];
 	photos.forEach((photo, i) => {
 		content.push({ type: 'text', text: i === 0 ? 'Front label:' : 'Back label:' });
@@ -94,16 +103,27 @@ export async function readLabelPhotos(userId: string, photos: Uint8Array[]): Pro
 	});
 
 	const fallback = WITH_FALLBACK.includes(CLAUDE_MODEL);
-	const response = await api().beta.messages.parse({
-		model: CLAUDE_MODEL,
-		max_tokens: 16_000,
-		...(fallback ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
-		output_config: { effort: 'medium', format: betaZodOutputFormat(LabelReading) },
-		system: SYSTEM_PROMPT,
-		messages: [{ role: 'user', content }]
-	});
+	// create, not parse: parse throws on a bad answer before the usage could be booked
+	const response = await api().beta.messages.create(
+		{
+			model: CLAUDE_MODEL,
+			max_tokens: 16_000,
+			...(fallback ? { betas: ['server-side-fallback-2026-07-01'], fallbacks: 'default' as const } : {}),
+			output_config: { effort: 'medium', format: { type: 'json_schema', schema: FORMAT.schema } },
+			system: SYSTEM_PROMPT,
+			messages: [{ role: 'user', content }]
+		},
+		{ signal }
+	);
 	await record(userId, response.usage);
 	if (response.stop_reason === 'refusal') throw new LabelError('refused');
-	if (!response.parsed_output) throw new LabelError('failed');
-	return response.parsed_output;
+	if (response.stop_reason !== 'end_turn') throw new LabelError('failed');
+	const text = response.content.map((b) => (b.type === 'text' ? b.text : '')).join('');
+	try {
+		const reading = LabelReading.safeParse(JSON.parse(text));
+		if (reading.success) return reading.data;
+	} catch {
+		// not JSON
+	}
+	throw new LabelError('failed');
 }

@@ -526,13 +526,21 @@ describe('label reading with Claude', () => {
 		assert.deepEqual(await read(photo('NOTLABEL')), { status: 200, body: { fields: {}, label: false } });
 	});
 
-	test('a refusal is reported, and the monthly allowance runs out', async () => {
+	test('two readings at once: the second is turned away, not billed', async () => {
+		const before = (await claudeCalls()).length;
+		const [a, b] = await Promise.all([read(photo('SLOW')), read(photo('SLOW'))]);
+		assert.deepEqual([a.status, b.status].sort(), [200, 429]);
+		assert.equal((await claudeCalls()).length, before + 1);
+	});
+
+	test('refused and cut-off answers are reported, booked, and the allowance runs out', async () => {
 		assert.deepEqual(await read(photo('REFUSE')), { status: 502, body: { error: 'refused' } });
-		// four scans of 3,400 tokens spent 13,600 of 15,000
+		assert.deepEqual(await read(photo('CUTOFF')), { status: 502, body: { error: 'failed' } });
+		// six scans of 3,400 tokens spent 20,400 of 21,000
 		assert.equal((await addData()).claude.scansLeft, 0);
 		assert.deepEqual(await read(photo()), { status: 429, body: { error: 'budget' } });
 		const html = await (await alice.req('/settings', { page: true })).text();
-		assert.ok(html.includes('91 %'), 'settings show what was used');
+		assert.ok(html.includes('97 %'), 'settings show what was used');
 	});
 
 	test('back to reading on the phone', async () => {
