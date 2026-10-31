@@ -82,7 +82,7 @@
 		>
 		{#if wine.vintage}
 			<span class="chip"
-				>{wine.vintage}{#if age !== null && age > 0}<span> · </span>{age === 1
+				>{wine.vintage}{#if age !== null && age > 0}<span class="sep">·</span>{age === 1
 						? t('wine.year')
 						: t('wine.years', { n: age })}{/if}</span
 			>

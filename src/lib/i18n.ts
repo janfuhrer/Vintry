@@ -169,7 +169,20 @@ const en = {
 	'settings.revoke': 'Revoke',
 	'settings.expires': 'Expires {date}',
 	'settings.you': 'you',
-	'settings.about': 'Vintry keeps your cellar private. Labels are read on your device.'
+	'settings.about': 'Vintry keeps your cellar private. Labels are read on your device.',
+	'settings.rename': 'Rename',
+	'settings.makeAdmin': 'Make admin',
+	'settings.data': 'Your data',
+	'settings.exportWines': 'Cellar (CSV)',
+	'settings.exportDrinks': 'History (CSV)',
+	'settings.exportJson': 'Everything (JSON)',
+	'settings.exportHint': 'For spreadsheets or a backup. Photos are not included.',
+	'settings.deleteAccount': 'Delete account',
+	'settings.deleteAccountHint':
+		'Deletes your cellar, history, photos and passkeys. This cannot be undone. Type your name to confirm.',
+	'settings.deleteAccountConfirm': 'Delete for good',
+	'settings.deleteAccountWrongName': 'The name does not match.',
+	'settings.deleteAccountLastAdmin': 'You are the only admin. Make someone else admin first.'
 };
 
 export type Key = keyof typeof en;
@@ -340,7 +353,20 @@ const de: Record<Key, string> = {
 	'settings.revoke': 'Widerrufen',
 	'settings.expires': 'Läuft ab {date}',
 	'settings.you': 'du',
-	'settings.about': 'Vintry hält deinen Keller privat. Etiketten werden auf deinem Gerät gelesen.'
+	'settings.about': 'Vintry hält deinen Keller privat. Etiketten werden auf deinem Gerät gelesen.',
+	'settings.rename': 'Umbenennen',
+	'settings.makeAdmin': 'Zum Admin machen',
+	'settings.data': 'Deine Daten',
+	'settings.exportWines': 'Keller (CSV)',
+	'settings.exportDrinks': 'Verlauf (CSV)',
+	'settings.exportJson': 'Alles (JSON)',
+	'settings.exportHint': 'Für Tabellen oder als Sicherung. Fotos sind nicht dabei.',
+	'settings.deleteAccount': 'Konto löschen',
+	'settings.deleteAccountHint':
+		'Löscht deinen Keller, Verlauf, Fotos und Passkeys. Das lässt sich nicht rückgängig machen. Tippe deinen Namen zur Bestätigung.',
+	'settings.deleteAccountConfirm': 'Endgültig löschen',
+	'settings.deleteAccountWrongName': 'Der Name stimmt nicht.',
+	'settings.deleteAccountLastAdmin': 'Du bist der einzige Admin. Mach zuerst jemand anderen zum Admin.'
 };
 
 const dictionaries: Record<Locale, Record<Key, string>> = { en, de };

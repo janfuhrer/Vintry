@@ -12,6 +12,7 @@
 	const fmt = (d: Date) =>
 		new Date(d).toLocaleDateString(i18n.locale, { day: 'numeric', month: 'short', year: 'numeric' });
 
+	let renaming = $state<string | null>(null);
 	let copied = $state('');
 	async function copy(text: string) {
 		try {
@@ -60,7 +61,36 @@
 				<li class="row">
 					<Icon name="key" size={20} />
 					<div class="grow">
-						<div>{p.label ?? t('settings.passkeyUnnamed')}</div>
+						{#if renaming === p.id}
+							<form
+								method="POST"
+								action="?/renamePasskey"
+								class="row"
+								use:enhance={() =>
+									async ({ update }) => {
+										await update();
+										renaming = null;
+									}}
+							>
+								<input type="hidden" name="id" value={p.id} />
+								<!-- svelte-ignore a11y_autofocus -->
+								<input
+									class="input rename"
+									name="label"
+									value={p.label ?? ''}
+									maxlength="40"
+									aria-label={t('settings.rename')}
+									autofocus
+								/>
+								<button class="icon-btn" aria-label={t('common.save')}><Icon name="check" size={18} /></button
+								>
+							</form>
+						{:else}
+							<button type="button" class="link-like" onclick={() => (renaming = p.id)}>
+								{p.label ?? t('settings.passkeyUnnamed')}
+								<Icon name="pen" size={14} label={t('settings.rename')} />
+							</button>
+						{/if}
 						<div class="muted small">
 							{p.last_used_at ? t('settings.lastUsed', { date: fmt(p.last_used_at) }) : t('settings.never')}
 						</div>
@@ -114,7 +144,7 @@
 						<li class="row">
 							<div class="grow">
 								<div>
-									{inv.note ?? '–'}{#if inv.is_admin}<span> · </span>{t('settings.admin')}{/if}
+									{inv.note ?? '–'}{#if inv.is_admin}<span class="sep">·</span>{t('settings.admin')}{/if}
 								</div>
 								<div class="muted small">{t('settings.expires', { date: fmt(inv.expires_at) })}</div>
 							</div>
@@ -133,19 +163,56 @@
 					<li class="row">
 						<div class="grow">
 							<div>
-								{u.name}{#if u.is_admin}<span> · </span><span class="muted">{t('settings.admin')}</span>{/if}
+								{u.name}{#if u.is_admin}<span class="sep">·</span><span class="muted"
+										>{t('settings.admin')}</span
+									>{/if}
 							</div>
 							<div class="muted small">{fmt(u.created_at)} · {u.wines} 🍷</div>
 						</div>
+						{#if !u.is_admin}
+							<form method="POST" action="?/makeAdmin" use:enhance>
+								<input type="hidden" name="id" value={u.id} />
+								<button class="btn small">{t('settings.makeAdmin')}</button>
+							</form>
+						{/if}
 					</li>
 				{/each}
 			</ul>
 		</section>
 	{/if}
 
+	<section class="card stack">
+		<h2>{t('settings.data')}</h2>
+		<div class="downloads">
+			<a class="btn small" href="/export/wines.csv" download data-sveltekit-reload
+				>{t('settings.exportWines')}</a
+			>
+			<a class="btn small" href="/export/drinks.csv" download data-sveltekit-reload
+				>{t('settings.exportDrinks')}</a
+			>
+			<a class="btn small" href="/export/vintry.json" download data-sveltekit-reload
+				>{t('settings.exportJson')}</a
+			>
+		</div>
+		<p class="muted small">{t('settings.exportHint')}</p>
+	</section>
+
 	<form method="POST" action="?/signOut">
 		<button class="btn block">{t('settings.signOut')}</button>
 	</form>
+	<details class="card danger-zone">
+		<summary>{t('settings.deleteAccount')}</summary>
+		<form method="POST" action="?/deleteAccount" class="stack" use:enhance>
+			<p class="muted small">{t('settings.deleteAccountHint')}</p>
+			<input class="input" name="confirm" autocomplete="off" aria-label={t('invite.name')} />
+			{#if form?.deleteAccount === 'confirm'}<p class="error">{t('settings.deleteAccountWrongName')}</p>{/if}
+			{#if form?.deleteAccount === 'lastAdmin'}<p class="error">
+					{t('settings.deleteAccountLastAdmin')}
+				</p>{/if}
+			<button class="btn danger block">{t('settings.deleteAccountConfirm')}</button>
+		</form>
+	</details>
+
 	<p class="muted small center">{t('settings.about')}</p>
 </main>
 
@@ -186,5 +253,35 @@
 	}
 	.center {
 		text-align: center;
+	}
+	.link-like {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		padding: 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		text-align: left;
+	}
+	.link-like :global(svg) {
+		color: var(--muted);
+	}
+	.rename {
+		min-height: 40px;
+		padding: 8px 10px;
+	}
+	.downloads {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	.danger-zone summary {
+		cursor: pointer;
+		color: var(--past);
+		font-weight: 600;
+	}
+	.danger-zone form {
+		margin-top: 12px;
 	}
 </style>

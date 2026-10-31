@@ -1,5 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { createInvite, destroySession } from '#lib/server/auth.ts';
+import { bootstrap, createInvite, destroySession, SESSION_COOKIE } from '#lib/server/auth.ts';
 import { sql } from '#lib/server/db.ts';
 import { isLocale } from '#lib/i18n.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -48,6 +48,41 @@ export const actions: Actions = {
 		});
 		if (!deleted) return fail(400, { keepOne: true });
 	},
+	renamePasskey: async ({ request, locals }) => {
+		const fd = await request.formData();
+		const label =
+			String(fd.get('label') ?? '')
+				.trim()
+				.slice(0, 40) || null;
+		await sql`
+			update credentials set label = ${label}
+			where id = ${String(fd.get('id'))} and user_id = ${locals.user!.id}
+		`;
+	},
+	deleteAccount: async ({ request, locals, cookies }) => {
+		const user = locals.user!;
+		const confirm = String((await request.formData()).get('confirm') ?? '').trim();
+		if (confirm !== user.name) return fail(400, { deleteAccount: 'confirm' });
+		const deleted = await sql.begin(async (tx) => {
+			// someone has to be able to invite people: the last admin can't leave others behind
+			if (user.is_admin) {
+				const [{ admins, others }] = await tx<{ admins: number; others: number }[]>`
+					select count(*) filter (where is_admin)::int as admins,
+						count(*) filter (where id <> ${user.id})::int as others
+					from users
+				`;
+				if (admins === 1 && others > 0) return false;
+			}
+			// wines, drinks, photos, passkeys, sessions and own invites go with the user (on delete cascade)
+			await tx`delete from users where id = ${user.id}`;
+			return true;
+		});
+		if (!deleted) return fail(400, { deleteAccount: 'lastAdmin' });
+		cookies.delete(SESSION_COOKIE, { path: '/' });
+		// an empty instance needs a fresh admin invite, as on first start
+		await bootstrap();
+		redirect(303, '/login');
+	},
 	addDevice: async ({ locals }) => {
 		const { url } = await createInvite({ createdBy: locals.user!.id, forUser: locals.user!.id, hours: 24 });
 		return { deviceLink: url };
@@ -66,6 +101,12 @@ export const actions: Actions = {
 			hours: 24 * 7
 		});
 		return { inviteLink: url };
+	},
+	makeAdmin: async ({ request, locals }) => {
+		if (!locals.user!.is_admin) error(403, 'Forbidden');
+		const id = String((await request.formData()).get('id'));
+		if (!/^[0-9a-f-]{36}$/i.test(id)) return fail(400);
+		await sql`update users set is_admin = true where id = ${id}`;
 	},
 	revoke: async ({ request, locals }) => {
 		if (!locals.user!.is_admin) error(403, 'Forbidden');

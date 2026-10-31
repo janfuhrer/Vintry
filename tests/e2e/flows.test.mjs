@@ -220,6 +220,71 @@ describe('people', () => {
 	});
 });
 
+describe('your data', () => {
+	test('export: cellar CSV, history CSV and JSON contain only your own wines', async () => {
+		// Response.text() strips the BOM, so look at the bytes
+		const bytes = Buffer.from(await (await alice.req('/export/wines.csv')).arrayBuffer());
+		assert.deepEqual([...bytes.subarray(0, 3)], [0xef, 0xbb, 0xbf], 'UTF-8 BOM for Excel');
+		const csv = bytes.toString('utf8');
+		assert.ok(csv.includes('name,producer'));
+		assert.ok(csv.includes('Cornalin Test'));
+		const drinks = await (await alice.req('/export/drinks.csv')).text();
+		assert.ok(drinks.includes('lovely'));
+		const json = await (await alice.req('/export/vintry.json')).json();
+		assert.ok(json.wines.some((w) => w.name === 'Cornalin Test'));
+		assert.ok(!JSON.stringify(json).includes('image'), 'no photo bytes in the export');
+		const bobCsv = await (await bob.req('/export/wines.csv')).text();
+		assert.ok(!bobCsv.includes('Cornalin Test'), "Bob's export has no Alice wines");
+		assert.equal((await alice.req('/export/secrets.txt')).status, 404);
+	});
+
+	test('a formula in a wine name stays text in the CSV', async () => {
+		const fd = new FormData();
+		fd.append('name', '=HYPERLINK("http://evil.example")');
+		fd.append('color', 'red');
+		fd.append('quantity', '1');
+		await bob.req('/add', { method: 'POST', form: fd, page: true });
+		const csv = await (await bob.req('/export/wines.csv')).text();
+		assert.ok(csv.includes(`"'=HYPERLINK`), csv);
+	});
+
+	test('rename a passkey', async () => {
+		const html = await (await bob.req('/settings', { page: true })).text();
+		const id = html.match(/action="\?\/deletePasskey"[\s\S]*?name="id" value="([^"]+)"/)[1];
+		assert.equal(
+			(await bob.action('/settings?/renamePasskey', { id, label: 'Work laptop' })).type,
+			'success'
+		);
+		assert.ok((await (await bob.req('/settings', { page: true })).text()).includes('Work laptop'));
+	});
+
+	test('the only admin cannot delete the account while others remain', async () => {
+		const r = await alice.action('/settings?/deleteAccount', { confirm: 'Alice' });
+		assert.equal(r.type, 'failure');
+		assert.match(r.data, /lastAdmin/); // action data arrives devalue-serialised
+	});
+
+	test('deleting an account needs the exact name and removes everything', async () => {
+		assert.match((await bob.action('/settings?/deleteAccount', { confirm: 'bob' })).data, /confirm/);
+		const r = await bob.req('/settings?/deleteAccount', {
+			method: 'POST',
+			form: { confirm: 'Bob' },
+			page: true
+		});
+		assert.equal(r.status, 303);
+		assert.equal((await bob.req('/', { page: true })).status, 303, 'session is gone');
+		const html = await (await alice.req('/settings', { page: true })).text();
+		assert.ok(!html.includes('>Bob'), 'Bob is no longer listed');
+	});
+
+	test('an admin can make someone admin', async () => {
+		const html = await (await alice.req('/settings', { page: true })).text();
+		const id = html.match(/action="\?\/makeAdmin"[\s\S]*?name="id" value="([0-9a-f-]{36})"/)[1];
+		assert.equal((await alice.action('/settings?/makeAdmin', { id })).type, 'success');
+		assert.ok(!(await (await alice.req('/settings', { page: true })).text()).includes('?/makeAdmin'));
+	});
+});
+
 describe('session', () => {
 	test('cross-origin form posts are blocked', async () => {
 		const r = await alice.req('/settings?/signOut', {

@@ -266,3 +266,29 @@ export async function suggestions(userId: string): Promise<Suggestions> {
 	]);
 	return { locations, shops, givers };
 }
+
+/** Everything a user owns except photos, for the export downloads */
+export async function exportData(userId: string) {
+	const wines = await sql<(Omit<Wine, 'photo_version'> & { id: string })[]>`
+		select id, name, producer, vintage, color, country, region, grapes, alcohol, size_ml, quantity,
+			location, drink_from, drink_to, body, acidity, tannin, sweetness, rating, purchased_on,
+			purchased_at, price, gifted_by, notes, has_photo, created_at, updated_at
+		from wines where user_id = ${userId} order by name, vintage
+	`;
+	const drinks = await sql<
+		{
+			wine_id: string;
+			drunk_on: string;
+			name: string;
+			producer: string | null;
+			vintage: number | null;
+			rating: number | null;
+			note: string | null;
+		}[]
+	>`
+		select d.wine_id, d.drunk_on, w.name, w.producer, w.vintage, d.rating, d.note
+		from drinks d join wines w on w.id = d.wine_id
+		where d.user_id = ${userId} order by d.drunk_on desc, d.created_at desc
+	`;
+	return { wines, drinks };
+}
