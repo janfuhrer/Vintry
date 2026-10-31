@@ -569,7 +569,7 @@ const de: Record<Key, string> = {
 	'settings.deleteAccountLastAdmin': 'Du bist der einzige Admin. Mach zuerst jemand anderen zum Admin.'
 };
 
-const dictionaries: Record<Locale, Record<Key, string>> = { en, de };
+export const dictionaries: Record<Locale, Record<Key, string>> = { en, de };
 
 export const isLocale = (v: unknown): v is Locale => LOCALES.includes(v as Locale);
 
