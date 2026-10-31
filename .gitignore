@@ -30,3 +30,6 @@ vite.config.ts.timestamp-*
 
 # Personal Claude Code overrides (hosting provider, local MCP servers)
 /.claude/settings.local.json
+
+# tesseract caches language data in the working directory when the OCR tests run
+/*.traineddata
