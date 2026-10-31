@@ -61,6 +61,7 @@
 		}
 	}
 
+	let photoDialog: HTMLDialogElement | undefined = $state();
 	let drinkOpen = $state(false);
 	// the drink entry being edited; its sheet is open while set
 	let editing = $state<(typeof data.drinks)[number] | null>(null);
@@ -99,7 +100,14 @@
 <main class="page wine-page">
 	<header class="hero" class:has-photo={wine.has_photo}>
 		{#if wine.has_photo}
-			<img class="hero-img" src="/photo/{wine.id}?v={wine.photo_version ?? 0}" alt="" />
+			<button
+				type="button"
+				class="hero-btn"
+				aria-label={t('wine.viewPhoto')}
+				onclick={() => photoDialog?.showModal()}
+			>
+				<img class="hero-img" src="/photo/{wine.id}?v={wine.photo_version ?? 0}" alt="" />
+			</button>
 		{/if}
 		<div class="hero-bar">
 			<a class="icon-btn glass" href="/" aria-label={t('common.back')}><Icon name="back" /></a>
@@ -296,6 +304,19 @@
 	</form>
 </main>
 
+{#if wine.has_photo}
+	<!-- full-screen photo to read the small print; native pinch-zoom works on the image -->
+	<dialog
+		bind:this={photoDialog}
+		class="photo-dialog"
+		aria-label={wine.name}
+		onclick={() => photoDialog?.close()}
+	>
+		<img src="/photo/{wine.id}?v={wine.photo_version ?? 0}" alt={wine.name} />
+		<button type="button" class="icon-btn close" aria-label={t('common.close')}><Icon name="x" /></button>
+	</dialog>
+{/if}
+
 <Sheet bind:open={drinkOpen} title={t('drink.title')}>
 	<form
 		method="POST"
@@ -385,6 +406,41 @@
 		aspect-ratio: 4 / 3;
 		max-height: 60vh;
 		background: var(--surface-2);
+	}
+	.hero-btn {
+		display: block;
+		width: 100%;
+		height: 100%;
+		padding: 0;
+		border: 0;
+		background: none;
+		cursor: zoom-in;
+	}
+	.photo-dialog {
+		width: 100vw;
+		height: 100dvh;
+		max-width: none;
+		max-height: none;
+		margin: 0;
+		padding: 0;
+		border: 0;
+		background: #000;
+	}
+	.photo-dialog::backdrop {
+		background: #000;
+	}
+	.photo-dialog img {
+		width: 100%;
+		height: 100%;
+		object-fit: contain;
+		touch-action: pinch-zoom;
+	}
+	.photo-dialog .close {
+		position: absolute;
+		top: calc(8px + var(--safe-t));
+		right: 8px;
+		color: #fff;
+		background: rgb(0 0 0 / 0.5);
 	}
 	.hero-img {
 		width: 100%;
