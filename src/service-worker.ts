@@ -57,11 +57,14 @@ self.addEventListener('activate', (event) => {
 	);
 });
 
+// a page without a saved copy, without signal; colours follow the app's light and dark themes
 const offline = () =>
 	new Response(
-		'<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width"><title>Vintry</title>' +
-			'<body style="font-family:system-ui;display:grid;place-items:center;min-height:90vh;margin:0;background:#FAF7F4;color:#1F1A1C">' +
-			'<p>Offline · Keine Verbindung · <a href="/" style="color:#7A2140">Vintry</a></p>',
+		'<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width">' +
+			'<meta name="color-scheme" content="light dark"><title>Vintry</title><style>' +
+			'body{font-family:system-ui;display:grid;place-items:center;min-height:90vh;margin:0;background:#faf7f4;color:#1f1a1c}' +
+			'a{color:#7b2240}@media(prefers-color-scheme:dark){body{background:#141012;color:#f3edea}a{color:#d46a8a}}' +
+			'</style><p>Offline · Keine Verbindung · <a href="/">Vintry</a></p>',
 		{ status: 503, headers: { 'content-type': 'text/html; charset=utf-8' } }
 	);
 
