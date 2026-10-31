@@ -1,12 +1,13 @@
 import { fail, redirect } from '@sveltejs/kit';
 import { parsePhoto, parseWineForm } from '#lib/server/wine-form.ts';
-import { createWine, getWine, suggestions } from '#lib/server/wines.ts';
+import { createWine, getWine, ownedWines, suggestions } from '#lib/server/wines.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const from = url.searchParams.get('from');
 	const copy = from ? await getWine(locals.user!.id, from) : null;
-	return { suggestions: await suggestions(locals.user!.id), copy };
+	const [list, owned] = await Promise.all([suggestions(locals.user!.id), ownedWines(locals.user!.id)]);
+	return { suggestions: list, owned, copy };
 };
 
 export const actions: Actions = {

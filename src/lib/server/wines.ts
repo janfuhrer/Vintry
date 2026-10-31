@@ -1,4 +1,5 @@
 import type { Color } from '#lib/wine.ts';
+import type { Owned } from '#lib/match.ts';
 import { sql } from './db';
 
 export interface Wine {
@@ -274,6 +275,13 @@ export interface Suggestions {
 }
 
 /** Values the user typed before, most recent first, for the form's datalists */
+/** Just enough to recognise a scanned label as a wine the user already has */
+export async function ownedWines(userId: string): Promise<Owned[]> {
+	return sql<Owned[]>`
+		select id, name, producer, vintage, quantity, wishlist from wines where user_id = ${userId}
+	`;
+}
+
 export async function suggestions(userId: string): Promise<Suggestions> {
 	const pick = async (column: 'location' | 'purchased_at' | 'gifted_by') => {
 		const rows = await sql<{ v: string }[]>`

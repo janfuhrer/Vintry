@@ -97,6 +97,11 @@ const en = {
 	'add.badImage': 'This image format can’t be opened here. Try a JPEG or take a photo.',
 	'add.retake': 'Retake',
 	'add.copied': 'Copied from {name}. Check the vintage and bottles.',
+	'add.same': 'Already in your cellar: {name}, ×{count}.',
+	'add.sameFinished': 'You had {name} before.',
+	'add.sameWish': '{name} is on your wishlist.',
+	'add.addBottle': 'Add a bottle to it',
+	'add.openWine': 'Open it',
 
 	'form.wine': 'Wine',
 	'form.name': 'Name',
@@ -356,6 +361,11 @@ const de: Record<Key, string> = {
 	'add.badImage': 'Dieses Bildformat lässt sich hier nicht öffnen. Versuche ein JPEG oder mach ein Foto.',
 	'add.retake': 'Neues Foto',
 	'add.copied': 'Von {name} übernommen. Prüfe Jahrgang und Flaschen.',
+	'add.same': 'Schon in deinem Keller: {name}, ×{count}.',
+	'add.sameFinished': 'Du hattest {name} schon einmal.',
+	'add.sameWish': '{name} steht auf deiner Wunschliste.',
+	'add.addBottle': 'Eine Flasche dazulegen',
+	'add.openWine': 'Öffnen',
 
 	'form.wine': 'Wein',
 	'form.name': 'Name',

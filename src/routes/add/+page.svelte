@@ -1,9 +1,12 @@
 <script lang="ts">
 	import { untrack } from 'svelte';
+	import { applyAction, enhance } from '$app/forms';
+	import { goto } from '$app/navigation';
 	import Icon from '#lib/components/Icon.svelte';
 	import WineForm, { emptyValues, toValues, type WineFormValues } from '#lib/components/WineForm.svelte';
 	import { useI18n } from '#lib/i18n.ts';
 	import { preparePhotoForScan } from '#lib/image.ts';
+	import { findSameWine, type Owned } from '#lib/match.ts';
 	import { parseLabel } from '#lib/parse.ts';
 	import type { PageProps } from './$types';
 
@@ -33,6 +36,8 @@
 	let progress = $state(0);
 	let values = $state<WineFormValues>(initial ? fromCopy(initial) : emptyValues());
 	let scanned = $state<string[]>([]);
+	// the scanned label is a wine the user already has
+	let same = $state<Owned | null>(null);
 	let photo = $state<{ image: Blob; thumb: Blob } | null>(null);
 	let notice = $state(initial ? t('add.copied', { name: initial.name }) : '');
 	let formKey = $state(0);
@@ -72,6 +77,7 @@
 		copiedId = copy.id;
 		untrack(() => {
 			values = fromCopy(copy);
+			same = null;
 			scanned = [];
 			photo = null;
 			notice = t('add.copied', { name: copy.name });
@@ -86,6 +92,7 @@
 		input.value = '';
 		if (!file) return;
 		const run = ++scanRun;
+		same = null;
 		step = 'scanning';
 		progress = 0;
 		stage = 'loading';
@@ -121,6 +128,7 @@
 				else target[k] = String(x);
 			}
 			v.ocr_text = text.slice(0, 5000);
+			same = findSameWine(parsed, data.owned);
 			values = v;
 			scanned = found;
 			notice = found.length ? t('add.scanned') : t('add.scanFailed');
@@ -137,6 +145,7 @@
 	}
 
 	function manual() {
+		same = null;
 		values = emptyValues();
 		scanned = [];
 		photo = null;
@@ -187,6 +196,32 @@
 			<progress max="1" value={progress}></progress>
 		</div>
 	{:else}
+		{#if same}
+			{@const label = [same.name, same.vintage].filter(Boolean).join(' ')}
+			{@const id = same.id}
+			<div class="notice same small" role="status">
+				<p>
+					{same.wishlist
+						? t('add.sameWish', { name: label })
+						: same.quantity > 0
+							? t('add.same', { name: label, count: same.quantity })
+							: t('add.sameFinished', { name: label })}
+				</p>
+				<form
+					method="POST"
+					action="/wine/{id}?/{same.wishlist ? 'bought' : 'quantity'}"
+					use:enhance={() =>
+						async ({ result }) => {
+							if (result.type === 'success') await goto(`/wine/${id}`);
+							else await applyAction(result);
+						}}
+				>
+					<input type="hidden" name="delta" value="1" />
+					<button class="btn primary small">{same.wishlist ? t('wine.bought') : t('add.addBottle')}</button>
+					<a class="btn small" href="/wine/{id}">{t('add.openWine')}</a>
+				</form>
+			</div>
+		{/if}
 		{#if notice}<p class="notice small">{notice}</p>{/if}
 		{#key formKey}
 			<WineForm
@@ -315,6 +350,15 @@
 		to {
 			transform: translateY(60%);
 		}
+	}
+	.same p {
+		margin: 0 0 10px;
+		font-weight: 600;
+	}
+	.same form {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
 	}
 	.notice {
 		margin: 0 0 12px;
