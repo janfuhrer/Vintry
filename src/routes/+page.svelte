@@ -114,14 +114,14 @@
 	const elsewhere = $derived.by(() => {
 		const q = normalize(query);
 		if (!q || filtered.length) return [];
-		const counts = new Map<Shelf, number>();
+		const counts: Record<Shelf, number> = { cellar: 0, finished: 0, wish: 0 };
 		for (const w of data.wines) {
 			const s = shelf(w);
-			if (!visible(s) && matches(w, q)) counts.set(s, (counts.get(s) ?? 0) + 1);
+			if (!visible(s) && matches(w, q)) counts[s]++;
 		}
 		return (['cellar', 'finished', 'wish'] as const)
-			.filter((s) => counts.has(s))
-			.map((s) => ({ shelf: s, n: counts.get(s)! }));
+			.filter((s) => counts[s] > 0)
+			.map((s) => ({ shelf: s, n: counts[s] }));
 	});
 	function show(s: Shelf) {
 		wishOnly = s === 'wish';
