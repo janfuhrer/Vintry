@@ -228,12 +228,16 @@ export async function deleteDrink(userId: string, id: string) {
 }
 
 export type HistoryItem = Drink &
-	Pick<Wine, 'name' | 'producer' | 'vintage' | 'color' | 'has_photo' | 'photo_version'>;
+	Pick<
+		Wine,
+		'name' | 'producer' | 'vintage' | 'color' | 'grapes' | 'country' | 'has_photo' | 'photo_version'
+	>;
 
 export async function history(userId: string): Promise<HistoryItem[]> {
 	return sql<HistoryItem[]>`
 		select d.id, d.wine_id, d.drunk_on, d.rating, d.note,
-			w.name, w.producer, w.vintage, w.color, w.has_photo, (extract(epoch from p.updated_at) * 1000)::int8 as photo_version
+			w.name, w.producer, w.vintage, w.color, w.grapes, w.country, w.has_photo,
+			(extract(epoch from p.updated_at) * 1000)::int8 as photo_version
 		from drinks d
 		join wines w on w.id = d.wine_id
 		left join wine_photos p on p.wine_id = w.id

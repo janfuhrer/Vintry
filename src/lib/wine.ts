@@ -33,6 +33,16 @@ export const findCountry = (code: string): Country | undefined =>
 
 export const grapeNames = grapes.map((g) => g.name).sort((a, b) => a.localeCompare(b));
 
+/** URL-safe name: "Müller-Thurgau" → "muller-thurgau" */
+export const grapeSlug = (name: string) => normalize(name).replace(/ /g, '-');
+const grapeBySlug = new Map(grapes.map((g) => [grapeSlug(g.name), g]));
+export const findGrapeBySlug = (slug: string): Grape | undefined => grapeBySlug.get(slug);
+
+/** Regions where the grape is typical */
+export const regionsForGrape = (name: string): Region[] => regions.filter((r) => r.grapes.includes(name));
+
+export { grapes };
+
 export function regionNames(country?: string | null): string[] {
 	return regions
 		.filter((r) => !country || r.country === country)

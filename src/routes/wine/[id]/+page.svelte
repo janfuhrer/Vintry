@@ -9,7 +9,7 @@
 	import WindowBar from '#lib/components/WindowBar.svelte';
 	import { localISODate } from '#lib/dates.ts';
 	import { useI18n } from '#lib/i18n.ts';
-	import { aromas, countryName, flag, windowStatus } from '#lib/wine.ts';
+	import { aromas, countryName, findGrape, flag, grapeSlug, windowStatus } from '#lib/wine.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -90,7 +90,13 @@
 		{#if wine.country || wine.region}
 			<span class="chip">{flag(wine.country)} {wine.region || countryName(wine.country, i18n.locale)}</span>
 		{/if}
-		{#each wine.grapes as g (g)}<span class="chip">{g}</span>{/each}
+		{#each wine.grapes as g (g)}
+			{#if findGrape(g)}
+				<a class="chip link-chip" href="/grapes/{grapeSlug(g)}">{g}</a>
+			{:else}
+				<span class="chip">{g}</span>
+			{/if}
+		{/each}
 		{#if wine.alcohol}<span class="chip">{wine.alcohol}%</span>{/if}
 		{#if wine.size_ml && wine.size_ml !== 750}<span class="chip"
 				>{wine.size_ml >= 1000 ? `${wine.size_ml / 1000} l` : `${wine.size_ml / 10} cl`}</span
@@ -283,6 +289,11 @@
 		display: flex;
 		flex-wrap: wrap;
 		gap: 6px;
+	}
+	.link-chip {
+		text-decoration: underline;
+		text-decoration-color: var(--line);
+		text-underline-offset: 3px;
 	}
 	.stepper {
 		display: flex;

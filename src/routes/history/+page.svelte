@@ -3,6 +3,8 @@
 	import Thumb from '#lib/components/Thumb.svelte';
 	import { groupBy } from '#lib/group.ts';
 	import { useI18n } from '#lib/i18n.ts';
+	import { yearStats } from '#lib/stats.ts';
+	import { countryName, flag } from '#lib/wine.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -19,6 +21,8 @@
 			drinks
 		}));
 	});
+	const stats = $derived(yearStats(data.drinks, new Date().getFullYear()));
+
 	const day = (d: string) =>
 		new Date(`${d}T12:00:00`).toLocaleDateString(i18n.locale, { day: 'numeric', weekday: 'short' });
 </script>
@@ -27,6 +31,35 @@
 
 <main class="page">
 	<h1 class="title">{t('history.title')}</h1>
+	{#if stats.bottles > 0}
+		<section class="card stats" aria-label={t('history.thisYear', { year: stats.year })}>
+			<h2 class="small muted">{t('history.thisYear', { year: stats.year })}</h2>
+			<dl>
+				<div>
+					<dt>{t('history.bottles')}</dt>
+					<dd>{stats.bottles}</dd>
+				</div>
+				{#if stats.avgRating !== null}
+					<div>
+						<dt>{t('history.avgRating')}</dt>
+						<dd>{stats.avgRating.toLocaleString(i18n.locale)} ★</dd>
+					</div>
+				{/if}
+				{#if stats.topGrape}
+					<div>
+						<dt>{t('history.topGrape')}</dt>
+						<dd class="text">{stats.topGrape}</dd>
+					</div>
+				{/if}
+				{#if stats.topCountry}
+					<div>
+						<dt>{t('history.topCountry')}</dt>
+						<dd class="text">{flag(stats.topCountry)} {countryName(stats.topCountry, i18n.locale)}</dd>
+					</div>
+				{/if}
+			</dl>
+		</section>
+	{/if}
 	{#if months.length === 0}
 		<p class="muted empty">{t('history.empty')}</p>
 	{/if}
@@ -67,6 +100,29 @@
 <style>
 	.title {
 		margin-bottom: 12px;
+	}
+	.stats h2 {
+		margin-bottom: 10px;
+	}
+	.stats dl {
+		display: grid;
+		grid-template-columns: repeat(2, 1fr);
+		gap: 14px;
+		margin: 0;
+	}
+	.stats dt {
+		font-size: 0.8rem;
+		color: var(--muted);
+	}
+	.stats dd {
+		margin: 2px 0 0;
+		font-size: 1.5rem;
+		font-weight: 700;
+		font-variant-numeric: tabular-nums;
+	}
+	.stats dd.text {
+		font-size: 1rem;
+		font-weight: 650;
 	}
 	.empty {
 		text-align: center;

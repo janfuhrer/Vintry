@@ -125,7 +125,10 @@
 			<h1>{t('cellar.title')}</h1>
 			<p class="muted small">{bottles === 1 ? t('cellar.bottle') : t('cellar.bottles', { n: bottles })}</p>
 		</div>
-		<a class="icon-btn" href="/settings" aria-label={t('nav.settings')}><Icon name="settings" /></a>
+		<div class="row">
+			<a class="icon-btn" href="/grapes" aria-label={t('grapes.title')}><Icon name="book" /></a>
+			<a class="icon-btn" href="/settings" aria-label={t('nav.settings')}><Icon name="settings" /></a>
+		</div>
 	</header>
 
 	{#if data.wines.length === 0}

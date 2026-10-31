@@ -196,6 +196,15 @@ describe('people', () => {
 		assert.equal((await alice.req(wineUrl, { page: true })).status, 200, "Bob's delete did nothing");
 	});
 
+	test('grape pages list only your own wines', async () => {
+		const mine = await (await alice.req('/grapes/cornalin', { page: true })).text();
+		assert.ok(mine.includes('Cornalin Test'));
+		const theirs = await (await bob.req('/grapes/cornalin', { page: true })).text();
+		assert.ok(!theirs.includes('Cornalin Test'));
+		assert.equal((await alice.req('/grapes/not-a-grape', { page: true })).status, 404);
+		assert.equal((await alice.req('/grapes', { page: true })).status, 200);
+	});
+
 	test('a non-admin cannot invite', async () => {
 		assert.equal((await bob.action('/settings?/invite', { note: 'x' })).type, 'error');
 	});
