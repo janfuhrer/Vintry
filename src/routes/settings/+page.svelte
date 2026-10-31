@@ -327,6 +327,7 @@
 		{#if form?.imported !== undefined}
 			<p class="success" role="status">
 				{form.imported === 1 ? t('import.doneOne') : t('import.done', { n: form.imported })}
+				{#if form.skipped}{t('import.skipped', { n: form.skipped })}{/if}
 			</p>
 			{#if form.rejectedCount}
 				<p class="error">
@@ -389,6 +390,10 @@
 						}}
 				>
 					<input type="hidden" name="rows" value={payload} />
+					<label class="row small">
+						<input type="checkbox" name="include_owned" />
+						{t('import.includeOwned')}
+					</label>
 					{#if tooBig}<p class="error">{t('import.tooBig')}</p>{/if}
 					<button class="btn primary block" disabled={!preview.rows.length || tooBig}>
 						{preview.rows.length === 1

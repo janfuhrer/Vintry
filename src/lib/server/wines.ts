@@ -453,14 +453,31 @@ export async function exportData(userId: string) {
 }
 
 /** Adds many wines at once (CSV import), all or nothing */
-export async function importWines(userId: string, inputs: WineInput[]): Promise<number> {
-	if (!inputs.length) return 0;
+/** Same name, producer and vintage, ignoring case: how imports recognise a wine already there */
+const wineKey = (w: { name: string; producer: string | null; vintage: number | null }) =>
+	[w.name.toLowerCase(), (w.producer ?? '').toLowerCase(), w.vintage ?? ''].join('\u0000');
+
+export async function importWines(
+	userId: string,
+	inputs: WineInput[],
+	{ skipOwned = false } = {}
+): Promise<{ imported: number; skipped: number }> {
+	let fresh = inputs;
+	if (skipOwned) {
+		const owned = await sql<{ name: string; producer: string | null; vintage: number | null }[]>`
+			select name, producer, vintage from wines where user_id = ${userId}
+		`;
+		const keys = new Set(owned.map(wineKey));
+		fresh = inputs.filter((w) => !keys.has(wineKey(w)));
+	}
+	const skipped = inputs.length - fresh.length;
+	if (!fresh.length) return { imported: 0, skipped };
 	return sql.begin(async (tx) => {
-		const rows = inputs.map((input) => ({ ...input, user_id: userId, has_photo: false }));
+		const rows = fresh.map((input) => ({ ...input, user_id: userId, has_photo: false }));
 		const result = await tx`
 			insert into wines ${tx(rows, ...columns, 'user_id', 'has_photo')}
 		`;
-		return result.count;
+		return { imported: result.count, skipped };
 	});
 }
 

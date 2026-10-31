@@ -276,6 +276,8 @@ const en = {
 	'import.noName': 'No column for the wine’s name found. The first row must contain the column names.',
 	'import.button': 'Import {n} wines',
 	'import.done': '{n} wines imported.',
+	'import.skipped': '{n} already in your cellar, left out.',
+	'import.includeOwned': 'Also import wines I already have (same name, producer and vintage)',
 	'import.rejected': 'Skipped rows with invalid values: {rows}',
 	'import.error': 'The file could not be read.',
 	'import.tooMany': 'At most 2000 wines per import.',
@@ -556,6 +558,8 @@ const de: Record<Key, string> = {
 	'settings.exportPhotos': 'Fotos (ZIP)',
 	'settings.exportHint': 'Für Tabellen oder als Sicherung. Die Fotos gibt es als separates ZIP.',
 	'import.title': 'Aus einer Tabelle importieren',
+	'import.skipped': '{n} schon in deinem Keller, ausgelassen.',
+	'import.includeOwned': 'Auch Weine importieren, die ich schon habe (gleicher Name, Produzent und Jahrgang)',
 	'import.hint':
 		'Eine CSV-Datei mit einem Wein pro Zeile und Spaltennamen in der ersten Zeile (Name, Weingut, Jahrgang, …). Excel: Speichern unter → CSV. Ein Vivino-Export funktioniert direkt.',
 	'import.choose': 'CSV-Datei wählen',

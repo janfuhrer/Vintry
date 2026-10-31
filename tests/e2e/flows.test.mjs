@@ -565,6 +565,21 @@ describe('your data', () => {
 		assert.ok(merlot.body !== null);
 		const bad = await alice.action('/settings?/import', { rows: 'not json' });
 		assert.equal(bad.type, 'failure');
+
+		// the same sheet again: what is already there is left out, unless asked for
+		const again = devalue.parse(
+			(await alice.action('/settings?/import', { rows: JSON.stringify(rows) })).data
+		);
+		assert.deepEqual([again.imported, again.skipped], [0, 2]);
+		const forced = devalue.parse(
+			(
+				await alice.action('/settings?/import', {
+					rows: JSON.stringify(rows.slice(0, 1)),
+					include_owned: 'on'
+				})
+			).data
+		);
+		assert.deepEqual([forced.imported, forced.skipped], [1, 0]);
 	});
 
 	test('a formula in a wine name stays text in the CSV', async () => {

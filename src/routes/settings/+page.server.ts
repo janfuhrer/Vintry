@@ -139,8 +139,11 @@ export const actions: Actions = {
 	},
 	import: async ({ request, locals }) => {
 		let rows: unknown;
+		const fd = await request.formData();
+		// re-importing a sheet (or Vintry's own export) shouldn't double the cellar
+		const skipOwned = fd.get('include_owned') !== 'on';
 		try {
-			rows = JSON.parse(String((await request.formData()).get('rows') ?? '[]'));
+			rows = JSON.parse(String(fd.get('rows') ?? '[]'));
 		} catch {
 			return fail(400, { importError: 'format' });
 		}
@@ -163,8 +166,8 @@ export const actions: Actions = {
 			if (Object.keys(errors).length) rejected.push(line);
 			else inputs.push(withSuggestions(input));
 		}
-		const imported = await importWines(locals.user!.id, inputs);
-		return { imported, rejected: rejected.slice(0, 20), rejectedCount: rejected.length };
+		const { imported, skipped } = await importWines(locals.user!.id, inputs, { skipOwned });
+		return { imported, skipped, rejected: rejected.slice(0, 20), rejectedCount: rejected.length };
 	},
 	addDevice: async ({ locals }) => {
 		const { url } = await createInvite({ createdBy: locals.user!.id, forUser: locals.user!.id, hours: 24 });
