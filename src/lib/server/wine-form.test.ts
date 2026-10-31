@@ -113,3 +113,31 @@ describe('parsePhoto', () => {
 		expect(errors.photo).toBe('too_large');
 	});
 });
+
+describe('withSuggestions', () => {
+	test('fills window and taste from vintage and grapes when empty', async () => {
+		const { withSuggestions } = await import('./wine-form');
+		const { input } = parseWineForm(
+			form({ name: 'Gamaret', vintage: '2021', color: 'red', grapes: ['Gamaret'] })
+		);
+		const out = withSuggestions(input);
+		expect(out.drink_from).toBeGreaterThanOrEqual(2021);
+		expect(out.drink_to).toBeGreaterThan(out.drink_from!);
+		expect(out.body).not.toBeNull();
+	});
+
+	test('keeps what the user entered', async () => {
+		const { withSuggestions } = await import('./wine-form');
+		const { input } = parseWineForm(
+			form({ name: 'x', vintage: '2021', color: 'red', drink_from: '2030', drink_to: '2040', body: '2' })
+		);
+		const out = withSuggestions(input);
+		expect([out.drink_from, out.drink_to, out.body]).toEqual([2030, 2040, 2]);
+	});
+
+	test('no vintage, no window', async () => {
+		const { withSuggestions } = await import('./wine-form');
+		const { input } = parseWineForm(form({ name: 'x', color: 'white' }));
+		expect(withSuggestions(input).drink_from).toBeNull();
+	});
+});

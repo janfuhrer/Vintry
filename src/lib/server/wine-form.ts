@@ -1,5 +1,5 @@
 // Validation of the wine form. Kept free of database imports so it can be unit-tested.
-import { COLORS, canonicalGrape, type Color } from '#lib/wine.ts';
+import { COLORS, canonicalGrape, suggestTaste, suggestWindow, type Color } from '#lib/wine.ts';
 import type { WineInput } from './wines';
 
 const MAX_PHOTO = 1_500_000;
@@ -119,4 +119,21 @@ export async function parsePhoto(
 		return undefined;
 	}
 	return { image: img, thumb: th };
+}
+
+/**
+ * Fills the drinking window and taste the way the form suggests them, where the input left
+ * them empty. The form does this in the browser; imported rows get it here.
+ */
+export function withSuggestions(input: WineInput): WineInput {
+	const out = { ...input };
+	if (out.drink_from === null && out.drink_to === null) {
+		const w = suggestWindow(out);
+		if (w) [out.drink_from, out.drink_to] = [w.from, w.to];
+	}
+	if ([out.body, out.acidity, out.tannin, out.sweetness].every((v) => v === null)) {
+		const t = suggestTaste(out);
+		[out.body, out.acidity, out.tannin, out.sweetness] = [t.body, t.acidity, t.tannin, t.sweetness];
+	}
+	return out;
 }

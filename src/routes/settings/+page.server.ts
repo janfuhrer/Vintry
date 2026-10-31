@@ -7,7 +7,7 @@ import {
 	SESSION_COOKIE
 } from '#lib/server/auth.ts';
 import { deviceLabel } from '#lib/server/device.ts';
-import { parseWineForm } from '#lib/server/wine-form.ts';
+import { parseWineForm, withSuggestions } from '#lib/server/wine-form.ts';
 import { importWines } from '#lib/server/wines.ts';
 import { sql } from '#lib/server/db.ts';
 import { isLocale } from '#lib/i18n.ts';
@@ -139,7 +139,7 @@ export const actions: Actions = {
 			const { input, errors } = parseWineForm(fd);
 			if (Object.keys(errors).length)
 				rejected.push(i + 2); // spreadsheet row: header is row 1
-			else inputs.push(input);
+			else inputs.push(withSuggestions(input));
 		}
 		const imported = await importWines(locals.user!.id, inputs);
 		return { imported, rejected: rejected.slice(0, 20), rejectedCount: rejected.length };

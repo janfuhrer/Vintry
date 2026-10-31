@@ -303,6 +303,12 @@ describe('your data', () => {
 		const html = await (await alice.req('/', { page: true })).text();
 		assert.ok(html.includes('Imported Merlot') && html.includes('Imported Riesling'));
 		assert.ok(!html.includes('Broken vintage'));
+		// the form suggests window and taste in the browser; imported rows get them on the server
+		const merlot = (await (await alice.req('/export/vintry.json')).json()).wines.find(
+			(w) => w.name === 'Imported Merlot'
+		);
+		assert.ok(merlot.drink_from >= 2020 && merlot.drink_to > merlot.drink_from, JSON.stringify(merlot));
+		assert.ok(merlot.body !== null);
 		const bad = await alice.action('/settings?/import', { rows: 'not json' });
 		assert.equal(bad.type, 'failure');
 	});
