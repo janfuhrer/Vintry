@@ -8,8 +8,8 @@ let onProgress: Progress = () => {};
 
 /** One worker per page session; assets are self-hosted under /ocr/ */
 function getWorker() {
-	worker ??= import('tesseract.js').then(({ createWorker }) =>
-		createWorker(['eng', 'fra', 'deu'], 1, {
+	worker ??= import('tesseract.js').then(async ({ createWorker, PSM }) => {
+		const w = await createWorker(['eng', 'fra', 'deu'], 1, {
 			workerPath: '/ocr/worker.min.js',
 			corePath: '/ocr/',
 			langPath: '/ocr/lang',
@@ -19,8 +19,12 @@ function getWorker() {
 				if (m.status === 'recognizing text') onProgress('reading', m.progress);
 				else onProgress('loading', m.progress);
 			}
-		})
-	);
+		});
+		// Labels are sparse text in many sizes. The default (one uniform block) drops the
+		// big title lines, which are usually the wine's name, and sometimes the vintage.
+		await w.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT });
+		return w;
+	});
 	// a failed load (offline, broken download) must not poison later scans
 	worker.catch(() => (worker = undefined));
 	return worker;

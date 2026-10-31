@@ -33,6 +33,8 @@ jobs:
       - run: npm run check
       - run: npm test
       - run: npm run build
+      # real OCR on rendered labels; the build step copied the engine and language data
+      - run: npm run test:ocr
 
   e2e:
     name: End-to-end

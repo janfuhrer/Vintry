@@ -1,6 +1,6 @@
 import { countries } from './data/countries';
 import type { Color, Grape, Region } from './data/types';
-import { findGrape, findRegion, grapeIndex, normalize, regionIndex } from './wine';
+import { findRegion, grapeIndex, normalize, regionIndex } from './wine';
 
 export interface OcrLine {
 	text: string;
@@ -103,6 +103,18 @@ const VINTAGE = /\b(19[5-9]\d|20[0-4]\d)\b/g;
 const ALCOHOL = /\b(\d{1,2})\s?[.,]\s?(\d)\s?%\s?(vol)?/i;
 const ALCOHOL_INT = /\b(\d{1,2})\s?%\s?vol/i;
 const SIZE = /\b(\d{1,4}(?:[.,]\d{1,3})?)\s?(ml|cl|l|ltr|litre|liter)\b/i;
+// OCR reads the "l" of "0,75 l" as 1, I or |
+const SIZE_OCR_LITRE = /\b(0[.,]\d{2,3}|1[.,]5|3[.,]0)\s?[1Il|](?![\d%])/;
+
+/** Tokens that only describe the appellation, colour or origin, never the wine's own name */
+const META_WORDS = new Set(
+	(
+		'aoc aop doc docg dop do doca dac igt igp qba vdp vqa ava cru grand premier ' +
+		'appellation controlee protegee denominazione denominacion origine origen controllata garantita calificada ' +
+		'vin vino vinho wein wine qualitatswein landwein tafelwein rouge rosso tinto rot red blanc bianco blanco weiss white ' +
+		'rose rosato rosado du de di del della des d la le et and of from von aus'
+	).split(' ')
+);
 
 /** Finds the longest known names in the text; each span is used once */
 function matchAll<T>(text: string, keys: Map<string, T>, minLength = 4): T[] {
@@ -151,7 +163,7 @@ export function parseLabel(lines: OcrLine[], year = new Date().getFullYear()): P
 	}
 	if (out.alcohol !== undefined && (out.alcohol < 4 || out.alcohol > 25)) delete out.alcohol;
 
-	const size = raw.match(SIZE);
+	const size = raw.match(SIZE) ?? raw.match(SIZE_OCR_LITRE)?.slice(0, 2).concat('l');
 	if (size) {
 		const n = Number(size[1].replace(',', '.'));
 		const unit = size[2].toLowerCase();
@@ -186,14 +198,25 @@ export function parseLabel(lines: OcrLine[], year = new Date().getFullYear()): P
 
 	// producer: a line naming an estate
 	const cleaned = lines.map((l) => ({ text: clean(l.text), height: l.height })).filter((l) => l.text);
-	const producerLine = cleaned.find((l) =>
-		normalize(l.text)
-			.split(' ')
-			.some((w) => PRODUCER_WORDS.includes(w))
-	);
+	const BOTTLING =
+		/^(mis en bouteille|mise en bouteille|imbottigliato|abgefullt|embotellado|bottled|produced|prodotto|elabore)/;
+	const producerLine = cleaned.find((l) => {
+		const n = normalize(l.text);
+		return !BOTTLING.test(n) && n.split(' ').some((w) => PRODUCER_WORDS.includes(w));
+	});
 	if (producerLine) out.producer = titleCase(producerLine.text);
 
 	// name: the tallest line that isn't just metadata
+	// a line that is only appellation, colour, origin words and place names ("du Valais AOC",
+	// "Vin blanc de Suisse") describes the wine but isn't its name. A grape alone ("Fendant")
+	// often is the name, so grapes don't count here.
+	const onlyDescribes = (n: string) => {
+		let rest = ` ${n} `;
+		for (const r of [...regionIndex.keys()].sort((a, b) => b.length - a.length))
+			rest = rest.replace(` ${r} `, ' ');
+		const words = rest.trim().split(' ').filter(Boolean);
+		return words.length > 0 && words.every((w) => META_WORDS.has(w) || countryNames.has(w));
+	};
 	const isMeta = (s: string) => {
 		const n = normalize(s);
 		const stripped = n.replace(VINTAGE, '').trim();
@@ -203,7 +226,7 @@ export function parseLabel(lines: OcrLine[], year = new Date().getFullYear()): P
 			ALCOHOL_INT.test(s) ||
 			SIZE.test(s) ||
 			countryNames.has(stripped) ||
-			!!findGrape(stripped) ||
+			onlyDescribes(stripped) ||
 			/^(appellation|denominazione|produce|product|contains|enthalt|mis en bouteille|imbottigliato|abgefullt)/.test(
 				n
 			)

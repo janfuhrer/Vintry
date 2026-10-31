@@ -84,6 +84,7 @@ Put it behind a TLS-terminating proxy. Photos are stored in PostgreSQL, so backi
 | `npm run lint`     | Prettier and ESLint (`npm run format` fixes formatting)         |
 | `npm test`         | Unit tests (Vitest): label parsing, wine logic, form validation |
 | `npm run test:e2e` | End-to-end tests against the production build, see below        |
+| `npm run test:ocr` | Real OCR on rendered sample labels, checks what a scan fills in |
 | `npm run build`    | Production build into `build/`                                  |
 | `npm run icons`    | Re-render the PNG app icons from `static/logo.svg`              |
 

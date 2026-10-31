@@ -27,7 +27,8 @@
 		"test:watch": "vitest",
 		"test:e2e": "node tests/e2e/run.mjs",
 		"lint": "prettier --check . && eslint .",
-		"format": "prettier --write ."
+		"format": "prettier --write .",
+		"test:ocr": "node tests/ocr/run.mjs"
 	},
 	"imports": {
 		"#lib/*": "./src/lib/*"

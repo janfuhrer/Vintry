@@ -77,3 +77,33 @@ describe('parseLabel', () => {
 test('half bottles written in litres', () => {
 	expect(parseLabel([{ text: '0,375 l', height: 10 }], 2026).size_ml).toBe(375);
 });
+
+describe('lessons from real OCR output', () => {
+	test('a grape line can be the name of a varietal wine', () => {
+		const p = parseLabel(
+			lines(['Cave du Rhône', 26], ['Fendant', 93], ['du Valais AOC', 33], ['2023', 40]),
+			2026
+		);
+		expect(p.name).toBe('Fendant');
+		expect(p.grapes).toEqual(['Chasselas']);
+	});
+
+	test('appellation and origin lines are not names', () => {
+		const p = parseLabel(
+			lines(['du Valais AOC', 60], ['Vin blanc de Suisse', 50], ['Petite Arvine', 40]),
+			2026
+		);
+		expect(p.name).toBe('Petite Arvine');
+	});
+
+	test('"0,75 l" misread as "0,751" is still 75 cl', () => {
+		expect(parseLabel(lines(['14,5% vol 0,751', 20]), 2026).size_ml).toBe(750);
+		expect(parseLabel(lines(['0,75I', 20]), 2026).size_ml).toBe(750);
+		expect(parseLabel(lines(['13,51% vol', 20]), 2026).size_ml).toBeUndefined();
+	});
+
+	test('a bottling line is not the producer', () => {
+		const p = parseLabel(lines(['Mis en bouteille au château', 19], ['Clos des Fées', 40]), 2026);
+		expect(p.producer).toBe('Clos des Fées');
+	});
+});
