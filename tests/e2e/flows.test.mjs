@@ -335,3 +335,15 @@ describe('session', () => {
 		assert.equal((await alice.req('/', { page: true })).status, 303);
 	});
 });
+
+describe('operations', () => {
+	test('health and readiness endpoints are public and cheap', async () => {
+		const anon = new Client(base);
+		const live = await anon.req('/healthz');
+		assert.equal(live.status, 200);
+		assert.equal(await live.text(), 'ok');
+		const ready = await anon.req('/readyz');
+		assert.equal(ready.status, 200);
+		assert.equal(ready.headers.get('cache-control'), 'no-store');
+	});
+});

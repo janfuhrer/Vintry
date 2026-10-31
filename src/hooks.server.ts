@@ -19,6 +19,8 @@ const PUBLIC_FILES = new Set([
 	'/favicon.svg',
 	'/logo.svg',
 	'/robots.txt',
+	'/healthz',
+	'/readyz',
 	'/service-worker.js'
 ]);
 
