@@ -69,7 +69,7 @@
 
 <svelte:head><title>Vintry · {t('add.title')}</title></svelte:head>
 
-<main class="page">
+<main class="page" style="--form-bottom: calc(var(--nav-h) + var(--safe-b))">
 	<header class="head">
 		{#if step === 'form'}
 			<button class="icon-btn" aria-label={t('common.back')} onclick={() => (step = 'choose')}><Icon name="back" /></button>
@@ -84,6 +84,11 @@
 				<span class="scan-title">{t('add.scan')}</span>
 				<span class="muted small">{t('add.scanHint')}</span>
 				<input class="visually-hidden" type="file" accept="image/*" capture="environment" onchange={scan} />
+			</label>
+			<!-- no capture attribute: the phone offers its photo library -->
+			<label class="btn block">
+				<Icon name="image" size={18} />{t('add.pickPhoto')}
+				<input class="visually-hidden" type="file" accept="image/*" onchange={scan} />
 			</label>
 			<button class="btn block" onclick={manual}><Icon name="pen" size={18} />{t('add.manual')}</button>
 		</div>

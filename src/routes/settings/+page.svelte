@@ -102,7 +102,7 @@
 					{#each data.admin.invites as inv (inv.id)}
 						<li class="row">
 							<div class="grow">
-								<div>{inv.note ?? '–'}{#if inv.is_admin} · {t('settings.admin')}{/if}</div>
+								<div>{inv.note ?? '–'}{#if inv.is_admin}{' · '}{t('settings.admin')}{/if}</div>
 								<div class="muted small">{t('settings.expires', { date: fmt(inv.expires_at) })}</div>
 							</div>
 							<form method="POST" action="?/revoke" use:enhance>
@@ -119,7 +119,7 @@
 				{#each data.admin.users as u (u.id)}
 					<li class="row">
 						<div class="grow">
-							<div>{u.name}{#if u.is_admin} · <span class="muted">{t('settings.admin')}</span>{/if}</div>
+							<div>{u.name}{#if u.is_admin}{' · '}<span class="muted">{t('settings.admin')}</span>{/if}</div>
 							<div class="muted small">{fmt(u.created_at)} · {u.wines} 🍷</div>
 						</div>
 					</li>

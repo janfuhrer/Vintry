@@ -192,7 +192,7 @@
 			<div class="photo-actions">
 				<label class="btn small">
 					<Icon name="camera" size={18} />{shownPhoto ? t('form.changePhoto') : t('form.addPhoto')}
-					<input class="visually-hidden" type="file" accept="image/*" capture="environment" onchange={pickPhoto} />
+					<input class="visually-hidden" type="file" accept="image/*" onchange={pickPhoto} />
 				</label>
 				{#if shownPhoto}
 					<button type="button" class="btn small ghost" onclick={() => ((photo = null), (removePhoto = true))}>
@@ -519,7 +519,7 @@
 	}
 	.submit {
 		position: sticky;
-		bottom: 0;
+		bottom: var(--form-bottom, 0px);
 		padding: 12px 0 calc(12px + var(--safe-b));
 		background: linear-gradient(transparent, var(--bg) 30%);
 	}

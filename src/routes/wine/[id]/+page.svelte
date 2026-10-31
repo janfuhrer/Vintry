@@ -65,7 +65,7 @@
 	<div class="chips">
 		<span class="chip"><span class="dot swatch-{wine.color}" style="background: var(--swatch)"></span>{t(`color.${wine.color}`)}</span>
 		{#if wine.vintage}
-			<span class="chip">{wine.vintage}{#if age !== null && age > 0} · {age === 1 ? t('wine.year') : t('wine.years', { n: age })}{/if}</span>
+			<span class="chip">{wine.vintage}{#if age !== null && age > 0}{' · '}{age === 1 ? t('wine.year') : t('wine.years', { n: age })}{/if}</span>
 		{/if}
 		{#if wine.country || wine.region}
 			<span class="chip">{flag(wine.country)} {wine.region || countryName(wine.country, i18n.locale)}</span>

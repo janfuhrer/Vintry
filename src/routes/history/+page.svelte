@@ -32,7 +32,7 @@
 	{/if}
 	{#each months as m (m.key)}
 		<section>
-			<h2 class="month">{m.label} <span class="muted small">{t('history.count', { n: m.drinks.length })}</span></h2>
+			<h2 class="month">{m.label} <span class="muted small">{m.drinks.length === 1 ? t('cellar.bottle') : t('history.count', { n: m.drinks.length })}</span></h2>
 			<div class="card list">
 				{#each m.drinks as d (d.id)}
 					<a class="item" href="/wine/{d.wine_id}">

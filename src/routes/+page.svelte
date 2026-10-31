@@ -38,7 +38,7 @@
 	}
 
 	const bottles = $derived(data.wines.reduce((n, w) => n + w.quantity, 0));
-	const colorsPresent = $derived(COLORS.filter((c) => data.wines.some((w) => w.color === c)));
+	const colorsPresent = $derived(COLORS.filter((c) => data.wines.some((w) => w.color === c && (showEmpty || w.quantity > 0))));
 	const hasEmpty = $derived(data.wines.some((w) => w.quantity === 0));
 
 	const filtered = $derived.by(() => {
