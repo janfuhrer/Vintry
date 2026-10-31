@@ -214,14 +214,21 @@ export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): P
 	}
 	if (out.alcohol !== undefined && (out.alcohol < 4 || out.alcohol > 25)) delete out.alcohol;
 
-	const size = raw.match(SIZE) ?? raw.match(SIZE_OCR_LITRE)?.slice(0, 2).concat('l');
-	if (size) {
-		const n = Number(size[1].replace(',', '.'));
-		const unit = size[2].toLowerCase();
+	// the first size that is a real bottle: "Depuis 1898 L'Esprit…" reads as "1898 L" before "75 cl"
+	const sizes = [
+		...[...raw.matchAll(new RegExp(SIZE, 'gi'))].map((m) => [m[1], m[2]]),
+		...[...raw.matchAll(new RegExp(SIZE_OCR_LITRE, 'g'))].map((m) => [m[1], 'l'])
+	];
+	for (const [num, u] of sizes) {
+		const n = Number(num.replace(',', '.'));
+		const unit = u.toLowerCase();
 		const ml = Math.round(unit === 'ml' ? n : unit === 'cl' || unit === 'el' ? n * 10 : n * 1000);
 		// within 1 % of a real bottle size: OCR reads "750ml" as "756ml" now and then
 		const bottle = [187, 375, 500, 750, 1000, 1500, 3000, 6000].find((s) => Math.abs(ml - s) <= s * 0.01);
-		if (bottle) out.size_ml = bottle;
+		if (bottle) {
+			out.size_ml = bottle;
+			break;
+		}
 	}
 
 	// one longest-first pass, so "Müller-Thurgau" doesn't also count as the Thurgau region

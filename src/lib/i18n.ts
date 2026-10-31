@@ -222,7 +222,9 @@ const en = {
 	'settings.keepOne': 'You need at least one passkey.',
 	'settings.signOut': 'Sign out',
 	'settings.locations': 'Storage locations',
-	'settings.locationsHint': 'Renaming a place changes it for all its wines. Empty removes it.',
+	'settings.locationsHint':
+		'Renaming a place changes it for all its wines; an existing name merges the two. Empty removes it.',
+	'settings.locationClear': 'Remove "{name}" from all its wines?',
 	'settings.admin': 'Admin',
 	'settings.invite': 'Invite someone',
 	'settings.inviteNote': 'Note (who is it for?)',
@@ -497,7 +499,9 @@ const de: Record<Key, string> = {
 	'settings.keepOne': 'Mindestens ein Passkey ist nötig.',
 	'settings.signOut': 'Abmelden',
 	'settings.locations': 'Lagerorte',
-	'settings.locationsHint': 'Umbenennen ändert den Ort bei allen Weinen dort. Leer entfernt ihn.',
+	'settings.locationsHint':
+		'Umbenennen ändert den Ort bei allen Weinen dort; ein bestehender Name führt beide zusammen. Leer entfernt ihn.',
+	'settings.locationClear': '"{name}" bei allen Weinen entfernen?',
 	'settings.admin': 'Admin',
 	'settings.invite': 'Jemanden einladen',
 	'settings.inviteNote': 'Notiz (für wen?)',

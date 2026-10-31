@@ -239,6 +239,15 @@ describe('cellar', () => {
 		await drink(merlot, '2017-04-01');
 		await drink(pinot, '2017-05-01');
 
+		// a tie decided by the most recent drink as a whole (day, then entry), not by the
+		// latest day and latest entry taken separately: B's back-dated entry comes last
+		const syrah = await add({ name: 'Tie Syrah', color: 'red', grapes: 'Syrah', quantity: '5' });
+		const riesling = await add({ name: 'Tie Riesling', color: 'white', grapes: 'Riesling', quantity: '5' });
+		await drink(riesling, '2016-05-01');
+		await drink(syrah, '2016-05-01');
+		await drink(syrah, '2016-01-01');
+		await drink(riesling, '2016-02-01');
+
 		const json = await (await alice.req('/history/__data.json')).json();
 		const page = devalue.unflatten(json.nodes.at(-1).data);
 		const year = (y) => page.years.find((s) => s.year === y);
@@ -258,6 +267,7 @@ describe('cellar', () => {
 		});
 		assert.equal(year(2017).topCountry, 'CH');
 		assert.equal(year(2017).topGrape, 'Pinot Noir');
+		assert.equal(year(2016).topGrape, 'Syrah');
 	});
 
 	test('renaming a storage location moves all its wines', async () => {
@@ -598,6 +608,8 @@ describe('operations', () => {
 		assert.equal(page.headers.get('content-encoding'), 'gzip');
 		assert.match(page.headers.get('vary') ?? '', /accept-encoding/i);
 		assert.match(await page.text(), /<\/html>/, 'and it decodes to the whole page');
+		const etag = page.headers.get('etag');
+		if (etag) assert.match(etag, /^W\//, "the plain page's strong ETag can't describe gzipped bytes");
 		const post = await anon.req('/api/auth/login/options', { method: 'POST', headers: gz });
 		assert.equal(post.headers.get('content-encoding'), null);
 	});

@@ -257,11 +257,15 @@
 									method="POST"
 									action="?/renameLocation"
 									class="row"
-									use:enhance={() =>
-										async ({ update }) => {
+									use:enhance={({ formData, cancel }) => {
+										// an empty name takes the place off every wine there
+										const to = String(formData.get('to') ?? '').trim();
+										if (!to && !confirm(t('settings.locationClear', { name: l.name }))) return cancel();
+										return async ({ update }) => {
 											await update();
 											renaming = null;
-										}}
+										};
+									}}
 								>
 									<input type="hidden" name="from" value={l.name} />
 									<!-- svelte-ignore a11y_autofocus -->

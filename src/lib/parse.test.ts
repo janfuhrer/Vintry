@@ -64,6 +64,10 @@ describe('parseLabel', () => {
 		// a misread digit close to a real size snaps to it; anything further off is dropped
 		expect(parseLabel(lines(['756ml', 10]), 2026).size_ml).toBe(750);
 		expect(parseLabel(lines(['780 ml', 10]), 2026).size_ml).toBeUndefined();
+		// a year before an apostrophe looks like litres; the real size comes later
+		expect(parseLabel(lines(["Depuis 1898 L'Esprit du lieu", 10], ['13% vol 75 cl', 10]), 2026).size_ml).toBe(
+			750
+		);
 	});
 
 	test('empty input gives an empty result', () => {

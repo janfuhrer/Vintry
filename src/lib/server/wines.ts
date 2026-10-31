@@ -334,7 +334,9 @@ export async function yearStats(userId: string): Promise<YearStats[]> {
 	return sql<YearStats[]>`
 		with d as (
 			select extract(year from d.drunk_on)::int as year, d.drunk_on, d.created_at, d.rating,
-				w.grapes, w.country
+				w.grapes, w.country,
+				-- one sortable key per drink: the day drunk, then when it was entered
+				to_char(d.drunk_on, 'YYYY-MM-DD') || to_char(d.created_at at time zone 'UTC', 'YYYY-MM-DD HH24:MI:SS.US') as recency
 			from drinks d join wines w on w.id = d.wine_id
 			where d.user_id = ${userId}
 		),
@@ -345,13 +347,13 @@ export async function yearStats(userId: string): Promise<YearStats[]> {
 		grapes as (
 			-- within one wine, the grape listed first (the main one) wins a tie
 			select year, grape, row_number() over (
-				partition by year order by count(*) desc, max(drunk_on) desc, max(created_at) desc, min(pos)
+				partition by year order by count(*) desc, max(recency) desc, min(pos)
 			) as n
 			from d, unnest(grapes) with ordinality as g(grape, pos) group by year, grape
 		),
 		countries as (
 			select year, country, row_number() over (
-				partition by year order by count(*) desc, max(drunk_on) desc, max(created_at) desc
+				partition by year order by count(*) desc, max(recency) desc
 			) as n
 			from d where country is not null group by year, country
 		)

@@ -100,6 +100,9 @@ function compress(request: Request, response: Response): Response {
 	)
 		return response;
 	h.set('content-encoding', 'gzip');
+	// Kit's strong ETag hashes the plain HTML; the gzipped bytes differ, so it can only be weak
+	const etag = h.get('etag');
+	if (etag && !etag.startsWith('W/')) h.set('etag', `W/${etag}`);
 	h.append('vary', 'accept-encoding');
 	h.delete('content-length');
 	return new Response(response.body.pipeThrough(new CompressionStream('gzip')), {

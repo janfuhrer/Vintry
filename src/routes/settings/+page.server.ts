@@ -39,7 +39,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 	`;
 	const locations = await sql<{ name: string; wines: number; bottles: number }[]>`
 		select location as name, count(*)::int as wines, sum(quantity)::int as bottles from wines
-		where user_id = ${user.id} and location is not null and not wishlist
+		where user_id = ${user.id} and location is not null
 		group by location order by location
 	`;
 	if (!user.is_admin) return { passkeys, sessions, locations, admin: null };

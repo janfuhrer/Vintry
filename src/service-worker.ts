@@ -211,15 +211,16 @@ self.addEventListener('fetch', (event) => {
 		return;
 	}
 
-	// reading pages: network first, the saved copy without signal
-	if (dataPage && isReadable(dataPage)) {
+	// reading pages: network first, the saved copy without signal. "Show older drinks"
+	// (?all) is the full history: never saved over the usual page, and no stand-in for it
+	if (dataPage && isReadable(dataPage) && !url.searchParams.has('all')) {
 		event.respondWith(networkFirst(event, url, SAVED_DATA, () => savedData(url), announce));
 		return;
 	}
 
 	if (req.mode === 'navigate') {
 		event.respondWith(
-			isReadable(url.pathname)
+			isReadable(url.pathname) && !url.searchParams.has('all')
 				? networkFirst(event, url, SAVED_PAGES, () => savedPage(url)).catch(offline)
 				: fetch(req).catch(offline)
 		);
