@@ -35,6 +35,19 @@
 	let photo = $state<{ image: Blob; thumb: Blob } | null>(null);
 	let notice = $state(initial ? t('add.copied', { name: initial.name }) : '');
 	let formKey = $state(0);
+	let imageError = $state(false);
+
+	// show the photo while it's being read
+	let previewUrl = $state<string | null>(null);
+	$effect(() => {
+		if (!photo) return;
+		const url = URL.createObjectURL(photo.thumb);
+		previewUrl = url;
+		return () => {
+			URL.revokeObjectURL(url);
+			previewUrl = null;
+		};
+	});
 
 	// a later client-side navigation to /add?from=… reuses this component
 	let copiedId = initial?.id;
@@ -72,9 +85,19 @@
 		step = 'scanning';
 		progress = 0;
 		stage = 'loading';
+		imageError = false;
+		let prepared;
 		try {
-			const prepared = await preparePhotoForScan(file);
-			photo = prepared.photo;
+			prepared = await preparePhotoForScan(file);
+		} catch (err) {
+			// the browser can't decode it (e.g. HEIC outside Safari): say so, don't pretend to scan
+			console.error(err);
+			imageError = true;
+			step = 'choose';
+			return;
+		}
+		photo = prepared.photo;
+		try {
 			const { readLabel } = await import('#lib/ocr.ts');
 			const { lines, text } = await readLabel(prepared.ocr, (s, p) => {
 				stage = s;
@@ -95,6 +118,7 @@
 			scanned = found;
 			notice = found.length ? t('add.scanned') : t('add.scanFailed');
 		} catch (err) {
+			// keep the photo: the wine can still be entered by hand
 			console.error(err);
 			values = emptyValues();
 			scanned = [];
@@ -128,6 +152,7 @@
 
 	{#if step === 'choose'}
 		<div class="choose">
+			{#if imageError}<p class="error notice-error" role="alert">{t('add.badImage')}</p>{/if}
 			<label class="scan-btn">
 				<span class="scan-icon"><Icon name="camera" size={40} /></span>
 				<span class="scan-title">{t('add.scan')}</span>
@@ -143,7 +168,13 @@
 		</div>
 	{:else if step === 'scanning'}
 		<div class="scanning" role="status" aria-live="polite">
-			<div class="spinner" aria-hidden="true"></div>
+			{#if previewUrl}
+				<div class="preview">
+					<img src={previewUrl} alt="" /><span class="sweep" aria-hidden="true"></span>
+				</div>
+			{:else}
+				<div class="spinner" aria-hidden="true"></div>
+			{/if}
 			<p>{stage === 'loading' ? t('add.loading') : t('add.reading')}</p>
 			<progress max="1" value={progress}></progress>
 		</div>
@@ -241,6 +272,41 @@
 	@keyframes spin {
 		to {
 			transform: rotate(360deg);
+		}
+	}
+	.notice-error {
+		margin: 0;
+		text-align: center;
+	}
+	.preview {
+		position: relative;
+		width: 180px;
+		height: 180px;
+		border-radius: 20px;
+		overflow: hidden;
+		box-shadow: var(--shadow);
+	}
+	.preview img {
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.sweep {
+		position: absolute;
+		inset: 0;
+		background: linear-gradient(
+			transparent 40%,
+			color-mix(in srgb, var(--gold) 45%, transparent) 50%,
+			transparent 60%
+		);
+		animation: sweep 1.6s ease-in-out infinite;
+	}
+	@keyframes sweep {
+		from {
+			transform: translateY(-60%);
+		}
+		to {
+			transform: translateY(60%);
 		}
 	}
 	.notice {

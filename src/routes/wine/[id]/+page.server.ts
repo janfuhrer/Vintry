@@ -1,6 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import {
 	deleteDrink,
+	updateDrink,
 	deleteWine,
 	drinkOne,
 	drinksForWine,
@@ -47,6 +48,21 @@ export const actions: Actions = {
 			note
 		});
 		if (!ok) return fail(400);
+	},
+	editDrink: async ({ request, locals }) => {
+		const fd = await request.formData();
+		const date = String(fd.get('drunk_on') ?? '');
+		if (!isISODate(date)) return fail(400, { date: 'invalid' });
+		const note =
+			String(fd.get('note') ?? '')
+				.trim()
+				.slice(0, 2000) || null;
+		const ok = await updateDrink(locals.user!.id, String(fd.get('id')), {
+			drunk_on: date,
+			rating: rating(fd.get('rating')),
+			note
+		});
+		if (!ok) return fail(404);
 	},
 	deleteDrink: async ({ request, locals }) => {
 		await deleteDrink(locals.user!.id, String((await request.formData()).get('id')));

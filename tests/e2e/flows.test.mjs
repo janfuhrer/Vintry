@@ -145,7 +145,7 @@ describe('cellar', () => {
 		await alice.action(`${wineUrl}?/drink`, { drunk_on: '2026-10-31', note: 'oops' });
 		assert.equal(await qty(), before - 1);
 		const html = await (await alice.req(wineUrl, { page: true })).text();
-		const id = html.match(/name="id" value="([0-9a-f-]{36})"/)[1];
+		const id = html.match(/data-drink="([0-9a-f-]{36})"/)[1];
 		assert.equal((await alice.action(`${wineUrl}?/deleteDrink`, { id })).type, 'success');
 		assert.equal(await qty(), before);
 	});
@@ -162,6 +162,31 @@ describe('cellar', () => {
 		const r = await alice.action(`${wineUrl}?/drink`, { drunk_on: '2026-02-30' });
 		assert.equal(r.type, 'failure');
 		assert.equal((await alice.req('/wine/not-a-uuid', { page: true })).status, 404);
+	});
+
+	test('a drink entry can be corrected', async () => {
+		// newest date, so it is the first entry on the page
+		await alice.action(`${wineUrl}?/drink`, { drunk_on: '2026-10-31', note: 'first try' });
+		const html = await (await alice.req(wineUrl, { page: true })).text();
+		const id = html.match(/data-drink="([0-9a-f-]{36})"/)[1];
+		const r = await alice.action(`${wineUrl}?/editDrink`, {
+			id,
+			drunk_on: '2026-10-28',
+			rating: '4',
+			note: 'corrected'
+		});
+		assert.equal(r.type, 'success');
+		const after = await (await alice.req(wineUrl, { page: true })).text();
+		assert.ok(after.includes('corrected'));
+		assert.equal(
+			(await alice.action(`${wineUrl}?/editDrink`, { id, drunk_on: '2026-13-01' })).type,
+			'failure'
+		);
+		assert.equal(
+			(await bob.action(`${wineUrl}?/editDrink`, { id, drunk_on: '2026-10-01', note: 'x' })).type,
+			'redirect',
+			'Bob is signed out here'
+		);
 	});
 
 	test('quantity never goes below zero', async () => {

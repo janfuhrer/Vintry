@@ -211,6 +211,19 @@ export async function drinksForWine(userId: string, wineId: string): Promise<Dri
 	`;
 }
 
+export async function updateDrink(
+	userId: string,
+	id: string,
+	drink: { drunk_on: string; rating: number | null; note: string | null }
+): Promise<boolean> {
+	if (!isUuid(id)) return false;
+	const result = await sql`
+		update drinks set drunk_on = ${drink.drunk_on}, rating = ${drink.rating}, note = ${drink.note}
+		where id = ${id} and user_id = ${userId}
+	`;
+	return result.count > 0;
+}
+
 /** Undoes a "drink one": removes the entry and puts the bottle back */
 export async function deleteDrink(userId: string, id: string) {
 	if (!isUuid(id)) return;

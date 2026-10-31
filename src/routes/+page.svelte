@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import InstallHint from '#lib/components/InstallHint.svelte';
 	import { groupBy } from '#lib/group.ts';
 	import WineCard from '#lib/components/WineCard.svelte';
 	import { useI18n, type Key } from '#lib/i18n.ts';
@@ -130,6 +131,8 @@
 			<a class="icon-btn" href="/settings" aria-label={t('nav.settings')}><Icon name="settings" /></a>
 		</div>
 	</header>
+
+	<InstallHint />
 
 	{#if data.wines.length === 0}
 		<div class="empty-state">

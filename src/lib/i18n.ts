@@ -73,6 +73,10 @@ const en = {
 	'status.past': 'Past peak',
 	'status.unknown': 'No window',
 
+	'install.title': 'Install Vintry',
+	'install.ios': 'Tap Share, then “Add to Home Screen”. It opens like an app.',
+	'install.android': 'Add it to your home screen. It opens like an app.',
+	'install.button': 'Install',
 	'add.title': 'Add wine',
 	'add.scan': 'Scan label',
 	'add.scanHint': 'Take a photo of the front label.',
@@ -82,6 +86,7 @@ const en = {
 	'add.loading': 'Loading text recognition…',
 	'add.scanned': 'Filled in from the label. Check the marked fields.',
 	'add.scanFailed': 'Could not read the label. Fill in what you know.',
+	'add.badImage': 'This image format can’t be opened here. Try a JPEG or take a photo.',
 	'add.retake': 'Retake',
 	'add.copied': 'Copied from {name}. Check the vintage and bottles.',
 
@@ -154,6 +159,8 @@ const en = {
 	'drink.note': 'Note',
 	'drink.notePlaceholder': 'With whom, what food, how was it?',
 	'drink.button': 'Cheers',
+	'drink.edit': 'Edit entry',
+	'drink.delete': 'Delete entry and put the bottle back',
 
 	'history.title': 'History',
 	'history.empty': 'Nothing drunk yet.',
@@ -273,6 +280,10 @@ const de: Record<Key, string> = {
 	'status.past': 'Über dem Höhepunkt',
 	'status.unknown': 'Kein Fenster',
 
+	'install.title': 'Vintry installieren',
+	'install.ios': 'Tippe auf Teilen und dann «Zum Home-Bildschirm». Es öffnet sich wie eine App.',
+	'install.android': 'Füge es zum Startbildschirm hinzu. Es öffnet sich wie eine App.',
+	'install.button': 'Installieren',
 	'add.title': 'Wein erfassen',
 	'add.scan': 'Etikette scannen',
 	'add.scanHint': 'Fotografiere die Vorderseite.',
@@ -282,6 +293,7 @@ const de: Record<Key, string> = {
 	'add.loading': 'Texterkennung wird geladen…',
 	'add.scanned': 'Von der Etikette übernommen. Prüfe die markierten Felder.',
 	'add.scanFailed': 'Etikette nicht lesbar. Fülle aus, was du weisst.',
+	'add.badImage': 'Dieses Bildformat lässt sich hier nicht öffnen. Versuche ein JPEG oder mach ein Foto.',
 	'add.retake': 'Neues Foto',
 	'add.copied': 'Von {name} übernommen. Prüfe Jahrgang und Flaschen.',
 
@@ -354,6 +366,8 @@ const de: Record<Key, string> = {
 	'drink.note': 'Notiz',
 	'drink.notePlaceholder': 'Mit wem, zu welchem Essen, wie war er?',
 	'drink.button': 'Prost',
+	'drink.edit': 'Eintrag bearbeiten',
+	'drink.delete': 'Eintrag löschen und Flasche zurücklegen',
 
 	'history.title': 'Verlauf',
 	'history.empty': 'Noch nichts getrunken.',

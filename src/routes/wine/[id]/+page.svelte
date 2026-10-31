@@ -24,6 +24,15 @@
 	const hasTaste = $derived([wine.body, wine.acidity, wine.tannin, wine.sweetness].some((x) => x !== null));
 
 	let drinkOpen = $state(false);
+	// the drink entry being edited; its sheet is open while set
+	let editing = $state<(typeof data.drinks)[number] | null>(null);
+	let editRating = $state<number | null>(null);
+	let editOpen = $state(false);
+	function openEdit(d: (typeof data.drinks)[number]) {
+		editing = d;
+		editRating = d.rating;
+		editOpen = true;
+	}
 	let drinkRating = $state<number | null>(null);
 	let rateForm: HTMLFormElement | undefined = $state();
 	// optimistic: set on tap, re-synced from the server after the action
@@ -188,18 +197,15 @@
 			<ul class="drinks">
 				{#each data.drinks as d (d.id)}
 					<li>
-						<div class="row">
-							<span>{fmtDate(d.drunk_on)}</span>
-							<Stars value={d.rating} size={14} />
-							<span class="spacer"></span>
-							<form method="POST" action="?/deleteDrink" use:enhance>
-								<input type="hidden" name="id" value={d.id} />
-								<button class="icon-btn small-icon" aria-label={t('common.delete')}
-									><Icon name="x" size={16} /></button
-								>
-							</form>
-						</div>
-						{#if d.note}<p class="muted small note">{d.note}</p>{/if}
+						<button type="button" class="drink-entry" data-drink={d.id} onclick={() => openEdit(d)}>
+							<span class="row">
+								<span>{fmtDate(d.drunk_on)}</span>
+								<Stars value={d.rating} size={14} />
+								<span class="spacer"></span>
+								<Icon name="pen" size={14} label={t('common.edit')} />
+							</span>
+							{#if d.note}<span class="muted small note">{d.note}</span>{/if}
+						</button>
 					</li>
 				{/each}
 			</ul>
@@ -246,6 +252,49 @@
 		</label>
 		<button class="btn primary block">{t('drink.button')}</button>
 	</form>
+</Sheet>
+
+<Sheet bind:open={editOpen} title={t('drink.edit')}>
+	{#if editing}
+		<form
+			method="POST"
+			action="?/editDrink"
+			class="stack"
+			use:enhance={() =>
+				async ({ update }) => {
+					await update();
+					editOpen = false;
+				}}
+		>
+			<input type="hidden" name="id" value={editing.id} />
+			<label class="field">
+				{t('drink.date')}
+				<input class="input" type="date" name="drunk_on" value={editing.drunk_on} max={today()} required />
+			</label>
+			<div class="field">
+				<span>{t('drink.rating')}</span>
+				<Stars value={editRating} onchange={(v) => (editRating = v)} size={32} label={t('drink.rating')} />
+				<input type="hidden" name="rating" value={editRating ?? ''} />
+			</div>
+			<label class="field">
+				{t('drink.note')}
+				<textarea class="input" name="note" maxlength="2000">{editing.note ?? ''}</textarea>
+			</label>
+			<button class="btn primary block">{t('common.save')}</button>
+		</form>
+		<form
+			method="POST"
+			action="?/deleteDrink"
+			use:enhance={() =>
+				async ({ update }) => {
+					await update();
+					editOpen = false;
+				}}
+		>
+			<input type="hidden" name="id" value={editing.id} />
+			<button class="btn danger block"><Icon name="trash" size={18} />{t('drink.delete')}</button>
+		</form>
+	{/if}
 </Sheet>
 
 <style>
@@ -347,6 +396,20 @@
 	.note {
 		margin: 2px 0 0;
 		white-space: pre-wrap;
+	}
+	.drink-entry {
+		display: flex;
+		flex-direction: column;
+		gap: 2px;
+		width: 100%;
+		padding: 4px 0;
+		border: 0;
+		background: none;
+		color: inherit;
+		text-align: left;
+	}
+	.drink-entry :global(svg) {
+		color: var(--muted);
 	}
 	.small-icon {
 		width: 32px;
