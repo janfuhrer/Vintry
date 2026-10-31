@@ -1,4 +1,5 @@
 <script lang="ts">
+	import CountryMap from '#lib/components/CountryMap.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { useI18n } from '#lib/i18n.ts';
 	import { countryName, findGrape, findRegion, flag, grapeSlug } from '#lib/wine.ts';
@@ -28,6 +29,19 @@
 			{/if}
 		</div>
 	</header>
+
+	{#if data.map}
+		<section class="card stack">
+			<CountryMap
+				map={data.map}
+				links
+				label={t('map.label', { region: region.name, country: countryName(region.country, i18n.locale) })}
+			/>
+			<a class="small" href="/regions?country={region.country}"
+				>{t('map.explore', { country: countryName(region.country, i18n.locale) })}</a
+			>
+		</section>
+	{/if}
 
 	{#if region.grapes.length}
 		<section class="card stack">

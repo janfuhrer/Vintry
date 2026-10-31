@@ -37,6 +37,21 @@ export interface Region {
 	age?: Aging;
 	/** Set when the region implies a style, e.g. Champagne → sparkling */
 	color?: Color;
+	/** Where it lies, roughly its middle: [latitude, longitude] */
+	at?: [number, number];
+}
+
+/** A country outline for the small maps, see scripts/map.mjs */
+export interface Shape {
+	/** SVG path in map units, w × h */
+	d: string;
+	w: number;
+	h: number;
+	/** Longitude at x = 0 and latitude at y = 0, and units per degree */
+	west: number;
+	north: number;
+	kx: number;
+	ky: number;
 }
 
 export interface Country {

@@ -14,6 +14,8 @@ import {
 } from '#lib/server/wines.ts';
 import { parsePhoto, parsePurchase, type FieldErrors } from '#lib/server/wine-form.ts';
 import { isISODate } from '#lib/dates.ts';
+import { countryMap } from '#lib/server/map.ts';
+import { findRegion } from '#lib/wine.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -23,7 +25,10 @@ export const load: PageServerLoad = async ({ locals, params }) => {
 		drinksForWine(locals.user!.id, wine.id),
 		otherVintages(locals.user!.id, wine)
 	]);
-	return { wine, drinks, vintages };
+	// where it's from: the region among its country's others
+	const region = wine.region ? findRegion(wine.region) : undefined;
+	const map = region?.at ? countryMap(region.country, { here: region.name }) : null;
+	return { wine, drinks, vintages, map };
 };
 
 const rating = (v: FormDataEntryValue | null) => {

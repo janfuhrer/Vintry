@@ -92,6 +92,18 @@ describe('cellar', () => {
 		assert.ok(html.includes('Humagne Rouge'), 'grape names are canonicalised');
 	});
 
+	test('maps: the region of a wine on its country, and the regions to explore', async () => {
+		const wine = await (await alice.req(wineUrl, { page: true })).text();
+		assert.match(wine, /<svg class="map[^"]*"[^>]*aria-label="Map of Switzerland with Valais marked"/);
+		const page = await (await alice.req('/regions', { page: true })).text();
+		// the country you have most bottles from comes first
+		assert.match(page, /<h2[^>]*>🇨🇭 Switzerland<\/h2>/);
+		assert.match(page, /href="\/regions\/valais"/);
+		const italy = await (await alice.req('/regions?country=it', { page: true })).text();
+		assert.match(italy, /href="\/regions\/barolo"/);
+		assert.equal((await alice.req('/regions?country=zz', { page: true })).status, 200);
+	});
+
 	test('invalid input is reported, not stored', async () => {
 		const r = await alice.action('/add', { name: '', vintage: 'abc' });
 		assert.equal(r.type, 'failure');

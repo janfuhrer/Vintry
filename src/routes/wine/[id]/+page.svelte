@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import CountryMap from '#lib/components/CountryMap.svelte';
 	import Dots from '#lib/components/Dots.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import Sheet from '#lib/components/Sheet.svelte';
@@ -261,6 +262,25 @@
 		</section>
 	{/if}
 
+	{#if data.map}
+		{@const region = findRegion(wine.region!)!}
+		<section class="card stack">
+			<div class="row">
+				<h2>{t('map.title')}</h2>
+				<span class="spacer"></span>
+				<a class="small" href="/regions?country={data.map.country}"
+					>{t('map.explore', { country: countryName(data.map.country, i18n.locale) })}</a
+				>
+			</div>
+			<a href="/regions/{regionSlug(region.name)}" class="map-link">
+				<CountryMap
+					map={data.map}
+					label={t('map.label', { region: region.name, country: countryName(region.country, i18n.locale) })}
+				/>
+			</a>
+		</section>
+	{/if}
+
 	<section class="card row">
 		<h2>{t('wine.rating')}</h2>
 		<span class="spacer"></span>
@@ -454,6 +474,12 @@
 </Sheet>
 
 <style>
+	.map-link {
+		display: block;
+	}
+	.map-link :global(.map) {
+		max-height: 220px;
+	}
 	.vintages {
 		display: flex;
 		flex-wrap: wrap;

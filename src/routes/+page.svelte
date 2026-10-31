@@ -190,6 +190,7 @@
 			<p class="muted small">{bottles === 1 ? t('cellar.bottle') : t('cellar.bottles', { n: bottles })}</p>
 		</div>
 		<div class="row">
+			<a class="icon-btn" href="/regions" aria-label={t('regions.title')}><Icon name="map" /></a>
 			<a class="icon-btn" href="/grapes" aria-label={t('grapes.title')}><Icon name="book" /></a>
 			<a class="icon-btn" href="/settings" aria-label={t('nav.settings')}><Icon name="settings" /></a>
 		</div>

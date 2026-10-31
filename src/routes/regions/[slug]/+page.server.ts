@@ -1,5 +1,6 @@
 import { error } from '@sveltejs/kit';
 import { sql } from '#lib/server/db.ts';
+import { bottlesByRegion, countryMap } from '#lib/server/map.ts';
 import type { WineListItem } from '#lib/server/wines.ts';
 import { findRegionBySlug, normalize } from '#lib/wine.ts';
 import type { PageServerLoad } from './$types';
@@ -17,5 +18,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		where user_id = ${locals.user!.id} and region is not null and not wishlist
 		order by quantity > 0 desc, name
 	`;
-	return { name: region.name, wines: rows.filter((w) => names.has(normalize(w.region))) };
+	const map = region.at
+		? countryMap(region.country, { here: region.name, owned: bottlesByRegion(rows) })
+		: null;
+	return { name: region.name, wines: rows.filter((w) => names.has(normalize(w.region))), map };
 };

@@ -29,6 +29,7 @@
 - **Scan a label.** Text recognition runs on your device (tesseract.js), so no photo leaves your phone. Scan the back label too, or crop a cluttered photo to the label and read it again. Scan a wine you already have and it offers to add a bottle to it.
 - **Or let Claude read it (optional).** If the server has a Claude API key, each person can choose in settings to have label photos read by Claude instead. It recognises the wine and fills in grapes, drinking window and taste too. Only the photos are sent, only after the person agrees, and each person has a monthly allowance.
 - **Smart defaults.** A built-in table of about 80 grapes and 110 regions suggests the drinking window, taste profile, serving temperature and food pairings. You can override everything.
+- **Maps.** Every wine shows where it comes from: its region marked on an outline of the country. A regions page lets you explore the important regions of each country and shows which ones your cellar covers.
 - **Find what to open.** Search the cellar by name, grape, region, place or note, or by a dish: "raclette" finds the Chasselas.
 - **Drinking window at a glance.** Wait, ready, drink soon or past peak, with a bar that shows where this year sits.
 - **Drink log.** "Drink one" takes a bottle out of the cellar and records the date, your rating and a note (with undo). The history shows each year's bottles, ratings, favourite grape and country.
