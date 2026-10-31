@@ -32,6 +32,31 @@
 	const aromaWords = $derived(aromas(wine.grapes, i18n.locale));
 	const hasTaste = $derived([wine.body, wine.acidity, wine.tannin, wine.sweetness].some((x) => x !== null));
 
+	// sharing tells others about the wine: no price, shop, notes or location
+	let shared = $state(false);
+	async function share() {
+		const stars = wine.rating ? ' ' + '★'.repeat(wine.rating) + '☆'.repeat(5 - wine.rating) : '';
+		const text = [
+			[wine.name, wine.vintage].filter(Boolean).join(' '),
+			wine.producer,
+			[wine.region, countryName(wine.country, i18n.locale)].filter(Boolean).join(', '),
+			wine.grapes.join(', ')
+		]
+			.filter(Boolean)
+			.join('\n')
+			.concat(stars ? `\n${stars.trim()}` : '');
+		try {
+			if (navigator.share) await navigator.share({ title: wine.name, text });
+			else {
+				await navigator.clipboard.writeText(text);
+				shared = true;
+				setTimeout(() => (shared = false), 2000);
+			}
+		} catch {
+			// share sheet dismissed
+		}
+	}
+
 	let drinkOpen = $state(false);
 	// the drink entry being edited; its sheet is open while set
 	let editing = $state<(typeof data.drinks)[number] | null>(null);
@@ -227,7 +252,14 @@
 		{/if}
 	</section>
 
-	<a class="btn block" href="/add?from={wine.id}"><Icon name="plus" size={18} />{t('wine.buyAgain')}</a>
+	<div class="row actions">
+		<a class="btn grow-btn" href="/add?from={wine.id}"><Icon name="plus" size={18} />{t('wine.buyAgain')}</a>
+		<button type="button" class="btn grow-btn" onclick={share}
+			><Icon name={shared ? 'check' : 'share'} size={18} />{shared
+				? t('wine.shared')
+				: t('wine.share')}</button
+		>
+	</div>
 
 	<form
 		method="POST"
@@ -413,6 +445,12 @@
 	.note {
 		margin: 2px 0 0;
 		white-space: pre-wrap;
+	}
+	.actions {
+		gap: 10px;
+	}
+	.grow-btn {
+		flex: 1;
 	}
 	.drink-entry {
 		display: flex;

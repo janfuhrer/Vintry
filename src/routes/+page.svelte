@@ -24,8 +24,8 @@
 
 	type Group = 'none' | 'country' | 'grape' | 'window';
 	const GROUPS: Group[] = ['none', 'country', 'grape', 'window'];
-	type Sort = 'recent' | 'name' | 'vintage' | 'window';
-	const SORTS: Sort[] = ['recent', 'name', 'vintage', 'window'];
+	type Sort = 'recent' | 'name' | 'vintage' | 'window' | 'rating';
+	const SORTS: Sort[] = ['recent', 'name', 'vintage', 'window', 'rating'];
 	const STATUS_ORDER: WindowStatus[] = ['soon', 'ready', 'wait', 'past', 'unknown'];
 
 	let query = $state('');
@@ -97,6 +97,7 @@
 		if (sort === 'name') list.sort(byName);
 		else if (sort === 'vintage') list.sort((a, b) => nullsLast(a.vintage, b.vintage) || byName(a, b));
 		else if (sort === 'window') list.sort((a, b) => nullsLast(a.drink_to, b.drink_to) || byName(a, b));
+		else if (sort === 'rating') list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || byName(a, b));
 		return list;
 	});
 

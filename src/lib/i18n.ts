@@ -58,6 +58,7 @@ const en = {
 	'cellar.sort.name': 'Name',
 	'cellar.sort.vintage': 'Vintage',
 	'cellar.sort.window': 'Drink by',
+	'cellar.sort.rating': 'Rating',
 	'cellar.drinkNow': 'Drink now',
 	'cellar.unknown': 'Unknown',
 
@@ -157,6 +158,8 @@ const en = {
 	'wine.details': 'Details',
 	'wine.gift': 'Gift from {name}',
 	'wine.buyAgain': 'Buy again',
+	'wine.share': 'Share',
+	'wine.shared': 'Copied',
 
 	'drink.title': 'Drink one',
 	'drink.date': 'Date',
@@ -292,6 +295,7 @@ const de: Record<Key, string> = {
 	'cellar.sort.name': 'Name',
 	'cellar.sort.vintage': 'Jahrgang',
 	'cellar.sort.window': 'Trinken bis',
+	'cellar.sort.rating': 'Bewertung',
 	'cellar.drinkNow': 'Jetzt trinken',
 	'cellar.unknown': 'Unbekannt',
 
@@ -391,6 +395,8 @@ const de: Record<Key, string> = {
 	'wine.details': 'Details',
 	'wine.gift': 'Geschenk von {name}',
 	'wine.buyAgain': 'Nachkaufen',
+	'wine.share': 'Teilen',
+	'wine.shared': 'Kopiert',
 
 	'drink.title': 'Eine trinken',
 	'drink.date': 'Datum',
