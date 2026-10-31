@@ -47,6 +47,6 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 		return fail();
 	}
 
-	await createSession(cookies, cred.user_id);
+	await createSession(cookies, cred.user_id, request.headers.get('user-agent'));
 	return Response.json({ ok: true });
 };

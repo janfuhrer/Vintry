@@ -132,8 +132,8 @@ export class Authenticator {
 		return { ok: v.ok, status: v.status, body: await v.json() };
 	}
 
-	async login(client) {
-		const opts = await (await client.req('/api/auth/login/options', { method: 'POST' })).json();
+	async login(client, headers = {}) {
+		const opts = await (await client.req('/api/auth/login/options', { method: 'POST', headers })).json();
 		const clientData = Buffer.from(
 			JSON.stringify({ type: 'webauthn.get', challenge: opts.challenge, origin: client.base })
 		);
@@ -143,6 +143,7 @@ export class Authenticator {
 		const signature = sign('sha256', Buffer.concat([authData, sha(clientData)]), this.privateKey);
 		const v = await client.req('/api/auth/login/verify', {
 			method: 'POST',
+			headers,
 			json: {
 				id: b64u(this.id),
 				rawId: b64u(this.id),

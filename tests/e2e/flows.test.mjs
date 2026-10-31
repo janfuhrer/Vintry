@@ -320,6 +320,21 @@ describe('your data', () => {
 });
 
 describe('session', () => {
+	test('signed-in devices: list them and sign out the others', async () => {
+		const tablet = new Client(base);
+		assert.equal(
+			await aliceKey.login(tablet, {
+				'user-agent': 'Mozilla/5.0 (iPad; CPU OS 18_0 like Mac OS X) Safari/604.1'
+			}),
+			true
+		);
+		const html = await (await alice.req('/settings', { page: true })).text();
+		assert.ok(html.includes('iPad'), 'the tablet is listed by device');
+		assert.equal((await alice.action('/settings?/revokeOtherSessions', {})).type, 'success');
+		assert.equal((await tablet.req('/', { page: true })).status, 303, 'tablet is signed out');
+		assert.equal((await alice.req('/', { page: true })).status, 200, 'this device stays signed in');
+	});
+
 	test('cross-origin form posts are blocked', async () => {
 		const r = await alice.req('/settings?/signOut', {
 			method: 'POST',

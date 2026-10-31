@@ -23,11 +23,14 @@ export const hashToken = (token: string) => createHash('sha256').update(token).d
 const cookieOptions = (maxAge: number) =>
 	({ path: '/', httpOnly: true, secure: !dev, sameSite: 'lax', maxAge }) as const;
 
-export async function createSession(cookies: Cookies, userId: string) {
+export async function createSession(cookies: Cookies, userId: string, userAgent?: string | null) {
 	const token = newToken();
 	await sql`
-		insert into sessions (id, user_id, expires_at)
-		values (${hashToken(token)}, ${userId}, ${new Date(Date.now() + SESSION_DAYS * DAY)})
+		insert into sessions (id, user_id, expires_at, user_agent)
+		values (
+			${hashToken(token)}, ${userId}, ${new Date(Date.now() + SESSION_DAYS * DAY)},
+			${userAgent?.slice(0, 300) ?? null}
+		)
 	`;
 	cookies.set(SESSION_COOKIE, token, cookieOptions((SESSION_DAYS * DAY) / 1000));
 }
@@ -47,7 +50,10 @@ export async function readSession(cookies: Cookies): Promise<SessionUser | null>
 	}
 	// sliding expiry, refreshed at most once a day
 	if (row.expires_at.getTime() - Date.now() < (SESSION_DAYS - 1) * DAY) {
-		await sql`update sessions set expires_at = ${new Date(Date.now() + SESSION_DAYS * DAY)} where id = ${id}`;
+		await sql`
+			update sessions set expires_at = ${new Date(Date.now() + SESSION_DAYS * DAY)}, last_seen_at = now()
+			where id = ${id}
+		`;
 		cookies.set(SESSION_COOKIE, token, cookieOptions((SESSION_DAYS * DAY) / 1000));
 	}
 	const { expires_at: _, ...user } = row;
@@ -132,4 +138,10 @@ export async function cleanup() {
 	await sql`delete from sessions where expires_at < now()`;
 	await sql`delete from challenges where expires_at < now()`;
 	await sql`delete from invites where used_at is null and expires_at < now() - interval '30 days'`;
+}
+
+/** The id (token hash) of the current request's session, to mark "this device" */
+export function currentSessionId(cookies: Cookies): string | null {
+	const token = cookies.get(SESSION_COOKIE);
+	return token ? hashToken(token) : null;
 }

@@ -115,6 +115,36 @@
 		{/if}
 	</section>
 
+	<section class="card stack">
+		<h2>{t('settings.sessions')}</h2>
+		<ul class="list">
+			{#each data.sessions as s (s.id)}
+				<li class="row">
+					<Icon name="device" size={20} />
+					<div class="grow">
+						<div>
+							{s.device ?? t('settings.unknownDevice')}{#if s.current}<span class="sep">·</span><span
+									class="muted">{t('settings.thisDevice')}</span
+								>{/if}
+						</div>
+						<div class="muted small">{t('settings.lastSeen', { date: fmt(s.last_seen_at) })}</div>
+					</div>
+					{#if !s.current}
+						<form method="POST" action="?/revokeSession" use:enhance>
+							<input type="hidden" name="id" value={s.id} />
+							<button class="btn small danger">{t('settings.signOutDevice')}</button>
+						</form>
+					{/if}
+				</li>
+			{/each}
+		</ul>
+		{#if data.sessions.length > 1}
+			<form method="POST" action="?/revokeOtherSessions" use:enhance>
+				<button class="btn block">{t('settings.signOutOthers')}</button>
+			</form>
+		{/if}
+	</section>
+
 	{#if data.admin}
 		<section class="card stack">
 			<h2>{t('settings.invite')}</h2>

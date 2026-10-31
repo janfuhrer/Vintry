@@ -1,18 +1,41 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { bootstrap, createInvite, destroySession, SESSION_COOKIE } from '#lib/server/auth.ts';
+import {
+	bootstrap,
+	createInvite,
+	currentSessionId,
+	destroySession,
+	SESSION_COOKIE
+} from '#lib/server/auth.ts';
+import { deviceLabel } from '#lib/server/device.ts';
 import { sql } from '#lib/server/db.ts';
 import { isLocale } from '#lib/i18n.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals }) => {
+export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const user = locals.user!;
+	const current = currentSessionId(cookies);
+	const sessionRows = await sql<
+		{ id: string; user_agent: string | null; created_at: Date; last_seen_at: Date }[]
+	>`
+		select id, user_agent, created_at, last_seen_at from sessions
+		where user_id = ${user.id} and expires_at > now()
+		order by last_seen_at desc
+	`;
+	// the id is a token hash: a handle for revoking, useless for signing in
+	const sessions = sessionRows.map((s) => ({
+		id: s.id,
+		device: deviceLabel(s.user_agent),
+		created_at: s.created_at,
+		last_seen_at: s.last_seen_at,
+		current: s.id === current
+	}));
 	const passkeys = await sql<
 		{ id: string; label: string | null; created_at: Date; last_used_at: Date | null }[]
 	>`
 		select id, label, created_at, last_used_at from credentials
 		where user_id = ${user.id} order by created_at
 	`;
-	if (!user.is_admin) return { passkeys, admin: null };
+	if (!user.is_admin) return { passkeys, sessions, admin: null };
 
 	const users = await sql<{ id: string; name: string; is_admin: boolean; created_at: Date; wines: number }[]>`
 		select u.id, u.name, u.is_admin, u.created_at,
@@ -25,7 +48,7 @@ export const load: PageServerLoad = async ({ locals }) => {
 		order by created_at desc
 	`;
 	// the id is a token hash: fine to use as a handle, it can't be turned back into a link
-	return { passkeys, admin: { users, invites } };
+	return { passkeys, sessions, admin: { users, invites } };
 };
 
 export const actions: Actions = {
@@ -84,6 +107,14 @@ export const actions: Actions = {
 		// an empty instance needs a fresh admin invite, as on first start
 		await bootstrap();
 		redirect(303, '/login');
+	},
+	revokeSession: async ({ request, locals }) => {
+		const id = String((await request.formData()).get('id'));
+		await sql`delete from sessions where id = ${id} and user_id = ${locals.user!.id}`;
+	},
+	revokeOtherSessions: async ({ locals, cookies }) => {
+		const current = currentSessionId(cookies);
+		await sql`delete from sessions where user_id = ${locals.user!.id} and id <> ${current ?? ''}`;
 	},
 	addDevice: async ({ locals }) => {
 		const { url } = await createInvite({ createdBy: locals.user!.id, forUser: locals.user!.id, hours: 24 });

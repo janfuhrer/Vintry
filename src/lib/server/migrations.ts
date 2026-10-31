@@ -104,5 +104,10 @@ export const migrations: string[] = [
 	);
 	create index drinks_user on drinks (user_id, drunk_on desc);
 	create index drinks_wine on drinks (wine_id);
+	`,
+	/* sql */ `
+	-- signed-in devices in settings
+	alter table sessions add column user_agent text;
+	alter table sessions add column last_seen_at timestamptz not null default now();
 	`
 ];
