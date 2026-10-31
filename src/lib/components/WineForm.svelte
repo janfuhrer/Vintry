@@ -104,7 +104,8 @@
 		suggestions = { locations: [], shops: [], givers: [] },
 		errors = {},
 		submitLabel,
-		action = ''
+		action = '',
+		bottles = 0
 	}: {
 		initial: WineFormValues;
 		/** Fields filled in from the label, marked for review */
@@ -116,6 +117,8 @@
 		errors?: Record<string, string>;
 		submitLabel: string;
 		action?: string;
+		/** Bottles the wine has now, when editing: moving it to the wishlist takes them out */
+		bottles?: number;
 	} = $props();
 
 	const i18n = useI18n();
@@ -374,6 +377,9 @@
 			<input type="checkbox" name="wishlist" bind:checked={v.wishlist} />
 			{t('form.wishlist')}
 		</label>
+		{#if v.wishlist && bottles > 0}
+			<p class="small warn" role="status">{t('form.wishlistDrops', { n: bottles })}</p>
+		{/if}
 		{#if !v.wishlist}
 			<div class="field">
 				<span>{t('form.quantity')}</span>
@@ -595,6 +601,10 @@
 		font-size: 1rem;
 		padding: 6px;
 		color: var(--text);
+	}
+	.warn {
+		margin: 0;
+		color: var(--soon);
 	}
 	.wish-toggle {
 		color: var(--text);

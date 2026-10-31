@@ -13,7 +13,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 		(Pick<WineListItem, 'id' | 'name' | 'producer' | 'vintage' | 'quantity'> & { region: string })[]
 	>`
 		select id, name, producer, vintage, quantity, region from wines
-		where user_id = ${locals.user!.id} and region is not null
+		-- wanted, not owned: the wishlist isn't part of "your wines"
+		where user_id = ${locals.user!.id} and region is not null and not wishlist
 		order by quantity > 0 desc, name
 	`;
 	return { name: region.name, wines: rows.filter((w) => names.has(normalize(w.region))) };

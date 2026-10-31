@@ -26,6 +26,7 @@
 		suggestions={data.suggestions}
 		errors={form?.errors ?? {}}
 		submitLabel={t('common.save')}
+		bottles={data.wine.wishlist ? 0 : data.wine.quantity}
 	/>
 </main>
 

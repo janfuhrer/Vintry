@@ -10,7 +10,8 @@ export const load: PageServerLoad = async ({ params, locals }) => {
 	// grape names are stored canonical, so the table name matches exactly
 	const wines = await sql<Pick<WineListItem, 'id' | 'name' | 'producer' | 'vintage' | 'quantity'>[]>`
 		select id, name, producer, vintage, quantity from wines
-		where user_id = ${locals.user!.id} and ${grape.name} = any(grapes)
+		-- wanted, not owned: the wishlist isn't part of "your wines"
+		where user_id = ${locals.user!.id} and ${grape.name} = any(grapes) and not wishlist
 		order by quantity > 0 desc, name
 	`;
 	return { name: grape.name, wines };
