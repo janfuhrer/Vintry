@@ -23,6 +23,24 @@ export interface Parsed {
 // names only: two-letter codes would match random OCR tokens ("it", "de")
 const countryNames = new Map<string, string>();
 for (const c of countries) for (const n of c.names) countryNames.set(normalize(n), c.code);
+// adjectives labels use for the origin ("Schweizer Rotwein", "vino italiano")
+for (const [adj, code] of Object.entries({
+	schweizer: 'CH',
+	svizzero: 'CH',
+	svizzera: 'CH',
+	italiano: 'IT',
+	italienischer: 'IT',
+	francais: 'FR',
+	francaise: 'FR',
+	franzosischer: 'FR',
+	espanol: 'ES',
+	spanischer: 'ES',
+	portugues: 'PT',
+	deutscher: 'DE',
+	osterreichischer: 'AT',
+	osterreichisch: 'AT'
+}))
+	countryNames.set(adj, code);
 
 type Place = { kind: 'grape'; grape: Grape } | { kind: 'region'; region: Region };
 const places = new Map<string, Place>();
@@ -102,7 +120,8 @@ const COLOR_WORDS: [Color, string[]][] = [
 const VINTAGE = /\b(19[5-9]\d|20[0-4]\d)\b/g;
 const ALCOHOL = /\b(\d{1,2})\s?[.,]\s?(\d)\s?%\s?(vol)?/i;
 const ALCOHOL_INT = /\b(\d{1,2})\s?%\s?vol/i;
-const SIZE = /\b(\d{1,4}(?:[.,]\d{1,3})?)\s?(ml|cl|l|ltr|litre|liter)\b/i;
+// "el" is OCR's reading of "cl"
+const SIZE = /\b(\d{1,4}(?:[.,]\d{1,3})?)\s?(ml|cl|el|l|ltr|litre|liter)\b/i;
 // OCR reads the "l" of "0,75 l" as 1, I or |
 const SIZE_OCR_LITRE = /\b(0[.,]\d{2,3}|1[.,]5|3[.,]0)\s?[1Il|](?![\d%])/;
 
@@ -188,7 +207,7 @@ export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): P
 	if (size) {
 		const n = Number(size[1].replace(',', '.'));
 		const unit = size[2].toLowerCase();
-		const ml = Math.round(unit === 'ml' ? n : unit === 'cl' ? n * 10 : n * 1000);
+		const ml = Math.round(unit === 'ml' ? n : unit === 'cl' || unit === 'el' ? n * 10 : n * 1000);
 		if ([187, 375, 500, 750, 1000, 1500, 3000, 6000].includes(ml)) out.size_ml = ml;
 	}
 
@@ -216,6 +235,10 @@ export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): P
 		const colors = new Set(grapes.map((g) => g.color));
 		if (colors.size === 1) out.color = grapes[0].color;
 	}
+	// OCR swaps 3 and 8: "13%" becomes "18%". Table wines stop around 16.5 %; above that only
+	// fortified and sweet wines are plausible, so leave the field empty rather than wrong.
+	if (out.alcohol !== undefined && out.alcohol > 16.5 && out.color !== 'fortified' && out.color !== 'sweet')
+		delete out.alcohol;
 
 	// producer: a line naming an estate
 	const cleaned = lines.map((l) => ({ text: clean(l.text), height: l.height })).filter((l) => l.text);

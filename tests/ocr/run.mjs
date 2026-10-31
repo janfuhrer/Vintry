@@ -64,8 +64,14 @@ for (const { name, svg, expect, width } of cases) {
 	const { lines } = pass;
 	const got = parseLabel(lines, 2026);
 
+	// Clean renders must be exact. On small or photographed labels a secondary field may be
+	// missing (OCR couldn't read it), but it must never be filled with something wrong.
+	const strict = !name.includes('photo') && !name.includes('@600px');
 	const misses = [];
 	for (const [key, want] of Object.entries(expect)) {
+		const field = key === 'producerHas' ? 'producer' : key;
+		const essential = key === 'name' || key === 'vintage';
+		if (!strict && !essential && got[field] === undefined) continue;
 		if (key === 'producerHas') {
 			if (!loose(got.producer)?.includes(loose(want)))
 				misses.push(`producer should contain "${want}", got "${got.producer}"`);

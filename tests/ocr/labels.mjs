@@ -1,6 +1,8 @@
 // Synthetic but realistic front labels: typical layouts, fonts and wording of
 // French, Swiss, Italian, German and Spanish wines. Each lists what the scan should find.
 // Accents in name/producer are compared loosely: OCR often drops them on capitals.
+const escape = (t) => t.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
 const label = (lines, { w = 1000, h = 1200, bg = '#f7f1e3', ink = '#2a1d16' } = {}) => {
 	let y = 0;
 	const els = lines
@@ -9,7 +11,7 @@ const label = (lines, { w = 1000, h = 1200, bg = '#f7f1e3', ink = '#2a1d16' } = 
 			const fam = opts.family ?? 'Georgia, serif';
 			const weight = opts.bold ? 700 : 400;
 			const ls = opts.spacing ?? 0;
-			return `<text x="${w / 2}" y="${y}" font-family="${fam}" font-size="${size}" font-weight="${weight}" letter-spacing="${ls}" text-anchor="middle" fill="${ink}">${text}</text>`;
+			return `<text x="${w / 2}" y="${y}" font-family="${fam}" font-size="${size}" font-weight="${weight}" letter-spacing="${ls}" text-anchor="middle" fill="${ink}">${escape(text)}</text>`;
 		})
 		.join('\n');
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="${bg}"/><rect x="30" y="30" width="${w - 60}" height="${h - 60}" fill="none" stroke="${ink}" stroke-width="3"/>${els}</svg>`;
@@ -136,6 +138,99 @@ export const labels = {
 			color: 'red',
 			name: 'I Sodi',
 			producerHas: 'Le Corti'
+		}
+	},
+	champagne: {
+		svg: label(
+			[
+				['CHAMPAGNE', 90, { bold: true, spacing: 6, gap: 170 }],
+				['Maison Delaroche', 46, { gap: 90 }],
+				['BRUT RÉSERVE', 40, { spacing: 4, gap: 70 }],
+				['Élaboré par Delaroche & Fils, Reims, France', 22, { gap: 260 }],
+				['12% vol      75 cl', 26, { gap: 60 }]
+			],
+			{ bg: '#101820', ink: '#d9c48e' }
+		),
+		expect: {
+			alcohol: 12,
+			size_ml: 750,
+			country: 'FR',
+			region: 'Champagne',
+			color: 'sparkling',
+			producerHas: 'Delaroche'
+		}
+	},
+	port: {
+		svg: label([
+			['QUINTA DO VALE', 40, { spacing: 3, gap: 150 }],
+			['Porto', 110, { bold: true, gap: 100 }],
+			['Tawny 10 Years Old', 44, { gap: 70 }],
+			['Product of Portugal', 26, { gap: 180 }],
+			['20% vol    75 cl', 26, { gap: 60 }]
+		]),
+		expect: { alcohol: 20, size_ml: 750, country: 'PT', color: 'fortified', producerHas: 'Vale' }
+	},
+	sauternes: {
+		svg: label([
+			['CHÂTEAU LES TILLEULS', 50, { bold: true, gap: 170 }],
+			['Sauternes', 64, { gap: 90 }],
+			['2015', 56, { gap: 110 }],
+			['Appellation Sauternes Contrôlée', 24, { gap: 150 }],
+			['13,5% vol    375 ml', 26, { gap: 60 }]
+		]),
+		expect: {
+			vintage: 2015,
+			alcohol: 13.5,
+			size_ml: 375,
+			country: 'FR',
+			region: 'Sauternes',
+			color: 'sweet',
+			name: 'Château Les Tilleuls',
+			producerHas: 'Tilleuls'
+		}
+	},
+	blauburgunder: {
+		svg: label(
+			[
+				['Weingut Zum Sternen', 36, { gap: 150, family: 'Helvetica, Arial, sans-serif' }],
+				['Blauburgunder', 84, { gap: 100 }],
+				['Bündner Herrschaft AOC', 38, { gap: 60 }],
+				['2022', 56, { gap: 110 }],
+				['Schweizer Rotwein', 30, { gap: 160 }],
+				['13% vol    75 cl', 26, { gap: 60, family: 'Helvetica, Arial, sans-serif' }]
+			],
+			{ bg: '#ffffff' }
+		),
+		expect: {
+			vintage: 2022,
+			alcohol: 13,
+			size_ml: 750,
+			country: 'CH',
+			grapes: ['Pinot Noir'],
+			color: 'red',
+			name: 'Blauburgunder',
+			producerHas: 'Sternen'
+		}
+	},
+	gruner: {
+		svg: label([
+			['WEINGUT BERGER', 36, { spacing: 3, gap: 150 }],
+			['Grüner Veltliner', 76, { gap: 100 }],
+			['Kamptal DAC', 44, { gap: 70 }],
+			['2023', 56, { gap: 110 }],
+			['Österreich', 30, { gap: 160 }],
+			['12,5% vol    750 ml', 26, { gap: 60 }]
+		]),
+		expect: {
+			vintage: 2023,
+			alcohol: 12.5,
+			size_ml: 750,
+			country: 'AT',
+			region: 'Kamptal',
+			grapes: ['Grüner Veltliner'],
+			color: 'white',
+			name: 'Grüner Veltliner',
+			producerHas: 'Berger'
 		}
 	},
 	rioja: {

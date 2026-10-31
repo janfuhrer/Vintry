@@ -147,3 +147,19 @@ describe('regressions found in review', () => {
 		expect(joinSplitCaps('CHÂTEAU M ONTLAURENT')).toBe('CHÂTEAU MONTLAURENT');
 	});
 });
+
+describe('OCR digit and letter confusions', () => {
+	test('"75 el" is 75 cl', () => {
+		expect(parseLabel(lines(['12% vol 75 el', 20]), 2026).size_ml).toBe(750);
+	});
+
+	test('implausibly strong table wine is dropped, port keeps its 20 %', () => {
+		expect(parseLabel(lines(['Schweizer Rotwein', 30], ['18% vol', 20]), 2026).alcohol).toBeUndefined();
+		expect(parseLabel(lines(['Porto', 80], ['20% vol', 20]), 2026).alcohol).toBe(20);
+	});
+});
+
+test('origin adjectives name the country', () => {
+	expect(parseLabel(lines(['Schweizer Rotwein', 30]), 2026).country).toBe('CH');
+	expect(parseLabel(lines(['Vino rosso italiano', 30]), 2026).country).toBe('IT');
+});
