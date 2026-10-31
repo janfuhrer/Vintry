@@ -28,7 +28,9 @@ src/
     ocr-lines.ts          OCR result → lines; when to run the inverted second pass
     ocr.ts, image.ts      browser-only: tesseract worker, photo resizing
     csv.ts, import.ts     CSV writing/parsing, spreadsheet → wine fields
-    stats.ts, dates.ts    year statistics, local calendar dates
+    dates.ts              local calendar dates
+    match.ts              a scanned label → a wine the user already has
+    offline.ts            which pages the service worker keeps for reading offline
     i18n.ts               en/de dictionaries, exposed through Svelte context
     components/           WineForm, WineCard, Dots, Stars, WindowBar, Sheet, InstallHint, …
     server/

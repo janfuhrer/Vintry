@@ -244,6 +244,55 @@
 		</section>
 	{/if}
 
+	{#if data.locations.length}
+		<section class="card stack">
+			<h2>{t('settings.locations')}</h2>
+			<p class="muted small">{t('settings.locationsHint')}</p>
+			<ul class="list">
+				{#each data.locations as l (l.name)}
+					<li class="row">
+						<div class="grow">
+							{#if renaming === `loc:${l.name}`}
+								<form
+									method="POST"
+									action="?/renameLocation"
+									class="row"
+									use:enhance={() =>
+										async ({ update }) => {
+											await update();
+											renaming = null;
+										}}
+								>
+									<input type="hidden" name="from" value={l.name} />
+									<!-- svelte-ignore a11y_autofocus -->
+									<input
+										class="input rename"
+										name="to"
+										value={l.name}
+										maxlength="100"
+										aria-label={t('settings.rename')}
+										autofocus
+									/>
+									<button class="icon-btn" aria-label={t('common.save')}
+										><Icon name="check" size={18} /></button
+									>
+								</form>
+							{:else}
+								<button type="button" class="link-like" onclick={() => (renaming = `loc:${l.name}`)}>
+									{l.name}
+									<Icon name="pen" size={14} label={t('settings.rename')} />
+								</button>
+							{/if}
+							<div class="muted small">
+								{l.bottles === 1 ? t('cellar.bottle') : t('history.count', { n: l.bottles })}
+							</div>
+						</div>
+					</li>
+				{/each}
+			</ul>
+		</section>
+	{/if}
+
 	<section class="card stack">
 		<h2>{t('settings.data')}</h2>
 		<div class="downloads">

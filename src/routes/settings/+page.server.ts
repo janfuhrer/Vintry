@@ -37,7 +37,12 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		select id, label, created_at, last_used_at from credentials
 		where user_id = ${user.id} order by created_at
 	`;
-	if (!user.is_admin) return { passkeys, sessions, admin: null };
+	const locations = await sql<{ name: string; wines: number; bottles: number }[]>`
+		select location as name, count(*)::int as wines, sum(quantity)::int as bottles from wines
+		where user_id = ${user.id} and location is not null and not wishlist
+		group by location order by location
+	`;
+	if (!user.is_admin) return { passkeys, sessions, locations, admin: null };
 
 	const users = await sql<{ id: string; name: string; is_admin: boolean; created_at: Date; wines: number }[]>`
 		select u.id, u.name, u.is_admin, u.created_at,
@@ -50,7 +55,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		order by created_at desc
 	`;
 	// the id is a token hash: fine to use as a handle, it can't be turned back into a link
-	return { passkeys, sessions, admin: { users, invites, me: user.id } };
+	return { passkeys, sessions, locations, admin: { users, invites, me: user.id } };
 };
 
 export const actions: Actions = {
@@ -82,6 +87,20 @@ export const actions: Actions = {
 		await sql`
 			update credentials set label = ${label}
 			where id = ${String(fd.get('id'))} and user_id = ${locals.user!.id}
+		`;
+	},
+	// "Rack 1" becomes "Basement left" for every wine there; empty takes the place away
+	renameLocation: async ({ request, locals }) => {
+		const fd = await request.formData();
+		const from = String(fd.get('from') ?? '');
+		const to =
+			String(fd.get('to') ?? '')
+				.trim()
+				.slice(0, 100) || null;
+		if (!from) return fail(400);
+		await sql`
+			update wines set location = ${to}, updated_at = now()
+			where user_id = ${locals.user!.id} and location = ${from}
 		`;
 	},
 	deleteAccount: async ({ request, locals, cookies }) => {

@@ -260,6 +260,26 @@ describe('cellar', () => {
 		assert.equal(year(2017).topGrape, 'Pinot Noir');
 	});
 
+	test('renaming a storage location moves all its wines', async () => {
+		for (const name of ['Loc A', 'Loc B']) {
+			const fd = new FormData();
+			for (const [k, v] of Object.entries({ name, color: 'red', quantity: '1', location: 'Old Rack' }))
+				fd.append(k, v);
+			await alice.req('/add', { method: 'POST', form: fd, page: true });
+		}
+		const where = async () =>
+			(await (await alice.req('/export/vintry.json')).json()).wines
+				.filter((w) => w.name.startsWith('Loc '))
+				.map((w) => w.location);
+		assert.equal(
+			(await alice.action('/settings?/renameLocation', { from: 'Old Rack', to: ' Basement ' })).type,
+			'success'
+		);
+		assert.deepEqual(await where(), ['Basement', 'Basement']);
+		await alice.action('/settings?/renameLocation', { from: 'Basement', to: '' });
+		assert.deepEqual(await where(), [null, null], 'empty removes the place');
+	});
+
 	test('removing a drink entry puts the bottle back', async () => {
 		const qty = async () => {
 			const html = await (await alice.req(wineUrl, { page: true })).text();
