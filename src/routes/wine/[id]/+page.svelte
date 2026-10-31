@@ -288,7 +288,22 @@
 	{/if}
 
 	<section class="card stack">
-		<h2>{t('wine.history')}</h2>
+		<div class="row">
+			<h2>{t('wine.history')}</h2>
+			<span class="spacer"></span>
+			{#if data.drinks.length}
+				{@const rated = data.drinks.map((d) => d.rating).filter((r) => r !== null)}
+				<span class="muted small">
+					{data.drinks.length === 1 ? t('cellar.bottle') : t('history.count', { n: data.drinks.length })}
+					{#if rated.length > 1}
+						<span class="sep">·</span>Ø {(rated.reduce((a, b) => a + b, 0) / rated.length).toLocaleString(
+							i18n.locale,
+							{ maximumFractionDigits: 1 }
+						)} ★
+					{/if}
+				</span>
+			{/if}
+		</div>
 		{#if data.drinks.length === 0}
 			<p class="muted small">{t('wine.noHistory')}</p>
 		{:else}
