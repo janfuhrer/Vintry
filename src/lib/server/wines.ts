@@ -184,20 +184,21 @@ export async function drinkOne(
 	userId: string,
 	wineId: string,
 	drink: { drunk_on: string; rating: number | null; note: string | null }
-): Promise<boolean> {
-	if (!isUuid(wineId)) return false;
+): Promise<string | null> {
+	if (!isUuid(wineId)) return null;
 	return sql.begin(async (tx) => {
 		const result = await tx`
 			update wines set quantity = quantity - 1, updated_at = now(),
 				rating = coalesce(${drink.rating}::smallint, rating)
 			where id = ${wineId} and user_id = ${userId} and quantity > 0
 		`;
-		if (!result.count) return false;
-		await tx`
+		if (!result.count) return null;
+		const [{ id }] = await tx<{ id: string }[]>`
 			insert into drinks (wine_id, user_id, drunk_on, rating, note)
 			values (${wineId}, ${userId}, ${drink.drunk_on}, ${drink.rating}, ${drink.note})
+			returning id
 		`;
-		return true;
+		return id;
 	});
 }
 

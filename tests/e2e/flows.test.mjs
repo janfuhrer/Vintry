@@ -104,6 +104,7 @@ describe('cellar', () => {
 			note: 'lovely'
 		});
 		assert.equal(r.type, 'success');
+		assert.match(devalue.parse(r.data).drunk, /^[0-9a-f-]{36}$/, 'the page gets the id to offer an undo');
 		const data = await (await alice.req(`${wineUrl}/__data.json`)).text();
 		assert.ok(data.includes('lovely'));
 		const html = await (await alice.req('/history', { page: true })).text();

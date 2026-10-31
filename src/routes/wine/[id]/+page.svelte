@@ -63,6 +63,14 @@
 
 	let photoDialog: HTMLDialogElement | undefined = $state();
 	let drinkOpen = $state(false);
+	// "Drink one" can be undone for a few seconds, in case it was a mis-tap
+	let undoId = $state<string | null>(null);
+	let undoTimer: ReturnType<typeof setTimeout> | undefined;
+	function offerUndo(id: string) {
+		undoId = id;
+		clearTimeout(undoTimer);
+		undoTimer = setTimeout(() => (undoId = null), 8000);
+	}
 	// the drink entry being edited; its sheet is open while set
 	let editing = $state<(typeof data.drinks)[number] | null>(null);
 	let editRating = $state<number | null>(null);
@@ -304,6 +312,24 @@
 	</form>
 </main>
 
+{#if undoId}
+	<div class="toast" role="status">
+		<span>{t('wine.drunk')}</span>
+		<form
+			method="POST"
+			action="?/deleteDrink"
+			use:enhance={() =>
+				async ({ update }) => {
+					await update();
+					undoId = null;
+				}}
+		>
+			<input type="hidden" name="id" value={undoId} />
+			<button class="btn small">{t('common.undo')}</button>
+		</form>
+	</div>
+{/if}
+
 {#if wine.has_photo}
 	<!-- full-screen photo to read the small print; native pinch-zoom works on the image -->
 	<dialog
@@ -323,9 +349,10 @@
 		action="?/drink"
 		class="stack"
 		use:enhance={() =>
-			async ({ update }) => {
+			async ({ result, update }) => {
 				await update();
 				drinkOpen = false;
+				if (result.type === 'success' && typeof result.data?.drunk === 'string') offerUndo(result.data.drunk);
 			}}
 	>
 		<label class="field">
@@ -406,6 +433,31 @@
 		aspect-ratio: 4 / 3;
 		max-height: 60vh;
 		background: var(--surface-2);
+	}
+	.toast {
+		position: fixed;
+		left: 16px;
+		right: 16px;
+		bottom: calc(var(--nav-h) + var(--safe-b) + 12px);
+		z-index: 30;
+		max-width: 560px;
+		margin: 0 auto;
+		display: flex;
+		align-items: center;
+		justify-content: space-between;
+		gap: 12px;
+		padding: 10px 10px 10px 16px;
+		border-radius: var(--radius);
+		background: var(--text);
+		color: var(--bg);
+		box-shadow: var(--shadow);
+		animation: toast-in 0.2s ease-out;
+	}
+	@keyframes toast-in {
+		from {
+			transform: translateY(12px);
+			opacity: 0;
+		}
 	}
 	.hero-btn {
 		display: block;
