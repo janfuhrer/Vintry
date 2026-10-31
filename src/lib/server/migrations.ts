@@ -109,5 +109,9 @@ export const migrations: string[] = [
 	-- signed-in devices in settings
 	alter table sessions add column user_agent text;
 	alter table sessions add column last_seen_at timestamptz not null default now();
+	`,
+	/* sql */ `
+	-- wines you want, not own yet
+	alter table wines add column wishlist boolean not null default false;
 	`
 ];

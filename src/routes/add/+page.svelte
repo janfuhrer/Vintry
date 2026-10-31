@@ -17,6 +17,7 @@
 	const fromCopy = (copy: Copy): WineFormValues => ({
 		...toValues(copy),
 		quantity: 1,
+		wishlist: false,
 		purchased_on: '',
 		purchased_at: '',
 		price: '',

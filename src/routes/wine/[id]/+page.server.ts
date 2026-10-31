@@ -1,6 +1,7 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import {
 	deleteDrink,
+	markBought,
 	updateDrink,
 	deleteWine,
 	drinkOne,
@@ -27,6 +28,9 @@ export const actions: Actions = {
 	rate: async ({ request, locals, params }) => {
 		const fd = await request.formData();
 		await setRating(locals.user!.id, params.id, rating(fd.get('rating')));
+	},
+	bought: async ({ locals, params }) => {
+		await markBought(locals.user!.id, params.id);
 	},
 	quantity: async ({ request, locals, params }) => {
 		const delta = Number((await request.formData()).get('delta'));

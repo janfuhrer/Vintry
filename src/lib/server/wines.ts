@@ -26,6 +26,8 @@ export interface Wine {
 	price: number | null;
 	gifted_by: string | null;
 	location: string | null;
+	/** wanted, not owned yet (quantity stays 0) */
+	wishlist: boolean;
 	has_photo: boolean;
 	photo_version: number | null;
 	created_at: Date;
@@ -49,6 +51,7 @@ export type WineListItem = Pick<
 	| 'location'
 	| 'purchased_at'
 	| 'notes'
+	| 'wishlist'
 	| 'has_photo'
 	| 'photo_version'
 >;
@@ -60,7 +63,7 @@ export type WineInput = Omit<Wine, 'id' | 'has_photo' | 'photo_version' | 'creat
 export async function listWines(userId: string): Promise<WineListItem[]> {
 	return sql<WineListItem[]>`
 		select w.id, w.name, w.producer, w.vintage, w.color, w.country, w.region, w.grapes,
-			w.quantity, w.drink_from, w.drink_to, w.rating, w.location, w.purchased_at, w.notes, w.has_photo, (extract(epoch from p.updated_at) * 1000)::int8 as photo_version
+			w.quantity, w.drink_from, w.drink_to, w.rating, w.location, w.purchased_at, w.notes, w.wishlist, w.has_photo, (extract(epoch from p.updated_at) * 1000)::int8 as photo_version
 		from wines w left join wine_photos p on p.wine_id = w.id
 		where w.user_id = ${userId}
 		order by w.updated_at desc
@@ -108,6 +111,7 @@ const columns = [
 	'price',
 	'gifted_by',
 	'location',
+	'wishlist',
 	'ocr_text'
 ] as const;
 
@@ -291,7 +295,7 @@ export async function exportData(userId: string) {
 	const wines = await sql<(Omit<Wine, 'photo_version'> & { id: string })[]>`
 		select id, name, producer, vintage, color, country, region, grapes, alcohol, size_ml, quantity,
 			location, drink_from, drink_to, body, acidity, tannin, sweetness, rating, purchased_on,
-			purchased_at, price, gifted_by, notes, has_photo, created_at, updated_at
+			purchased_at, price, gifted_by, notes, wishlist, has_photo, created_at, updated_at
 		from wines where user_id = ${userId} order by name, vintage
 	`;
 	const drinks = await sql<
@@ -331,4 +335,13 @@ export async function cellarValue(userId: string): Promise<{ value: number; bott
 		from wines where user_id = ${userId} and quantity > 0 and price is not null
 	`;
 	return { value: row.value ?? 0, bottles: row.bottles };
+}
+
+/** Wishlist → cellar: the wine was bought, one bottle is in */
+export async function markBought(userId: string, id: string) {
+	if (!isUuid(id)) return;
+	await sql`
+		update wines set wishlist = false, quantity = greatest(quantity, 1), updated_at = now()
+		where id = ${id} and user_id = ${userId}
+	`;
 }

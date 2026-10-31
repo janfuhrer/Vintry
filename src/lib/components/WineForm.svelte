@@ -25,6 +25,7 @@
 		gifted_by: string;
 		notes: string;
 		ocr_text: string;
+		wishlist: boolean;
 	}
 
 	export function emptyValues(): WineFormValues {
@@ -51,7 +52,8 @@
 			price: '',
 			gifted_by: '',
 			notes: '',
-			ocr_text: ''
+			ocr_text: '',
+			wishlist: false
 		};
 	}
 
@@ -64,6 +66,7 @@
 			if (x === null || x === undefined) continue;
 			const target = v as unknown as Record<string, unknown>;
 			if (key === 'grapes') v.grapes = [...(x as string[])];
+			else if (key === 'wishlist') v.wishlist = x === true;
 			else if (['body', 'acidity', 'tannin', 'sweetness', 'quantity'].includes(key)) target[key] = Number(x);
 			else target[key] = String(x);
 		}
@@ -367,29 +370,35 @@
 
 	<section class="card stack">
 		<h2>{t('form.cellar')}</h2>
-		<div class="field">
-			<span>{t('form.quantity')}</span>
-			<div class="stepper">
-				<button
-					type="button"
-					class="icon-btn"
-					aria-label="−1"
-					onclick={() => (v.quantity = Math.max(0, v.quantity - 1))}><Icon name="minus" /></button
-				>
-				<input
-					class="input qty"
-					name="quantity"
-					type="number"
-					min="0"
-					max="9999"
-					bind:value={v.quantity}
-					aria-label={t('form.quantity')}
-				/>
-				<button type="button" class="icon-btn" aria-label="+1" onclick={() => (v.quantity = v.quantity + 1)}
-					><Icon name="plus" /></button
-				>
+		<label class="row small wish-toggle">
+			<input type="checkbox" name="wishlist" bind:checked={v.wishlist} />
+			{t('form.wishlist')}
+		</label>
+		{#if !v.wishlist}
+			<div class="field">
+				<span>{t('form.quantity')}</span>
+				<div class="stepper">
+					<button
+						type="button"
+						class="icon-btn"
+						aria-label="−1"
+						onclick={() => (v.quantity = Math.max(0, v.quantity - 1))}><Icon name="minus" /></button
+					>
+					<input
+						class="input qty"
+						name="quantity"
+						type="number"
+						min="0"
+						max="9999"
+						bind:value={v.quantity}
+						aria-label={t('form.quantity')}
+					/>
+					<button type="button" class="icon-btn" aria-label="+1" onclick={() => (v.quantity = v.quantity + 1)}
+						><Icon name="plus" /></button
+					>
+				</div>
 			</div>
-		</div>
+		{/if}
 		<fieldset class="field">
 			<legend>{t('form.size')}</legend>
 			<div class="segmented" class:scanned={scanned.includes('size_ml')}>
@@ -586,6 +595,11 @@
 		font-size: 1rem;
 		padding: 6px;
 		color: var(--text);
+	}
+	.wish-toggle {
+		color: var(--text);
+		gap: 10px;
+		min-height: 36px;
 	}
 	.stepper {
 		display: flex;

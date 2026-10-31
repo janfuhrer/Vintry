@@ -30,6 +30,8 @@
 
 	let query = $state('');
 	let color = $state<Color | null>(null);
+	// the wishlist is a separate view: wanted wines aren't part of the cellar
+	let wishOnly = $state(false);
 	// SSR renders the defaults; stored choices apply after hydration
 	let group = $state<Group>('none');
 	let sort = $state<Sort>('recent');
@@ -59,10 +61,12 @@
 	const nullsLast = (a: number | null, b: number | null) => (a ?? Infinity) - (b ?? Infinity);
 
 	const bottles = $derived(data.wines.reduce((n, w) => n + w.quantity, 0));
+	const owned = $derived(data.wines.filter((w) => !w.wishlist));
+	const wishCount = $derived(data.wines.length - owned.length);
 	const colorsPresent = $derived(
-		COLORS.filter((c) => data.wines.some((w) => w.color === c && (showEmpty || w.quantity > 0)))
+		COLORS.filter((c) => owned.some((w) => w.color === c && (showEmpty || w.quantity > 0)))
 	);
-	const hasEmpty = $derived(data.wines.some((w) => w.quantity === 0));
+	const hasEmpty = $derived(owned.some((w) => w.quantity === 0));
 
 	// bottles at the end of their window, or past it
 	const drinkNow = $derived(
@@ -74,7 +78,8 @@
 	const filtered = $derived.by(() => {
 		const q = normalize(query);
 		const list = data.wines.filter((w) => {
-			if (!showEmpty && w.quantity === 0) return false;
+			if (w.wishlist !== wishOnly) return false;
+			if (!wishOnly && !showEmpty && w.quantity === 0) return false;
 			if (color && w.color !== color) return false;
 			if (!q) return true;
 			const hay = normalize(
@@ -159,9 +164,25 @@
 				<input type="search" placeholder={t('cellar.search')} bind:value={query} enterkeyhint="search" />
 			</label>
 			<div class="chips" role="group" aria-label={t('form.color')}>
-				<button class="chip" class:active={!color} onclick={() => (color = null)}>{t('cellar.all')}</button>
+				<button
+					class="chip"
+					class:active={!color && !wishOnly}
+					onclick={() => ((color = null), (wishOnly = false))}>{t('cellar.all')}</button
+				>
+				{#if wishCount}
+					<button
+						class="chip"
+						class:active={wishOnly}
+						onclick={() => ((wishOnly = !wishOnly), (color = null))}
+						><Icon name="bookmark" size={14} />{t('cellar.wishlist')} {wishCount}</button
+					>
+				{/if}
 				{#each colorsPresent as c (c)}
-					<button class="chip" class:active={color === c} onclick={() => (color = color === c ? null : c)}>
+					<button
+						class="chip"
+						class:active={color === c}
+						onclick={() => ((color = color === c ? null : c), (wishOnly = false))}
+					>
 						<span class="dot swatch-{c}" style="background: var(--swatch)"></span>{t(`color.${c}`)}
 					</button>
 				{/each}
@@ -188,7 +209,7 @@
 			</div>
 		</div>
 
-		{#if drinkNow.length && !query && !color}
+		{#if drinkNow.length && !query && !color && !wishOnly}
 			<section class="drink-now" aria-labelledby="drink-now-title">
 				<h2 id="drink-now-title" class="group-title">
 					{t('cellar.drinkNow')} <span class="muted">{drinkNow.length}</span>

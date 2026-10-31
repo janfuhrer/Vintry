@@ -88,9 +88,12 @@ export function parseWineForm(fd: FormData): { input: WineInput; errors: FieldEr
 		price: decimal(fd, 'price', 99_999_999, errors),
 		gifted_by: str(fd, 'gifted_by'),
 		location: str(fd, 'location', 100),
+		wishlist: fd.get('wishlist') === 'on',
 		ocr_text: str(fd, 'ocr_text', 5000)
 	};
 	if (input.drink_from && input.drink_to && input.drink_from > input.drink_to) errors.drink_to = 'invalid';
+	// a wished-for wine isn't in the cellar yet
+	if (input.wishlist) input.quantity = 0;
 	return { input, errors };
 }
 

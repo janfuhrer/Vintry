@@ -137,6 +137,25 @@ describe('cellar', () => {
 		assert.match(html, /<datalist id="shop-list">[\s\S]*Weinhandlung Muster/);
 	});
 
+	test('wishlist: a wanted wine stays out of the cellar until bought', async () => {
+		const fd = new FormData();
+		for (const [k, v] of Object.entries({ name: 'Dream Wine', color: 'red', quantity: '3', wishlist: 'on' }))
+			fd.append(k, v);
+		const r = await alice.req('/add', { method: 'POST', form: fd, page: true });
+		const url = r.headers.get('location');
+		const wish = (await (await alice.req('/export/vintry.json')).json()).wines.find(
+			(w) => w.name === 'Dream Wine'
+		);
+		assert.equal(wish.wishlist, true);
+		assert.equal(wish.quantity, 0, 'a wish has no bottles, whatever the form said');
+		assert.match(await (await alice.req(url, { page: true })).text(), /\?\/bought/);
+		assert.equal((await alice.action(`${url}?/bought`, {})).type, 'success');
+		const owned = (await (await alice.req('/export/vintry.json')).json()).wines.find(
+			(w) => w.name === 'Dream Wine'
+		);
+		assert.deepEqual([owned.wishlist, owned.quantity], [false, 1]);
+	});
+
 	test('removing a drink entry puts the bottle back', async () => {
 		const qty = async () => {
 			const html = await (await alice.req(wineUrl, { page: true })).text();

@@ -1,23 +1,30 @@
 <script lang="ts">
 	import Thumb from './Thumb.svelte';
 	import StatusPill from './StatusPill.svelte';
+	import Icon from './Icon.svelte';
+	import { useI18n } from '#lib/i18n.ts';
 	import { windowStatus } from '#lib/wine.ts';
 	import type { WineListItem } from '#lib/server/wines.ts';
 
 	let { wine }: { wine: WineListItem } = $props();
 	const status = $derived(windowStatus(wine.drink_from, wine.drink_to));
 	const sub = $derived([wine.producer, wine.vintage].filter(Boolean).join(' · '));
+	const { t } = useI18n();
 </script>
 
-<a class="wine card" href="/wine/{wine.id}" class:empty={wine.quantity === 0}>
+<a class="wine card" href="/wine/{wine.id}" class:empty={wine.quantity === 0 && !wine.wishlist}>
 	<Thumb id={wine.id} color={wine.color} hasPhoto={wine.has_photo} version={wine.photo_version} />
 	<div class="body">
 		<div class="top">
 			<span class="name">{wine.name}</span>
-			<span class="qty">×{wine.quantity}</span>
+			{#if !wine.wishlist}<span class="qty">×{wine.quantity}</span>{/if}
 		</div>
 		{#if sub}<div class="muted small sub">{sub}</div>{/if}
-		<StatusPill {status} />
+		{#if wine.wishlist}
+			<span class="wish small"><Icon name="bookmark" size={14} />{t('cellar.wishlist')}</span>
+		{:else}
+			<StatusPill {status} />
+		{/if}
 	</div>
 </a>
 
@@ -62,6 +69,13 @@
 		font-weight: 650;
 		font-variant-numeric: tabular-nums;
 		color: var(--muted);
+	}
+	.wish {
+		display: inline-flex;
+		align-items: center;
+		gap: 6px;
+		color: var(--gold);
+		font-weight: 600;
 	}
 	.sub {
 		overflow: hidden;

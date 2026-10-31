@@ -156,29 +156,39 @@
 			>{/if}
 	</div>
 
-	<section class="card stack">
-		<div class="row">
-			<div>
-				<h2>{t('wine.inCellar')}</h2>
-				{#if wine.location}<p class="muted small">{wine.location}</p>{/if}
-			</div>
-			<span class="spacer"></span>
-			<form method="POST" action="?/quantity" use:enhance class="stepper">
-				<button class="icon-btn" name="delta" value="-1" aria-label="−1" disabled={wine.quantity === 0}
-					><Icon name="minus" /></button
-				>
-				<span class="qty" aria-live="polite">{wine.quantity}</span>
-				<button class="icon-btn" name="delta" value="1" aria-label="+1"><Icon name="plus" /></button>
+	{#if wine.wishlist}
+		<section class="card stack wishlist-card">
+			<h2><Icon name="bookmark" size={18} />{t('wine.onWishlist')}</h2>
+			<p class="muted small">{t('wine.onWishlistHint')}</p>
+			<form method="POST" action="?/bought" use:enhance>
+				<button class="btn primary block"><Icon name="check" size={18} />{t('wine.bought')}</button>
 			</form>
-		</div>
-		<button
-			class="btn primary block"
-			disabled={wine.quantity === 0}
-			onclick={() => ((drinkRating = null), (drinkOpen = true))}
-		>
-			<Icon name="glass" size={20} />{t('wine.drinkOne')}
-		</button>
-	</section>
+		</section>
+	{:else}
+		<section class="card stack">
+			<div class="row">
+				<div>
+					<h2>{t('wine.inCellar')}</h2>
+					{#if wine.location}<p class="muted small">{wine.location}</p>{/if}
+				</div>
+				<span class="spacer"></span>
+				<form method="POST" action="?/quantity" use:enhance class="stepper">
+					<button class="icon-btn" name="delta" value="-1" aria-label="−1" disabled={wine.quantity === 0}
+						><Icon name="minus" /></button
+					>
+					<span class="qty" aria-live="polite">{wine.quantity}</span>
+					<button class="icon-btn" name="delta" value="1" aria-label="+1"><Icon name="plus" /></button>
+				</form>
+			</div>
+			<button
+				class="btn primary block"
+				disabled={wine.quantity === 0}
+				onclick={() => ((drinkRating = null), (drinkOpen = true))}
+			>
+				<Icon name="glass" size={20} />{t('wine.drinkOne')}
+			</button>
+		</section>
+	{/if}
 
 	{#if wine.drink_from || wine.drink_to}
 		<section class="card stack">
@@ -459,6 +469,12 @@
 	.note {
 		margin: 2px 0 0;
 		white-space: pre-wrap;
+	}
+	.wishlist-card h2 {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		color: var(--gold);
 	}
 	.serve h2 {
 		margin-bottom: 8px;
