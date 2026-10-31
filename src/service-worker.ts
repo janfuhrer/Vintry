@@ -6,11 +6,15 @@ import { version } from '$app/env';
 import { self } from '$app/service-worker';
 
 const CACHE = `vintry-${version}`;
-const OCR_CACHE = 'vintry-ocr-v1';
-const PRECACHE = [...immutable, ...assets]
-	.map((a) => a.path)
-	// OCR assets are large; cached on first use instead
-	.filter((p) => !p.startsWith('/ocr/'));
+// manifest paths are relative to the base path ("ocr/x.js"); compare them as URL paths
+const toPath = (p: string) => `/${p.replace(/^\//, '')}`;
+const ALL = [...immutable, ...assets].map((a) => toPath(a.path));
+
+// written by scripts/copy-ocr-assets.mjs, e.g. /ocr/version-7.0.0-7.0.0.txt
+const ocrVersion = ALL.map((p) => p.match(/^\/ocr\/version-(.+)\.txt$/)?.[1]).find(Boolean);
+const OCR_CACHE = `vintry-ocr-${ocrVersion ?? 'v1'}`;
+// OCR assets are large (~27 MB); cached on first use instead
+const PRECACHE = ALL.filter((p) => !p.startsWith('/ocr/'));
 
 self.addEventListener('install', (event) => {
 	event.waitUntil(
@@ -26,6 +30,7 @@ self.addEventListener('activate', (event) => {
 		caches
 			.keys()
 			.then((keys) =>
+				// also drops OCR caches of older engine versions
 				Promise.all(keys.filter((k) => k !== CACHE && k !== OCR_CACHE).map((k) => caches.delete(k)))
 			)
 			.then(() => self.clients.claim())

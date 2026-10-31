@@ -8,6 +8,7 @@ import {
 	setQuantity,
 	setRating
 } from '#lib/server/wines.ts';
+import { isISODate } from '#lib/dates.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {
@@ -38,8 +39,10 @@ export const actions: Actions = {
 			String(fd.get('note') ?? '')
 				.trim()
 				.slice(0, 2000) || null;
+		// the date comes from the device: the server can't know the user's time zone
+		if (!isISODate(date)) return fail(400, { date: 'invalid' });
 		const ok = await drinkOne(locals.user!.id, params.id, {
-			drunk_on: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date().toISOString().slice(0, 10),
+			drunk_on: date,
 			rating: rating(fd.get('rating')),
 			note
 		});

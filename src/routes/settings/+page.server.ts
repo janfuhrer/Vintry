@@ -36,12 +36,17 @@ export const actions: Actions = {
 	},
 	deletePasskey: async ({ request, locals }) => {
 		const id = String((await request.formData()).get('id'));
-		const result = await sql`
-			delete from credentials
-			where id = ${id} and user_id = ${locals.user!.id}
-				and (select count(*) from credentials where user_id = ${locals.user!.id}) > 1
-		`;
-		if (!result.count) return fail(400, { keepOne: true });
+		const userId = locals.user!.id;
+		// lock the user's passkeys so two devices can't each delete "one of two"
+		const deleted = await sql.begin(async (tx) => {
+			const creds = await tx<{ id: string }[]>`
+				select id from credentials where user_id = ${userId} for update
+			`;
+			if (creds.length < 2) return 0;
+			const result = await tx`delete from credentials where id = ${id} and user_id = ${userId}`;
+			return result.count;
+		});
+		if (!deleted) return fail(400, { keepOne: true });
 	},
 	addDevice: async ({ locals }) => {
 		const { url } = await createInvite({ createdBy: locals.user!.id, forUser: locals.user!.id, hours: 24 });

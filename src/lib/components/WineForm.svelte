@@ -136,7 +136,13 @@
 	);
 
 	const year = new Date().getFullYear();
-	const sizes = ['375', '750', '1500', '3000'];
+	const STANDARD_SIZES = ['375', '500', '750', '1000', '1500', '3000'];
+	// a scanned or stored odd size stays selectable instead of being dropped on save
+	const sizes = $derived(
+		v.size_ml && !STANDARD_SIZES.includes(v.size_ml)
+			? [...STANDARD_SIZES, v.size_ml].sort((a, b) => Number(a) - Number(b))
+			: STANDARD_SIZES
+	);
 
 	const countryOptions = $derived(
 		countries

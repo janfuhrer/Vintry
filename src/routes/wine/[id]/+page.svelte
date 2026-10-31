@@ -7,6 +7,7 @@
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import Thumb from '#lib/components/Thumb.svelte';
 	import WindowBar from '#lib/components/WindowBar.svelte';
+	import { localISODate } from '#lib/dates.ts';
 	import { useI18n } from '#lib/i18n.ts';
 	import { aromas, countryName, flag, windowStatus } from '#lib/wine.ts';
 	import type { PageProps } from './$types';
@@ -28,7 +29,7 @@
 	// optimistic: set on tap, re-synced from the server after the action
 	let ratingValue = $derived<number | null>(wine.rating);
 
-	const today = () => new Date().toISOString().slice(0, 10);
+	const today = () => localISODate();
 	const fmtDate = (d: string) =>
 		new Date(`${d}T12:00:00`).toLocaleDateString(i18n.locale, {
 			day: 'numeric',

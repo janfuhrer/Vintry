@@ -24,13 +24,14 @@ const PUBLIC_FILES = new Set([
 
 /**
  * adapter-node throws when ADDRESS_HEADER is configured but the proxy didn't send it.
- * Rate limiting must never take sign-in down, so fall back to one shared bucket.
+ * Without a real address the limiter is skipped: one shared bucket would let a single
+ * script lock every user out of sign-in.
  */
-function clientAddress(event: RequestEvent): string {
+function clientAddress(event: RequestEvent): string | null {
 	try {
 		return event.getClientAddress();
 	} catch {
-		return 'unknown';
+		return null;
 	}
 }
 
@@ -40,7 +41,8 @@ const isPublic = (path: string) =>
 export const handle: Handle = async ({ event, resolve }) => {
 	const path = event.url.pathname;
 
-	if (path.startsWith('/api/auth/') && !allow(clientAddress(event))) {
+	const address = path.startsWith('/api/auth/') ? clientAddress(event) : null;
+	if (address && !allow(address)) {
 		return new Response('Too many requests', { status: 429, headers: { 'retry-after': '60' } });
 	}
 

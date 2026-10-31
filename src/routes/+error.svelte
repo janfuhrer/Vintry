@@ -6,6 +6,6 @@
 
 <main class="page stack" style="text-align:center; padding-top: 25vh">
 	<h1>{page.status}</h1>
-	<p class="muted">{page.status === 404 ? page.error?.message : t('common.error')}</p>
+	<p class="muted">{page.status === 404 ? t('common.notFound') : t('common.error')}</p>
 	<a class="btn" href="/">{t('nav.cellar')}</a>
 </main>

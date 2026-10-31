@@ -20,6 +20,7 @@ const en = {
 	'common.optional': 'optional',
 	'common.error': 'Something went wrong.',
 	'common.offline': 'You are offline.',
+	'common.notFound': 'Not found.',
 
 	'login.title': 'Sign in',
 	'login.button': 'Sign in with passkey',
@@ -190,6 +191,7 @@ const de: Record<Key, string> = {
 	'common.optional': 'optional',
 	'common.error': 'Etwas ist schiefgelaufen.',
 	'common.offline': 'Du bist offline.',
+	'common.notFound': 'Nicht gefunden.',
 
 	'login.title': 'Anmelden',
 	'login.button': 'Mit Passkey anmelden',

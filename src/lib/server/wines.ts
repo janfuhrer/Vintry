@@ -162,6 +162,7 @@ export async function deleteWine(userId: string, id: string) {
 }
 
 export async function setQuantity(userId: string, id: string, delta: number) {
+	if (!isUuid(id)) return;
 	await sql`
 		update wines set quantity = greatest(0, quantity + ${delta}), updated_at = now()
 		where id = ${id} and user_id = ${userId}
@@ -169,6 +170,7 @@ export async function setQuantity(userId: string, id: string, delta: number) {
 }
 
 export async function setRating(userId: string, id: string, rating: number | null) {
+	if (!isUuid(id)) return;
 	await sql`update wines set rating = ${rating} where id = ${id} and user_id = ${userId}`;
 }
 
@@ -177,6 +179,7 @@ export async function drinkOne(
 	wineId: string,
 	drink: { drunk_on: string; rating: number | null; note: string | null }
 ): Promise<boolean> {
+	if (!isUuid(wineId)) return false;
 	return sql.begin(async (tx) => {
 		const result = await tx`
 			update wines set quantity = quantity - 1, updated_at = now(),

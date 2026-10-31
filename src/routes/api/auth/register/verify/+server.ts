@@ -34,7 +34,9 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			response: body,
 			expectedChallenge: challenge.challenge,
 			expectedOrigin,
-			expectedRPID: rpID
+			expectedRPID: rpID,
+			// options ask for 'preferred'; a security key without PIN must still work
+			requireUserVerification: false
 		});
 		if (!result.verified) return fail();
 		info = result.registrationInfo;

@@ -8,7 +8,7 @@ let onProgress: Progress = () => {};
 
 /** One worker per page session; assets are self-hosted under /ocr/ */
 function getWorker() {
-	return (worker ??= import('tesseract.js').then(({ createWorker }) =>
+	worker ??= import('tesseract.js').then(({ createWorker }) =>
 		createWorker(['eng', 'fra', 'deu'], 1, {
 			workerPath: '/ocr/worker.min.js',
 			corePath: '/ocr/',
@@ -20,7 +20,10 @@ function getWorker() {
 				else onProgress('loading', m.progress);
 			}
 		})
-	));
+	);
+	// a failed load (offline, broken download) must not poison later scans
+	worker.catch(() => (worker = undefined));
+	return worker;
 }
 
 export async function readLabel(

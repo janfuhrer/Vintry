@@ -40,7 +40,19 @@
 	let copiedId = initial?.id;
 	$effect.pre(() => {
 		const copy = data.copy;
-		if (!copy || copy.id === copiedId) return;
+		if (!copy) {
+			// back to plain /add (e.g. the nav button): leave the copied form
+			if (copiedId) {
+				copiedId = undefined;
+				untrack(() => {
+					values = emptyValues();
+					notice = '';
+					step = 'choose';
+				});
+			}
+			return;
+		}
+		if (copy.id === copiedId) return;
 		copiedId = copy.id;
 		untrack(() => {
 			values = fromCopy(copy);

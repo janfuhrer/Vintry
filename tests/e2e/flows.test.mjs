@@ -150,6 +150,20 @@ describe('cellar', () => {
 		assert.equal(await qty(), before);
 	});
 
+	test('malformed ids and impossible dates are refused cleanly, never a 500', async () => {
+		for (const action of ['rate', 'quantity', 'drink']) {
+			const r = await alice.action(`/wine/not-a-uuid?/${action}`, {
+				rating: '3',
+				delta: '1',
+				drunk_on: '2026-10-31'
+			});
+			assert.notEqual(r.type, 'error', `${action}: ${JSON.stringify(r)}`);
+		}
+		const r = await alice.action(`${wineUrl}?/drink`, { drunk_on: '2026-02-30' });
+		assert.equal(r.type, 'failure');
+		assert.equal((await alice.req('/wine/not-a-uuid', { page: true })).status, 404);
+	});
+
 	test('quantity never goes below zero', async () => {
 		for (let i = 0; i < 4; i++) await alice.action(`${wineUrl}?/quantity`, { delta: '-1' });
 		const r = await alice.action(`${wineUrl}?/drink`, { drunk_on: '2026-10-31' });

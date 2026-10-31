@@ -16,6 +16,8 @@ export async function resizeImage(file: Blob, max: number, quality = 0.82): Prom
 }
 
 export async function preparePhoto(file: Blob) {
-	const [image, thumb] = await Promise.all([resizeImage(file, 1280), resizeImage(file, 320, 0.75)]);
+	// decode the (possibly 48 MP) original once; two parallel decodes can crash a Safari tab
+	const image = await resizeImage(file, 1280);
+	const thumb = await resizeImage(image, 320, 0.75);
 	return { image, thumb };
 }

@@ -29,6 +29,8 @@ export const POST: RequestHandler = async ({ request, cookies }) => {
 			expectedChallenge: challenge.challenge,
 			expectedOrigin,
 			expectedRPID: rpID,
+			// options ask for 'preferred'; a security key without PIN must still work
+			requireUserVerification: false,
 			credential: {
 				id: cred.id,
 				publicKey: new Uint8Array(cred.public_key),
