@@ -197,7 +197,9 @@
 		</div>
 	{:else}
 		{#if same}
-			{@const label = [same.name, same.vintage].filter(Boolean).join(' ')}
+			{@const label = [[same.name, same.vintage].filter(Boolean).join(' '), same.producer]
+				.filter(Boolean)
+				.join(', ')}
 			{@const id = same.id}
 			<div class="notice same small" role="status">
 				<p>

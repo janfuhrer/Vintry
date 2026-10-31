@@ -28,6 +28,9 @@ export function findSameWine(
 	const vintage = label.vintage ?? null;
 	const same =
 		vintage === null ? (named.length === 1 ? named : []) : named.filter((w) => w.vintage === vintage);
+	// two producers' wines fit (the label's producer wasn't read): don't guess
+	const producers = new Set(same.map((w) => normalize(w.producer ?? '')));
+	if (producers.size > 1) return null;
 	const rank = (w: Owned) => (w.wishlist ? 2 : w.quantity > 0 ? 0 : 1);
 	return same.sort((a, b) => rank(a) - rank(b))[0] ?? null;
 }

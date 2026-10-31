@@ -37,6 +37,15 @@ describe('findSameWine', () => {
 		expect(findSameWine({}, cellar)).toBeNull();
 	});
 
+	test('two producers fit and the label named none: no guess', () => {
+		const two = [
+			wine({ id: 'x', name: 'Riesling', producer: 'Weingut A', vintage: 2020 }),
+			wine({ id: 'y', name: 'Riesling', producer: 'Weingut B', vintage: 2020 })
+		];
+		expect(findSameWine({ name: 'Riesling', vintage: 2020 }, two)).toBeNull();
+		expect(findSameWine({ name: 'Riesling', producer: 'Weingut B', vintage: 2020 }, two)?.id).toBe('y');
+	});
+
 	test('bottles in the cellar win over the wishlist', () => {
 		expect(findSameWine({ name: 'Barolo', vintage: 2019 }, cellar)?.id).toBe('e');
 	});
