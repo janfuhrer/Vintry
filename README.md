@@ -32,7 +32,7 @@
 - **Drink log.** "Drink one" takes a bottle out of the cellar and records the date, your rating and a note (with undo). The history shows each year's bottles, ratings, favourite grape and country.
 - **Wishlist.** Keep wines you want but don't own yet apart from the cellar, and mark them bought later.
 - **Private by design.** Every person has their own cellar. Sign-in is by passkey only, and new accounts come from invite links.
-- **Your data stays yours.** Export the cellar and history as CSV or JSON, import an existing spreadsheet or a Vivino export, delete your account any time.
+- **Your data stays yours.** Export the cellar and history as CSV or JSON and the photos as a ZIP, import an existing spreadsheet or a Vivino export, delete your account any time.
 - **Installable PWA.** Works like an app on iOS and Android, in English and German. The cellar stays readable without signal, from a copy kept on your phone.
 - **Self-contained.** No external requests at all: no CDN, no web fonts, no analytics.
 

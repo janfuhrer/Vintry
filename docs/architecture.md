@@ -38,6 +38,7 @@ src/
       auth.ts             sessions, invites, challenges, bootstrap invite
       webauthn.ts         relying-party config from APP_URL
       wines.ts            all wine/drink queries (always scoped by user_id)
+      zip.ts              streamed ZIP writer for the photo export (stored entries, no ZIP64)
       wine-form.ts        validation of the wine form (also used per row by the import)
       device.ts           user agent → "iPhone · Safari"
       ratelimit.ts        in-memory limiter for /api/auth/*

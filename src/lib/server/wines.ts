@@ -396,6 +396,17 @@ export async function suggestions(userId: string): Promise<Suggestions> {
 	return { locations, shops, givers };
 }
 
+/** The user's label photos, one at a time, for the photo export */
+export async function* exportPhotos(userId: string) {
+	const cursor = sql<{ id: string; name: string; vintage: number | null; image: Buffer; updated_at: Date }[]>`
+		select w.id, w.name, w.vintage, p.image, p.updated_at
+		from wine_photos p join wines w on w.id = p.wine_id
+		where w.user_id = ${userId}
+		order by w.name, w.vintage
+	`.cursor(8);
+	for await (const rows of cursor) yield* rows;
+}
+
 /** Everything a user owns except photos, for the export downloads */
 export async function exportData(userId: string) {
 	const wines = await sql<(Omit<Wine, 'photo_version'> & { id: string })[]>`

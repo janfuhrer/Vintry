@@ -309,6 +309,9 @@
 			<a class="btn small" href="/export/vintry.json" download data-sveltekit-reload
 				>{t('settings.exportJson')}</a
 			>
+			<a class="btn small" href="/export/photos.zip" download data-sveltekit-reload
+				>{t('settings.exportPhotos')}</a
+			>
 		</div>
 		<p class="muted small">{t('settings.exportHint')}</p>
 	</section>

@@ -1,7 +1,8 @@
 import { error } from '@sveltejs/kit';
 import { toCsv } from '#lib/csv.ts';
 import { localISODate } from '#lib/dates.ts';
-import { exportData } from '#lib/server/wines.ts';
+import { exportData, exportPhotos } from '#lib/server/wines.ts';
+import { zipStream } from '#lib/server/zip.ts';
 import type { RequestHandler } from './$types';
 
 const WINE_COLUMNS = [
@@ -33,10 +34,37 @@ const WINE_COLUMNS = [
 ] as const;
 const DRINK_COLUMNS = ['drunk_on', 'name', 'producer', 'vintage', 'rating', 'note'] as const;
 
-/** The user's own data, for keeping or moving elsewhere. Photos are not included. */
+/** "Château X 2015" → "Chateau X 2015": safe in any file system and unzip tool */
+const fileName = (s: string) =>
+	s
+		.normalize('NFD')
+		.replace(/[\u0300-\u036f]/g, '')
+		.replace(/[^\w .-]+/g, '')
+		.trim()
+		.slice(0, 60) || 'wine';
+
+async function* photoEntries(userId: string) {
+	for await (const p of exportPhotos(userId)) {
+		const name = fileName([p.name, p.vintage].filter(Boolean).join(' '));
+		// the id keeps two photos of the same wine and vintage apart
+		yield { name: `${name} ${p.id.slice(0, 8)}.jpg`, data: p.image, date: p.updated_at };
+	}
+}
+
+/** The user's own data, for keeping or moving elsewhere */
 export const GET: RequestHandler = async ({ params, locals }) => {
-	const { wines, drinks } = await exportData(locals.user!.id);
 	const stamp = localISODate();
+	if (params.file === 'photos.zip') {
+		// streamed: a cellar's photos can be hundreds of MB
+		return new Response(zipStream(photoEntries(locals.user!.id)), {
+			headers: {
+				'content-type': 'application/zip',
+				'content-disposition': `attachment; filename="vintry-photos-${stamp}.zip"`,
+				'cache-control': 'private, no-store'
+			}
+		});
+	}
+	const { wines, drinks } = await exportData(locals.user!.id);
 	const file = (body: string, type: string, name: string) =>
 		new Response(body, {
 			headers: {

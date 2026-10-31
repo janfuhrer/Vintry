@@ -407,6 +407,32 @@ describe('people', () => {
 		assert.equal((await alice.req(wineUrl, { page: true })).status, 200, "Bob's delete did nothing");
 	});
 
+	test('the photo export is a ZIP of your own photos only', async () => {
+		const entries = async (client) => {
+			const r = await client.req('/export/photos.zip');
+			assert.equal(r.headers.get('content-type'), 'application/zip');
+			const buf = Buffer.from(await r.arrayBuffer());
+			const end = buf.length - 22;
+			assert.equal(buf.readUInt32LE(end), 0x06054b50, 'ends with the ZIP directory');
+			const names = [];
+			let p = buf.readUInt32LE(end + 16);
+			for (let i = 0; i < buf.readUInt16LE(end + 10); i++) {
+				const len = buf.readUInt16LE(p + 28);
+				names.push(buf.toString('utf8', p + 46, p + 46 + len));
+				p += 46 + len;
+			}
+			return names;
+		};
+		const mine = await entries(alice);
+		assert.ok(mine.length >= 1);
+		assert.ok(mine.every((n) => /\.jpg$/.test(n)));
+		assert.ok(
+			mine.some((n) => n.includes(wineId.slice(0, 8))),
+			"Alice's first wine is in it"
+		);
+		assert.deepEqual(await entries(bob), [], 'Bob has no photos, and none of hers');
+	});
+
 	test('grape pages list only your own wines', async () => {
 		const mine = await (await alice.req('/grapes/cornalin', { page: true })).text();
 		assert.ok(mine.includes('Cornalin Test'));

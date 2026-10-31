@@ -257,7 +257,8 @@ const en = {
 	'settings.exportWines': 'Cellar (CSV)',
 	'settings.exportDrinks': 'History (CSV)',
 	'settings.exportJson': 'Everything (JSON)',
-	'settings.exportHint': 'For spreadsheets or a backup. Photos are not included.',
+	'settings.exportPhotos': 'Photos (ZIP)',
+	'settings.exportHint': 'For spreadsheets or a backup. The photos come as a separate ZIP.',
 	'import.title': 'Import from a spreadsheet',
 	'import.hint':
 		'A CSV file with one wine per row and column names in the first row (Name, Producer, Vintage, …). Excel: Save as → CSV. A Vivino export works as it is.',
@@ -540,7 +541,8 @@ const de: Record<Key, string> = {
 	'settings.exportWines': 'Keller (CSV)',
 	'settings.exportDrinks': 'Verlauf (CSV)',
 	'settings.exportJson': 'Alles (JSON)',
-	'settings.exportHint': 'Für Tabellen oder als Sicherung. Fotos sind nicht dabei.',
+	'settings.exportPhotos': 'Fotos (ZIP)',
+	'settings.exportHint': 'Für Tabellen oder als Sicherung. Die Fotos gibt es als separates ZIP.',
 	'import.title': 'Aus einer Tabelle importieren',
 	'import.hint':
 		'Eine CSV-Datei mit einem Wein pro Zeile und Spaltennamen in der ersten Zeile (Name, Weingut, Jahrgang, …). Excel: Speichern unter → CSV. Ein Vivino-Export funktioniert direkt.',
