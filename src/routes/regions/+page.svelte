@@ -69,7 +69,8 @@
 							<span class="name">{p.name}</span>
 							<span class="muted small">{findRegion(p.name)?.grapes.slice(0, 3).join(', ')}</span>
 						</span>
-						{#if p.bottles}<span class="qty">×{p.bottles}</span>{/if}
+						{#if p.bottles}<span class="qty">×{p.bottles}</span>
+						{:else if p.bottles === 0}<span class="muted small">{t('regions.keyDrunk')}</span>{/if}
 					</a>
 				</li>
 			{/each}

@@ -66,6 +66,8 @@ describe('country maps', () => {
 		const map = countryMap('IT', { here: 'Barolo', owned: new Map([['Etna', 3]]) })!;
 		expect(map.points.at(-1)).toMatchObject({ name: 'Barolo', here: true });
 		expect(map.points.find((p) => p.name === 'Etna')?.bottles).toBe(3);
+		// drawn on top of the regions without bottles, which would otherwise hide it
+		expect(map.points.at(-2)?.name).toBe('Etna');
 		expect(countryMap('XX')).toBeNull();
 	});
 

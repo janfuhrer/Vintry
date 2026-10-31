@@ -185,6 +185,8 @@ const en = {
 	'map.title': 'Where it’s from',
 	'map.explore': 'Regions of {country}',
 	'map.label': 'Map of {country} with {region} marked',
+	'map.withBottles': '{name}, {n} bottle(s) in your cellar',
+	'map.drunkBefore': '{name}, drunk before',
 
 	'wine.years': '{n} years',
 	'wine.year': '1 year',
@@ -503,6 +505,8 @@ const de: Record<Key, string> = {
 	'map.title': 'Herkunft',
 	'map.explore': 'Regionen in {country}',
 	'map.label': 'Karte von {country}, {region} markiert',
+	'map.withBottles': '{name}, {n} Flasche(n) im Keller',
+	'map.drunkBefore': '{name}, schon getrunken',
 
 	'wine.years': '{n} Jahre',
 	'wine.year': '1 Jahr',

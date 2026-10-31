@@ -25,6 +25,8 @@ export interface CountryMap {
 
 const located = (r: Region): r is Region & { at: [number, number] } => !!r.at && !!shapes[r.country];
 
+const rank = (p: MapPoint) => (p.here ? 3 : p.bottles ? 2 : p.bottles === 0 ? 1 : 0);
+
 /** Countries that can be drawn and have regions on them, by code */
 export const mapCountries = [...new Set(regions.filter(located).map((r) => r.country))];
 
@@ -52,8 +54,9 @@ export function countryMap(
 			if (owned?.has(r.name)) p.bottles = owned.get(r.name);
 			return p;
 		})
-		// the page's own region last, so it is drawn on top of its neighbours
-		.sort((a, b) => Number(!!a.here) - Number(!!b.here));
+		// neighbours can lie on top of each other: what the map is meant to show is drawn last,
+		// on top, and takes the tap. The page's own region, then those with bottles, then drunk
+		.sort((a, b) => rank(a) - rank(b));
 	return { country, d: shape.d, w: shape.w, h: shape.h, points };
 }
 
