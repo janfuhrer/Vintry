@@ -135,7 +135,9 @@ describe('mapTable', () => {
 				rating: '5',
 				notes: 'Crisp',
 				price: '24.90',
-				color: 'white'
+				color: 'white',
+				// a scan history: wines you've had, not bottles you own
+				quantity: '0'
 			},
 			{
 				producer: "Taylor's",
@@ -143,9 +145,22 @@ describe('mapTable', () => {
 				vintage: '2017',
 				region: 'Douro',
 				country: 'PT',
-				color: 'fortified'
+				color: 'fortified',
+				quantity: '0'
 			}
 		]);
+	});
+
+	test("Vivino's cellar list keeps its bottle count", () => {
+		const { rows } = map(
+			'Winery,Wine name,Vintage,User cellar count,Link to wine\nA,B,2020,3,https://example.com\n'
+		);
+		expect(rows[0].quantity).toBe('3');
+	});
+
+	test('the wishlist flag round-trips', () => {
+		const { rows } = map('name,quantity,wishlist\nDream,0,true\nOwned,2,false\nMarked,0,x\n');
+		expect(rows.map((r) => r.wishlist)).toEqual(['on', undefined, 'on']);
 	});
 
 	test('duplicate and empty headers', () => {

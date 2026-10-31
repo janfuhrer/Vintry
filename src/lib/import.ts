@@ -59,7 +59,8 @@ const ALIASES: Record<string, string[]> = {
 	purchased_on: ['purchased on', 'gekauft am', 'kaufdatum', 'datum', 'date', 'bought'],
 	purchased_at: ['purchased at', 'gekauft bei', 'handler', 'shop', 'laden', 'bezugsquelle', 'store'],
 	price: ['price', 'preis', 'kosten', 'prix', 'cost', 'wine price'],
-	gifted_by: ['gifted by', 'geschenk von', 'geschenkt von', 'gift from', 'geschenk']
+	gifted_by: ['gifted by', 'geschenk von', 'geschenkt von', 'gift from', 'geschenk'],
+	wishlist: ['wishlist', 'merkliste', 'wunschliste']
 };
 const FIELD_BY_HEADER = new Map(
 	Object.entries(ALIASES).flatMap(([field, names]) => names.map((n) => [n, field] as const))
@@ -192,6 +193,8 @@ const FIELD: Record<string, (v: string) => string | string[]> = {
 	drink_to: year,
 	quantity: (v) => (/^\d{1,4}$/.test(v.trim()) ? v.trim() : ''),
 	rating: stars,
+	// Vintry's own export writes true/false; spreadsheets often use yes, ja or an x
+	wishlist: (v) => (/^(true|1|yes|ja|oui|x|on)$/i.test(v.trim()) ? 'on' : ''),
 	country: (v) => countryIndex.get(normalize(v))?.code ?? ''
 };
 
@@ -207,8 +210,13 @@ export function mapTable(records: CsvRecord[]): { columns: ColumnMapping[]; rows
 		if (c.field && seen.has(c.field)) c.field = null;
 		else if (c.field) seen.add(c.field);
 	}
+	// Vivino's wine list is a scan history, not a stock list: without its cellar count,
+	// rows are wines you've had (finished), not one bottle each
+	const headers = new Set(columns.map((c) => normalize(c.header)));
+	const scanHistory = headers.has('link to wine') && !seen.has('quantity');
 	const rows = body.map((record) => {
 		const row: ImportRow = { _row: String(record.row) };
+		if (scanHistory) row.quantity = '0';
 		columns.forEach((c, i) => {
 			const raw = cell(record.cells[i]);
 			if (!c.field || !raw) return;

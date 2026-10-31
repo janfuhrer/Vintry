@@ -15,6 +15,7 @@ const WINE_COLUMNS = [
 	'alcohol',
 	'size_ml',
 	'quantity',
+	'wishlist',
 	'location',
 	'drink_from',
 	'drink_to',
