@@ -111,6 +111,20 @@ describe('cellar', () => {
 		assert.ok(html.includes('Cornalin Test'));
 	});
 
+	test('undo puts the bottle and the earlier rating back', async () => {
+		const wine = async () =>
+			(await (await alice.req('/export/vintry.json')).json()).wines.find((w) => w.name === 'Cornalin Test');
+		const before = await wine();
+		const r = devalue.parse(
+			(await alice.action(`${wineUrl}?/drink`, { drunk_on: '2026-10-31', rating: '2' })).data
+		);
+		assert.equal(r.ratingBefore, before.rating);
+		assert.equal((await wine()).rating, 2, 'a drink rating rates the wine');
+		await alice.action(`${wineUrl}?/undoDrink`, { id: r.drunk, rating_before: String(r.ratingBefore ?? '') });
+		const after = await wine();
+		assert.deepEqual([after.quantity, after.rating], [before.quantity, before.rating]);
+	});
+
 	test('"buy again" opens a pre-filled form without purchase details', async () => {
 		const html = await (await alice.req(`/add?from=${wineId}`, { page: true })).text();
 		assert.match(html, /name="name"[^>]*value="Cornalin Test"/);

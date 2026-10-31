@@ -204,25 +204,29 @@ export async function setRating(userId: string, id: string, rating: number | nul
 	await sql`update wines set rating = ${rating} where id = ${id} and user_id = ${userId}`;
 }
 
+/** Takes a bottle out and logs the drink; the wine's rating before is returned for an undo */
 export async function drinkOne(
 	userId: string,
 	wineId: string,
 	drink: { drunk_on: string; rating: number | null; note: string | null }
-): Promise<string | null> {
+): Promise<{ id: string; ratingBefore: number | null } | null> {
 	if (!isUuid(wineId)) return null;
 	return sql.begin(async (tx) => {
-		const result = await tx`
+		const [before] = await tx<{ rating: number | null }[]>`
+			select rating from wines where id = ${wineId} and user_id = ${userId} and quantity > 0 for update
+		`;
+		if (!before) return null;
+		await tx`
 			update wines set quantity = quantity - 1, updated_at = now(),
 				rating = coalesce(${drink.rating}::smallint, rating)
-			where id = ${wineId} and user_id = ${userId} and quantity > 0
+			where id = ${wineId} and user_id = ${userId}
 		`;
-		if (!result.count) return null;
 		const [{ id }] = await tx<{ id: string }[]>`
 			insert into drinks (wine_id, user_id, drunk_on, rating, note)
 			values (${wineId}, ${userId}, ${drink.drunk_on}, ${drink.rating}, ${drink.note})
 			returning id
 		`;
-		return id;
+		return { id, ratingBefore: before.rating };
 	});
 }
 
@@ -256,16 +260,25 @@ export async function updateDrink(
 }
 
 /** Undoes a "drink one": removes the entry and puts the bottle back */
-export async function deleteDrink(userId: string, id: string) {
+/**
+ * Removes a drink entry and puts the bottle back. An undo also hands back the wine's rating
+ * from before the drink, restored only if nothing changed the rating since.
+ */
+export async function deleteDrink(userId: string, id: string, ratingBefore?: number | null) {
 	if (!isUuid(id)) return;
 	await sql.begin(async (tx) => {
-		const [drink] = await tx<{ wine_id: string }[]>`
-			delete from drinks where id = ${id} and user_id = ${userId} returning wine_id
+		const [drink] = await tx<{ wine_id: string; rating: number | null }[]>`
+			delete from drinks where id = ${id} and user_id = ${userId} returning wine_id, rating
 		`;
-		if (drink) {
+		if (!drink) return;
+		await tx`
+			update wines set quantity = quantity + 1, updated_at = now()
+			where id = ${drink.wine_id} and user_id = ${userId}
+		`;
+		if (ratingBefore !== undefined && drink.rating !== null) {
 			await tx`
-				update wines set quantity = quantity + 1, updated_at = now()
-				where id = ${drink.wine_id} and user_id = ${userId}
+				update wines set rating = ${ratingBefore}
+				where id = ${drink.wine_id} and user_id = ${userId} and rating = ${drink.rating}
 			`;
 		}
 	});

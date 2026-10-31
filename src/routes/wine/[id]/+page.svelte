@@ -65,9 +65,11 @@
 	let drinkOpen = $state(false);
 	// "Drink one" can be undone for a few seconds, in case it was a mis-tap
 	let undoId = $state<string | null>(null);
+	let undoRating = $state<number | null>(null);
 	let undoTimer: ReturnType<typeof setTimeout> | undefined;
-	function offerUndo(id: string) {
+	function offerUndo(id: string, ratingBefore: number | null) {
 		undoId = id;
+		undoRating = ratingBefore;
 		clearTimeout(undoTimer);
 		undoTimer = setTimeout(() => (undoId = null), 8000);
 	}
@@ -317,7 +319,7 @@
 		<span>{t('wine.drunk')}</span>
 		<form
 			method="POST"
-			action="?/deleteDrink"
+			action="?/undoDrink"
 			use:enhance={() =>
 				async ({ update }) => {
 					await update();
@@ -325,6 +327,7 @@
 				}}
 		>
 			<input type="hidden" name="id" value={undoId} />
+			<input type="hidden" name="rating_before" value={undoRating ?? ''} />
 			<button class="btn small">{t('common.undo')}</button>
 		</form>
 	</div>
@@ -352,7 +355,8 @@
 			async ({ result, update }) => {
 				await update();
 				drinkOpen = false;
-				if (result.type === 'success' && typeof result.data?.drunk === 'string') offerUndo(result.data.drunk);
+				if (result.type === 'success' && typeof result.data?.drunk === 'string')
+					offerUndo(result.data.drunk, (result.data.ratingBefore as number | null) ?? null);
 			}}
 	>
 		<label class="field">

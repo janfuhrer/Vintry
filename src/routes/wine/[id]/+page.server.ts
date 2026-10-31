@@ -62,8 +62,8 @@ export const actions: Actions = {
 			note
 		});
 		if (!drunk) return fail(400);
-		// the id lets the page offer an undo
-		return { drunk };
+		// the id lets the page offer an undo, the rating before lets the undo restore it
+		return { drunk: drunk.id, ratingBefore: drunk.ratingBefore };
 	},
 	editDrink: async ({ request, locals }) => {
 		const fd = await request.formData();
@@ -82,6 +82,10 @@ export const actions: Actions = {
 	},
 	deleteDrink: async ({ request, locals }) => {
 		await deleteDrink(locals.user!.id, String((await request.formData()).get('id')));
+	},
+	undoDrink: async ({ request, locals }) => {
+		const fd = await request.formData();
+		await deleteDrink(locals.user!.id, String(fd.get('id')), rating(fd.get('rating_before')));
 	},
 	delete: async ({ locals, params }) => {
 		await deleteWine(locals.user!.id, params.id);
