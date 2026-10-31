@@ -43,8 +43,17 @@ self.addEventListener('activate', (event) => {
 				)
 			)
 			.then(() => self.clients.claim())
-			// the old build's saved cellar page is gone: save this build's one while still online
-			.then(() => saveFresh(new Request('/'), SAVED_PAGES).catch(() => {}))
+			.then(() => {
+				// the old build's saved pages are gone: save the start pages again while online.
+				// Not awaited: fetches wait while the worker is still activating
+				for (const path of ['/', '/history']) {
+					const started = epoch;
+					const url = new URL(path, self.location.origin);
+					fetch(url)
+						.then((res) => keep(url, res, SAVED_PAGES, started))
+						.catch(() => {});
+				}
+			})
 	);
 });
 
@@ -64,35 +73,93 @@ async function announce(offline: boolean) {
 /** Saved under the bare path: Kit adds varying query parameters to data requests. */
 const savedKey = (url: URL) => url.origin + url.pathname;
 
-async function save(cacheName: string, url: URL, res: Response) {
+// bumped whenever the copies are dropped: a save that set out before must not bring them back
+let epoch = 0;
+function forget() {
+	epoch++;
+	return clearSaved();
+}
+
+async function save(cacheName: string, url: URL, res: Response, started: number) {
+	if (started !== epoch) return;
 	const cache = await caches.open(cacheName);
 	await cache.put(savedKey(url), res);
+	// dropped while writing: open() may have recreated the cache after the clear
+	if (started !== epoch) return void (await cache.delete(savedKey(url)));
 	const keys = await cache.keys();
 	// put() moves an updated entry to the end, so the oldest come first
 	await Promise.all(keys.slice(0, Math.max(0, keys.length - MAX_SAVED)).map((k) => cache.delete(k)));
 }
 
 /**
- * Fetch from the network and keep a copy when it is a real page of this user.
+ * Keep a copy of a response when it is a real page of this user.
  * A redirect to sign-in means the session is gone: then the copies go too.
  */
-async function saveFresh(req: Request, cacheName: string): Promise<Response> {
-	const res = await fetch(req);
-	// a full disk or odd body must never cost the page its fresh response
-	await keep(new URL(req.url), res, cacheName).catch(() => {});
-	return res;
+async function keep(url: URL, res: Response, cacheName: string, started: number) {
+	if (res.redirected && new URL(res.url).pathname === '/login') return forget();
+	if (!res.ok || res.redirected || res.type !== 'basic') return;
+	if (cacheName !== SAVED_DATA) return save(cacheName, url, res, started);
+	const text = await res.text();
+	const first = text.slice(0, text.indexOf('\n') + 1 || undefined);
+	const data = JSON.parse(first) as { type?: string; nodes?: ({ type?: string } | null)[] };
+	// data requests answer redirects with 200 and {"type":"redirect"}
+	if (data.type === 'redirect') return forget();
+	// load errors also come as 200 "data"; a skipped node would borrow another page's data
+	if (data.type !== 'data' || data.nodes?.some((n) => n && n.type !== 'data')) return;
+	// an older build's version header would make Kit treat the next navigation as an update
+	const headers = new Headers(res.headers);
+	headers.delete('x-sveltekit-version');
+	await save(cacheName, url, new Response(text, { status: res.status, headers }), started);
 }
 
-async function keep(url: URL, res: Response, cacheName: string) {
-	if (res.redirected && new URL(res.url).pathname === '/login') return clearSaved();
-	if (!res.ok || res.redirected || res.type !== 'basic') return;
-	if (cacheName !== SAVED_DATA) return save(cacheName, url, res.clone());
-	// data requests answer redirects with 200 and {"type":"redirect"}; only keep real data
-	const text = await res.clone().text();
-	const first = text.slice(0, text.indexOf('\n') + 1 || undefined);
-	const type = (JSON.parse(first) as { type?: string }).type;
-	if (type === 'data') await save(cacheName, url, new Response(text, res));
-	else if (type === 'redirect') await clearSaved();
+// one bar in a basement can leave a request hanging for a minute
+const PATIENCE = 4000;
+
+/**
+ * Network first; the saved copy when the network fails or is slow and a copy exists.
+ * The copy is refreshed in the background, so the page never waits for the cache.
+ */
+function networkFirst(
+	event: FetchEvent,
+	url: URL,
+	cacheName: string,
+	saved: () => Promise<Response | null>,
+	notify?: (offline: boolean) => void
+): Promise<Response> {
+	const started = epoch;
+	const network = fetch(event.request).then((res) => {
+		const copy = res.clone();
+		event.waitUntil(keep(url, copy, cacheName, started).catch(() => {}));
+		return res;
+	});
+	// the copy still gets refreshed when the saved one was served after a timeout
+	event.waitUntil(network.catch(() => {}));
+	return new Promise((resolve, reject) => {
+		let settled = false;
+		const finish = (fn: () => void) => {
+			if (settled) return;
+			settled = true;
+			fn();
+		};
+		const useSaved = async (orFail: boolean) => {
+			const hit = await saved();
+			if (hit)
+				finish(() => {
+					notify?.(true);
+					resolve(hit);
+				});
+			else if (orFail) finish(() => reject(new TypeError('offline')));
+		};
+		network.then(
+			(res) =>
+				finish(() => {
+					notify?.(false);
+					resolve(res);
+				}),
+			() => useSaved(true)
+		);
+		setTimeout(() => !settled && useSaved(false), PATIENCE);
+	});
 }
 
 async function savedPage(url: URL): Promise<Response | null> {
@@ -101,6 +168,10 @@ async function savedPage(url: URL): Promise<Response | null> {
 	// mark the document so the page shows it is a saved copy
 	const html = (await hit.text()).replace('<html', '<html data-saved');
 	return new Response(html, { status: 200, headers: hit.headers });
+}
+
+async function savedData(url: URL): Promise<Response | null> {
+	return (await caches.match(savedKey(url), { cacheName: SAVED_DATA })) ?? null;
 }
 
 self.addEventListener('fetch', (event) => {
@@ -133,30 +204,21 @@ self.addEventListener('fetch', (event) => {
 
 	// signing in or accepting an invite: the copies may belong to someone else
 	if (url.pathname === '/login' || url.pathname.startsWith('/invite/') || dataPage === '/login') {
-		event.waitUntil(clearSaved());
+		event.waitUntil(forget());
 		return;
 	}
 
 	// reading pages: network first, the saved copy without signal
 	if (dataPage && isReadable(dataPage)) {
-		event.respondWith(
-			saveFresh(req, SAVED_DATA)
-				.then((res) => (announce(false), res))
-				.catch(async () => {
-					const hit = await caches.match(savedKey(url), { cacheName: SAVED_DATA });
-					if (!hit) throw new TypeError('offline');
-					announce(true);
-					return hit;
-				})
-		);
+		event.respondWith(networkFirst(event, url, SAVED_DATA, () => savedData(url), announce));
 		return;
 	}
 
 	if (req.mode === 'navigate') {
 		event.respondWith(
-			(isReadable(url.pathname) ? saveFresh(req, SAVED_PAGES) : fetch(req)).catch(
-				async () => (isReadable(url.pathname) && (await savedPage(url))) || offline()
-			)
+			isReadable(url.pathname)
+				? networkFirst(event, url, SAVED_PAGES, () => savedPage(url)).catch(offline)
+				: fetch(req).catch(offline)
 		);
 	}
 

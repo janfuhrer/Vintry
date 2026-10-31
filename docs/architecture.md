@@ -116,8 +116,11 @@ The OCR engine is cached on first use under a name that carries the tesseract ve
 Reading pages (cellar, wine, history, grapes, regions) are fetched network first; the service
 worker keeps the last copy of each (`src/lib/offline.ts`) so the cellar can be read without signal.
 Data (`__data.json`) is kept across builds, HTML only per build, because it references that build's
-scripts; on activation the new build saves the cellar page once. Only real page data is kept, not
-Kit's redirect answers. The copies stay on the device and are dropped on any redirect to sign-in,
+scripts; after activation the new build saves the cellar and history pages once. A response that
+takes longer than 4 s is answered from the copy when there is one (one bar of signal can stall a
+request for a minute); the copy is refreshed in the background either way, so the page never waits
+for the cache. Only real page data is kept: not Kit's redirect answers, not data with a load error.
+A clear bumps a counter, so a save that set out before it can't bring old copies back. The copies stay on the device and are dropped on any redirect to sign-in,
 when `/login` or an invite is opened, and when the sign-in page loads, so a shared device doesn't
 show the previous person's cellar. Settings, forms and exports are never saved; photos rely on their
 `immutable` HTTP cache headers.
