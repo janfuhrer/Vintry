@@ -26,8 +26,9 @@
 
 ## Features
 
-- **Scan a label.** Text recognition runs on your device (tesseract.js). No photo leaves your phone for a cloud service. Scan a wine you already have and it offers to add a bottle to it.
-- **Smart defaults.** A built-in table of about 80 grapes and 110 regions suggests the drinking window and taste profile. You can override everything.
+- **Scan a label.** Text recognition runs on your device (tesseract.js). No photo leaves your phone for a cloud service. Scan the back label too, or crop a cluttered photo to the label and read it again. Scan a wine you already have and it offers to add a bottle to it.
+- **Smart defaults.** A built-in table of about 80 grapes and 110 regions suggests the drinking window, taste profile, serving temperature and food pairings. You can override everything.
+- **Find what to open.** Search the cellar by name, grape, region, place or note, or by a dish: "raclette" finds the Chasselas.
 - **Drinking window at a glance.** Wait, ready, drink soon or past peak, with a bar that shows where this year sits.
 - **Drink log.** "Drink one" takes a bottle out of the cellar and records the date, your rating and a note (with undo). The history shows each year's bottles, ratings, favourite grape and country.
 - **Wishlist.** Keep wines you want but don't own yet apart from the cellar, and mark them bought later.
