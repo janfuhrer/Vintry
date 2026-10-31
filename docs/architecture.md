@@ -128,6 +128,9 @@ show the previous person's cellar. Settings, forms and exports are never saved; 
 ## Operations
 
 - `/healthz` answers without touching the database (liveness); `/readyz` checks it (readiness).
+- Static build files are served precompressed (Brotli/gzip) by adapter-node; `handle` gzips
+  GET pages, page data and exports itself. Action responses stay uncompressed: they can hold a
+  fresh invite link next to text the user typed, the mix compression side channels need.
 - On SIGTERM adapter-node stops accepting requests; the database pool is closed afterwards so the
   process exits promptly.
 - The container runs as an unprivileged user and works with a read-only root filesystem.

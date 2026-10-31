@@ -487,4 +487,15 @@ describe('operations', () => {
 		assert.equal(ready.status, 200);
 		assert.equal(ready.headers.get('cache-control'), 'no-store');
 	});
+
+	test('pages are gzipped for GET only', async () => {
+		const anon = new Client(base);
+		const gz = { 'accept-encoding': 'gzip' };
+		const page = await anon.req('/login', { page: true, headers: gz });
+		assert.equal(page.headers.get('content-encoding'), 'gzip');
+		assert.match(page.headers.get('vary') ?? '', /accept-encoding/i);
+		assert.match(await page.text(), /<\/html>/, 'and it decodes to the whole page');
+		const post = await anon.req('/api/auth/login/options', { method: 'POST', headers: gz });
+		assert.equal(post.headers.get('content-encoding'), null);
+	});
 });

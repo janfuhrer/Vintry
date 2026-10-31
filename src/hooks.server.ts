@@ -77,5 +77,34 @@ export const handle: Handle = async ({ event, resolve }) => {
 	h.set('permissions-policy', 'camera=(self), microphone=(), geolocation=()');
 	h.set('x-frame-options', 'DENY');
 	h.set('cross-origin-opener-policy', 'same-origin');
-	return response;
+	return compress(event.request, response);
 };
+
+// pages and their data: a cellar of a few hundred wines is hundreds of KB of HTML
+const COMPRESSIBLE = /^(text\/html|application\/json|text\/csv)\b/;
+
+/**
+ * gzip for pages, page data and exports; adapter-node only serves precompressed static
+ * files. Only GET: action results can carry a fresh invite link next to text the user
+ * typed, the mix that compression side channels (BREACH) feed on. Kit's streamed data
+ * (text/sveltekit-data) stays as it is so promises arrive as they resolve.
+ */
+function compress(request: Request, response: Response): Response {
+	const h = response.headers;
+	if (
+		request.method !== 'GET' ||
+		!response.body ||
+		h.has('content-encoding') ||
+		!COMPRESSIBLE.test(h.get('content-type') ?? '') ||
+		!/\bgzip\b/.test(request.headers.get('accept-encoding') ?? '')
+	)
+		return response;
+	h.set('content-encoding', 'gzip');
+	h.append('vary', 'accept-encoding');
+	h.delete('content-length');
+	return new Response(response.body.pipeThrough(new CompressionStream('gzip')), {
+		status: response.status,
+		statusText: response.statusText,
+		headers: h
+	});
+}
