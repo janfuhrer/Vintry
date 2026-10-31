@@ -208,6 +208,22 @@
 		</section>
 	{/if}
 
+	{#if data.vintages.length}
+		<section class="card stack">
+			<h2>{t('wine.otherVintages')}</h2>
+			<div class="vintages">
+				{#each data.vintages as v (v.id)}
+					<a class="chip" class:finished={v.quantity === 0 && !v.wishlist} href="/wine/{v.id}">
+						{v.vintage ?? t('wine.noVintage')}
+						{#if v.wishlist}<Icon name="bookmark" size={14} label={t('cellar.wishlist')} />{:else}<span
+								class="n">×{v.quantity}</span
+							>{/if}
+					</a>
+				{/each}
+			</div>
+		</section>
+	{/if}
+
 	{#if wine.drink_from || wine.drink_to}
 		<section class="card stack">
 			<div class="row">
@@ -423,6 +439,18 @@
 </Sheet>
 
 <style>
+	.vintages {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 8px;
+	}
+	.vintages .n {
+		font-weight: 400;
+		font-variant-numeric: tabular-nums;
+	}
+	.vintages .finished {
+		color: var(--muted);
+	}
 	.wine-page {
 		display: flex;
 		flex-direction: column;

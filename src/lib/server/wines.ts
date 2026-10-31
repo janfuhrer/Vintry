@@ -238,6 +238,17 @@ export interface Drink {
 	note: string | null;
 }
 
+/** The same wine (name and producer, ignoring case) in other vintages, newest first */
+export async function otherVintages(userId: string, wine: Pick<Wine, 'id' | 'name' | 'producer'>) {
+	return sql<{ id: string; vintage: number | null; quantity: number; wishlist: boolean }[]>`
+		select id, vintage, quantity, wishlist from wines
+		where user_id = ${userId} and id <> ${wine.id}
+			and lower(name) = lower(${wine.name})
+			and lower(coalesce(producer, '')) = lower(${wine.producer ?? ''})
+		order by vintage desc nulls last
+	`;
+}
+
 export async function drinksForWine(userId: string, wineId: string): Promise<Drink[]> {
 	return sql<Drink[]>`
 		select id, wine_id, drunk_on, rating, note from drinks

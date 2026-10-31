@@ -280,6 +280,38 @@ describe('cellar', () => {
 		assert.deepEqual(await where(), [null, null], 'empty removes the place');
 	});
 
+	test('a wine page links the other vintages of the same wine', async () => {
+		const add = async (fields) => {
+			const fd = new FormData();
+			for (const [k, v] of Object.entries(fields)) fd.append(k, v);
+			return (await alice.req('/add', { method: 'POST', form: fd, page: true })).headers.get('location');
+		};
+		const a = await add({
+			name: 'Vertical',
+			producer: 'Estate X',
+			vintage: '2019',
+			color: 'red',
+			quantity: '1'
+		});
+		const b = await add({
+			name: 'vertical',
+			producer: 'ESTATE X',
+			vintage: '2021',
+			color: 'red',
+			quantity: '2'
+		});
+		const other = await add({
+			name: 'Vertical',
+			producer: 'Estate Y',
+			vintage: '2020',
+			color: 'red',
+			quantity: '1'
+		});
+		const html = await (await alice.req(a, { page: true })).text();
+		assert.ok(html.includes(`href="${b}"`), 'same name and producer, any case');
+		assert.ok(!html.includes(`href="${other}"`), 'another producer is another wine');
+	});
+
 	test('removing a drink entry puts the bottle back', async () => {
 		const qty = async () => {
 			const html = await (await alice.req(wineUrl, { page: true })).text();

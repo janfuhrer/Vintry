@@ -7,6 +7,7 @@ import {
 	drinkOne,
 	drinksForWine,
 	getWine,
+	otherVintages,
 	restock,
 	setQuantity,
 	setRating
@@ -18,7 +19,11 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals, params }) => {
 	const wine = await getWine(locals.user!.id, params.id);
 	if (!wine) error(404, 'Not found');
-	return { wine, drinks: await drinksForWine(locals.user!.id, wine.id) };
+	const [drinks, vintages] = await Promise.all([
+		drinksForWine(locals.user!.id, wine.id),
+		otherVintages(locals.user!.id, wine)
+	]);
+	return { wine, drinks, vintages };
 };
 
 const rating = (v: FormDataEntryValue | null) => {
