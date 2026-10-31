@@ -11,7 +11,10 @@ export const grapes: Grape[] = [
 		tannin: 5,
 		sweetness: 1,
 		age: [3, 15],
-		aroma: { en: ['blackcurrant', 'cedar', 'green pepper'], de: ['schwarze Johannisbeere', 'Zeder', 'grüne Paprika'] }
+		aroma: {
+			en: ['blackcurrant', 'cedar', 'green pepper'],
+			de: ['schwarze Johannisbeere', 'Zeder', 'grüne Paprika']
+		}
 	},
 	{
 		name: 'Merlot',
@@ -86,7 +89,10 @@ export const grapes: Grape[] = [
 		tannin: 4,
 		sweetness: 1,
 		age: [2, 10],
-		aroma: { en: ['sour cherry', 'tomato', 'dried herbs'], de: ['Sauerkirsche', 'Tomate', 'getrocknete Kräuter'] }
+		aroma: {
+			en: ['sour cherry', 'tomato', 'dried herbs'],
+			de: ['Sauerkirsche', 'Tomate', 'getrocknete Kräuter']
+		}
 	},
 	{
 		name: 'Nebbiolo',
@@ -119,7 +125,10 @@ export const grapes: Grape[] = [
 		tannin: 4,
 		sweetness: 1,
 		age: [2, 10],
-		aroma: { en: ['plum', 'blackberry', 'violet', 'cocoa'], de: ['Pflaume', 'Brombeere', 'Veilchen', 'Kakao'] }
+		aroma: {
+			en: ['plum', 'blackberry', 'violet', 'cocoa'],
+			de: ['Pflaume', 'Brombeere', 'Veilchen', 'Kakao']
+		}
 	},
 	{
 		name: 'Zinfandel',
@@ -507,7 +516,10 @@ export const grapes: Grape[] = [
 		tannin: 1,
 		sweetness: 1,
 		age: [0, 3],
-		aroma: { en: ['grapefruit', 'cut grass', 'gooseberry'], de: ['Grapefruit', 'frisches Gras', 'Stachelbeere'] }
+		aroma: {
+			en: ['grapefruit', 'cut grass', 'gooseberry'],
+			de: ['Grapefruit', 'frisches Gras', 'Stachelbeere']
+		}
 	},
 	{
 		name: 'Riesling',
@@ -573,7 +585,10 @@ export const grapes: Grape[] = [
 		tannin: 1,
 		sweetness: 1,
 		age: [0, 6],
-		aroma: { en: ['green apple', 'white pepper', 'lemon'], de: ['grüner Apfel', 'weisser Pfeffer', 'Zitrone'] }
+		aroma: {
+			en: ['green apple', 'white pepper', 'lemon'],
+			de: ['grüner Apfel', 'weisser Pfeffer', 'Zitrone']
+		}
 	},
 	{
 		name: 'Albariño',

@@ -23,7 +23,10 @@ function getWorker() {
 	));
 }
 
-export async function readLabel(image: Blob, progress: Progress): Promise<{ lines: OcrLine[]; text: string }> {
+export async function readLabel(
+	image: Blob,
+	progress: Progress
+): Promise<{ lines: OcrLine[]; text: string }> {
 	onProgress = progress;
 	progress('loading', 0);
 	const w = await getWorker();

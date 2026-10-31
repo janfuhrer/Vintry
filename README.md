@@ -52,12 +52,12 @@ Passkeys work on `localhost` over plain HTTP. Any other host needs HTTPS.
 
 ## Configuration
 
-| Variable | Required | Description |
-|---|---|---|
-| `DATABASE_URL` | yes | PostgreSQL connection string. The schema is migrated on start. |
-| `APP_URL` | yes in production | Public origin, e.g. `https://vintry.example.com`. Passkeys are bound to its host name, so changing it later makes existing passkeys stop working. Default: `http://localhost:5173`. |
-| `BODY_SIZE_LIMIT` | no | Maximum request size. Photos need about `2M` (the Docker image sets this). |
-| `PORT` | no | Listening port of the production server. Default: `3000`. |
+| Variable          | Required          | Description                                                                                                                                                                         |
+| ----------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `DATABASE_URL`    | yes               | PostgreSQL connection string. The schema is migrated on start.                                                                                                                      |
+| `APP_URL`         | yes in production | Public origin, e.g. `https://vintry.example.com`. Passkeys are bound to its host name, so changing it later makes existing passkeys stop working. Default: `http://localhost:5173`. |
+| `BODY_SIZE_LIMIT` | no                | Maximum request size. Photos need about `2M` (the Docker image sets this).                                                                                                          |
+| `PORT`            | no                | Listening port of the production server. Default: `3000`.                                                                                                                           |
 
 The production server is the SvelteKit Node adapter. Behind a reverse proxy it uses the `Host` header and assumes HTTPS. See the [adapter-node docs](https://svelte.dev/docs/kit/adapter-node) for `PROTOCOL_HEADER`, `HOST_HEADER` and `ADDRESS_HEADER`.
 
@@ -77,13 +77,25 @@ Put it behind a TLS-terminating proxy. Photos are stored in PostgreSQL, so backi
 
 ## Development
 
-| Command | What it does |
-|---|---|
-| `npm run dev` | Dev server with hot reload |
-| `npm run check` | Type-check Svelte and TypeScript |
-| `npm test` | Unit tests for label parsing and wine logic |
-| `npm run build` | Production build into `build/` |
-| `npm run icons` | Re-render the PNG app icons from `static/logo.svg` |
+| Command            | What it does                                                    |
+| ------------------ | --------------------------------------------------------------- |
+| `npm run dev`      | Dev server with hot reload                                      |
+| `npm run check`    | Type-check Svelte and TypeScript                                |
+| `npm run lint`     | Prettier and ESLint (`npm run format` fixes formatting)         |
+| `npm test`         | Unit tests (Vitest): label parsing, wine logic, form validation |
+| `npm run test:e2e` | End-to-end tests against the production build, see below        |
+| `npm run build`    | Production build into `build/`                                  |
+| `npm run icons`    | Re-render the PNG app icons from `static/logo.svg`              |
+
+The end-to-end suite starts the production build against a **throwaway** PostgreSQL
+database, which it wipes first, and drives sign-up, login, wines, drinks and invites with a
+software passkey:
+
+```sh
+createdb vintry_e2e
+npm run build
+E2E_DATABASE_URL=postgres://localhost/vintry_e2e npm run test:e2e
+```
 
 The OCR engine and language data are copied from `node_modules` to `static/ocr/` before `dev` and `build`. They are not committed.
 

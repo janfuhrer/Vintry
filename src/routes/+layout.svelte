@@ -21,14 +21,22 @@
 
 {#if showNav}
 	<nav class="bottom-nav" aria-label="Main">
-		<a href="/" class:active={path === '/' || path.startsWith('/wine')} aria-current={path === '/' ? 'page' : undefined}>
+		<a
+			href="/"
+			class:active={path === '/' || path.startsWith('/wine')}
+			aria-current={path === '/' ? 'page' : undefined}
+		>
 			<Icon name="cellar" />
 			<span>{t('nav.cellar')}</span>
 		</a>
 		<a href="/add" class="add" aria-label={t('nav.add')} aria-current={path === '/add' ? 'page' : undefined}>
 			<span class="add-circle"><Icon name="plus" size={26} /></span>
 		</a>
-		<a href="/history" class:active={path === '/history'} aria-current={path === '/history' ? 'page' : undefined}>
+		<a
+			href="/history"
+			class:active={path === '/history'}
+			aria-current={path === '/history' ? 'page' : undefined}
+		>
 			<Icon name="history" />
 			<span>{t('nav.history')}</span>
 		</a>

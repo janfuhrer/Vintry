@@ -1,5 +1,6 @@
 import { fail, redirect } from '@sveltejs/kit';
-import { createWine, parsePhoto, parseWineForm } from '#lib/server/wines.ts';
+import { parsePhoto, parseWineForm } from '#lib/server/wine-form.ts';
+import { createWine } from '#lib/server/wines.ts';
 import type { Actions } from './$types';
 
 export const actions: Actions = {

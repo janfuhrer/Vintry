@@ -18,8 +18,9 @@ Work on Vintry and nothing else. Concretely:
 ## Git
 
 - You commit and push in this repository yourself. Use small, focused commits with a short
-  imperative subject line, and explain *why* in the body.
-- Before committing, run `npm run check`, `npm test` and `npm run build`, and scan the diff
+  imperative subject line, and explain _why_ in the body.
+- Before committing, run `npm run lint`, `npm run check`, `npm test`, `npm run build` and
+  `npm run test:e2e` (local throwaway database), and scan the diff
   for private data (hostnames of the deployment, account or org names, emails, tokens).
   The repository is public.
 - Never force-push, rewrite published history or change repository settings.

@@ -105,12 +105,28 @@ export const regions: Region[] = [
 		name: 'Bordeaux',
 		synonyms: ['Bordeaux Supérieur'],
 		country: 'FR',
-		grapes: ['Merlot', 'Cabernet Sauvignon', 'Cabernet Franc', 'Petit Verdot', 'Malbec', 'Sauvignon Blanc', 'Sémillon'],
+		grapes: [
+			'Merlot',
+			'Cabernet Sauvignon',
+			'Cabernet Franc',
+			'Petit Verdot',
+			'Malbec',
+			'Sauvignon Blanc',
+			'Sémillon'
+		],
 		age: [4, 15]
 	},
 	{
 		name: 'Médoc',
-		synonyms: ['Haut-Médoc', 'Pauillac', 'Margaux', 'Saint-Julien', 'St-Julien', 'Saint-Estèphe', 'St-Estèphe'],
+		synonyms: [
+			'Haut-Médoc',
+			'Pauillac',
+			'Margaux',
+			'Saint-Julien',
+			'St-Julien',
+			'Saint-Estèphe',
+			'St-Estèphe'
+		],
 		country: 'FR',
 		grapes: ['Cabernet Sauvignon', 'Merlot', 'Cabernet Franc', 'Petit Verdot'],
 		age: [6, 25],
@@ -360,7 +376,15 @@ export const regions: Region[] = [
 		name: 'Alto Adige',
 		synonyms: ['Südtirol', 'South Tyrol', 'Haut-Adige'],
 		country: 'IT',
-		grapes: ['Pinot Gris', 'Gewürztraminer', 'Pinot Blanc', 'Lagrein', 'Pinot Noir', 'Chardonnay', 'Sauvignon Blanc']
+		grapes: [
+			'Pinot Gris',
+			'Gewürztraminer',
+			'Pinot Blanc',
+			'Lagrein',
+			'Pinot Noir',
+			'Chardonnay',
+			'Sauvignon Blanc'
+		]
 	},
 	{
 		name: 'Abruzzo',

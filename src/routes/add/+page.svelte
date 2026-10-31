@@ -14,7 +14,7 @@
 	let stage = $state<'loading' | 'reading'>('loading');
 	let progress = $state(0);
 	let values = $state<WineFormValues>(emptyValues());
-	let scanned = $state(new Set<string>());
+	let scanned = $state<string[]>([]);
 	let photo = $state<{ image: Blob; thumb: Blob } | null>(null);
 	let notice = $state('');
 	let formKey = $state(0);
@@ -36,21 +36,22 @@
 			});
 			const parsed = parseLabel(lines);
 			const v = emptyValues();
-			const found = new Set<string>();
+			const found: string[] = [];
+			const target = v as unknown as Record<string, unknown>;
 			for (const [k, x] of Object.entries(parsed)) {
 				if (x === undefined) continue;
-				found.add(k);
+				found.push(k);
 				if (k === 'grapes') v.grapes = x as string[];
-				else (v as any)[k] = String(x);
+				else target[k] = String(x);
 			}
 			v.ocr_text = text.slice(0, 5000);
 			values = v;
 			scanned = found;
-			notice = found.size ? t('add.scanned') : t('add.scanFailed');
+			notice = found.length ? t('add.scanned') : t('add.scanFailed');
 		} catch (err) {
 			console.error(err);
 			values = emptyValues();
-			scanned = new Set();
+			scanned = [];
 			notice = t('add.scanFailed');
 		}
 		formKey++;
@@ -59,7 +60,7 @@
 
 	function manual() {
 		values = emptyValues();
-		scanned = new Set();
+		scanned = [];
 		photo = null;
 		notice = '';
 		formKey++;
@@ -72,7 +73,9 @@
 <main class="page" style="--form-bottom: calc(var(--nav-h) + var(--safe-b))">
 	<header class="head">
 		{#if step === 'form'}
-			<button class="icon-btn" aria-label={t('common.back')} onclick={() => (step = 'choose')}><Icon name="back" /></button>
+			<button class="icon-btn" aria-label={t('common.back')} onclick={() => (step = 'choose')}
+				><Icon name="back" /></button
+			>
 		{/if}
 		<h1>{t('add.title')}</h1>
 	</header>

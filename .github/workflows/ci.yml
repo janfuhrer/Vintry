@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   check:
-    name: Type-check, test, build
+    name: Lint, type-check, test, build
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -29,9 +29,41 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - run: npm run lint
       - run: npm run check
       - run: npm test
       - run: npm run build
+
+  e2e:
+    name: End-to-end
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    services:
+      postgres:
+        image: postgres:18-alpine
+        env:
+          POSTGRES_USER: vintry
+          POSTGRES_PASSWORD: vintry
+          POSTGRES_DB: vintry_e2e
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U vintry" --health-interval 2s --health-timeout 5s --health-retries 20
+    steps:
+      - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
+        with:
+          egress-policy: audit
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+      - run: npm run test:e2e
+        env:
+          E2E_DATABASE_URL: postgres://vintry:vintry@localhost:5432/vintry_e2e
 
   docker:
     name: Container image

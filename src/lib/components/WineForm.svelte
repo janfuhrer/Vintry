@@ -29,10 +29,29 @@
 
 	export function emptyValues(): WineFormValues {
 		return {
-			name: '', producer: '', vintage: '', color: 'red', country: '', region: '', grapes: [],
-			alcohol: '', quantity: 1, size_ml: '750', location: '', drink_from: '', drink_to: '',
-			body: null, acidity: null, tannin: null, sweetness: null, purchased_on: '',
-			purchased_at: '', price: '', gifted_by: '', notes: '', ocr_text: ''
+			name: '',
+			producer: '',
+			vintage: '',
+			color: 'red',
+			country: '',
+			region: '',
+			grapes: [],
+			alcohol: '',
+			quantity: 1,
+			size_ml: '750',
+			location: '',
+			drink_from: '',
+			drink_to: '',
+			body: null,
+			acidity: null,
+			tannin: null,
+			sweetness: null,
+			purchased_on: '',
+			purchased_at: '',
+			price: '',
+			gifted_by: '',
+			notes: '',
+			ocr_text: ''
 		};
 	}
 
@@ -43,9 +62,10 @@
 		for (const key of Object.keys(v) as (keyof WineFormValues)[]) {
 			const x = w[key];
 			if (x === null || x === undefined) continue;
+			const target = v as unknown as Record<string, unknown>;
 			if (key === 'grapes') v.grapes = [...(x as string[])];
-			else if (['body', 'acidity', 'tannin', 'sweetness', 'quantity'].includes(key)) (v as any)[key] = Number(x);
-			else (v as any)[key] = String(x);
+			else if (['body', 'acidity', 'tannin', 'sweetness', 'quantity'].includes(key)) target[key] = Number(x);
+			else target[key] = String(x);
 		}
 		return v;
 	}
@@ -60,15 +80,22 @@
 	import { preparePhoto } from '#lib/image.ts';
 	import { useI18n } from '#lib/i18n.ts';
 	import {
-		COLORS, canonicalGrape, countryName, findRegion, flag, grapeNames, regionNames,
-		suggestTaste, suggestWindow
+		COLORS,
+		canonicalGrape,
+		countryName,
+		findRegion,
+		flag,
+		grapeNames,
+		regionNames,
+		suggestTaste,
+		suggestWindow
 	} from '#lib/wine.ts';
 
 	type Photo = { image: Blob; thumb: Blob };
 
 	let {
 		initial,
-		scanned = new Set<string>(),
+		scanned = [],
 		photo = $bindable(null),
 		existingPhoto = null,
 		errors = {},
@@ -76,7 +103,8 @@
 		action = ''
 	}: {
 		initial: WineFormValues;
-		scanned?: Set<string>;
+		/** Fields filled in from the label, marked for review */
+		scanned?: string[];
 		photo?: Photo | null;
 		existingPhoto?: string | null;
 		errors?: Record<string, string>;
@@ -89,12 +117,20 @@
 
 	let v = $state(untrack(() => structuredClone($state.snapshot(initial)) as WineFormValues));
 	// a wine that already has taste values was set by hand
-	let touched = $state(untrack(() => [initial.body, initial.acidity, initial.tannin, initial.sweetness, initial.drink_from].some((x) => x !== null && x !== '')));
+	let touched = $state(
+		untrack(() =>
+			[initial.body, initial.acidity, initial.tannin, initial.sweetness, initial.drink_from].some(
+				(x) => x !== null && x !== ''
+			)
+		)
+	);
 	let removePhoto = $state(false);
 	let saving = $state(false);
 	let grapeDraft = $state('');
 	let tasteOpen = $state(false);
-	let privateOpen = $state(untrack(() => !!(initial.notes || initial.purchased_on || initial.price || initial.gifted_by)));
+	let privateOpen = $state(
+		untrack(() => !!(initial.notes || initial.purchased_on || initial.price || initial.gifted_by))
+	);
 
 	const year = new Date().getFullYear();
 	const sizes = ['375', '750', '1500', '3000'];
@@ -149,7 +185,7 @@
 
 	let previewUrl = $state<string | null>(null);
 	$effect(() => {
-		if (!photo) return (previewUrl = null), undefined;
+		if (!photo) return ((previewUrl = null), undefined);
 		const url = URL.createObjectURL(photo.thumb);
 		previewUrl = url;
 		return () => URL.revokeObjectURL(url);
@@ -163,7 +199,7 @@
 		removePhoto = false;
 	}
 
-	const cls = (field: string) => `input${scanned.has(field) ? ' scanned' : ''}`;
+	const cls = (field: string) => `input${scanned.includes(field) ? ' scanned' : ''}`;
 </script>
 
 <form
@@ -195,7 +231,11 @@
 					<input class="visually-hidden" type="file" accept="image/*" onchange={pickPhoto} />
 				</label>
 				{#if shownPhoto}
-					<button type="button" class="btn small ghost" onclick={() => ((photo = null), (removePhoto = true))}>
+					<button
+						type="button"
+						class="btn small ghost"
+						onclick={() => ((photo = null), (removePhoto = true))}
+					>
 						{t('form.removePhoto')}
 					</button>
 				{/if}
@@ -206,27 +246,53 @@
 		<h2>{t('form.wine')}</h2>
 		<label class="field">
 			{t('form.name')}
-			<input class={cls('name')} name="name" bind:value={v.name} required maxlength="200" autocomplete="off" />
+			<input
+				class={cls('name')}
+				name="name"
+				bind:value={v.name}
+				required
+				maxlength="200"
+				autocomplete="off"
+			/>
 			{#if errors.name}<span class="error">{t('form.required')}</span>{/if}
 		</label>
 		<label class="field">
 			{t('form.producer')}
-			<input class={cls('producer')} name="producer" bind:value={v.producer} maxlength="200" autocomplete="off" />
+			<input
+				class={cls('producer')}
+				name="producer"
+				bind:value={v.producer}
+				maxlength="200"
+				autocomplete="off"
+			/>
 		</label>
 		<div class="grid2">
 			<label class="field">
 				{t('form.vintage')}
-				<input class={cls('vintage')} name="vintage" bind:value={v.vintage} inputmode="numeric" pattern="\d{'{4}'}" placeholder={String(year - 3)} />
+				<input
+					class={cls('vintage')}
+					name="vintage"
+					bind:value={v.vintage}
+					inputmode="numeric"
+					pattern="\d{'{4}'}"
+					placeholder={String(year - 3)}
+				/>
 			</label>
 			<label class="field">
 				{t('form.alcohol')}
-				<input class={cls('alcohol')} name="alcohol" bind:value={v.alcohol} inputmode="decimal" placeholder="13.5" />
+				<input
+					class={cls('alcohol')}
+					name="alcohol"
+					bind:value={v.alcohol}
+					inputmode="decimal"
+					placeholder="13.5"
+				/>
 			</label>
 		</div>
 
 		<fieldset class="field">
 			<legend>{t('form.color')}</legend>
-			<div class="segmented" class:scanned={scanned.has('color')}>
+			<div class="segmented" class:scanned={scanned.includes('color')}>
 				{#each COLORS as c (c)}
 					<label class="seg swatch-{c}">
 						<input type="radio" name="color" value={c} bind:group={v.color} />
@@ -247,7 +313,15 @@
 		</label>
 		<label class="field">
 			{t('form.region')}
-			<input class={cls('region')} name="region" bind:value={v.region} list="regions" maxlength="100" autocomplete="off" onchange={onRegion} />
+			<input
+				class={cls('region')}
+				name="region"
+				bind:value={v.region}
+				list="regions"
+				maxlength="100"
+				autocomplete="off"
+				onchange={onRegion}
+			/>
 			<datalist id="regions">
 				{#each regionOptions as r (r)}<option value={r}></option>{/each}
 			</datalist>
@@ -287,14 +361,29 @@
 		<div class="field">
 			<span>{t('form.quantity')}</span>
 			<div class="stepper">
-				<button type="button" class="icon-btn" aria-label="−1" onclick={() => (v.quantity = Math.max(0, v.quantity - 1))}><Icon name="minus" /></button>
-				<input class="input qty" name="quantity" type="number" min="0" max="9999" bind:value={v.quantity} aria-label={t('form.quantity')} />
-				<button type="button" class="icon-btn" aria-label="+1" onclick={() => (v.quantity = v.quantity + 1)}><Icon name="plus" /></button>
+				<button
+					type="button"
+					class="icon-btn"
+					aria-label="−1"
+					onclick={() => (v.quantity = Math.max(0, v.quantity - 1))}><Icon name="minus" /></button
+				>
+				<input
+					class="input qty"
+					name="quantity"
+					type="number"
+					min="0"
+					max="9999"
+					bind:value={v.quantity}
+					aria-label={t('form.quantity')}
+				/>
+				<button type="button" class="icon-btn" aria-label="+1" onclick={() => (v.quantity = v.quantity + 1)}
+					><Icon name="plus" /></button
+				>
 			</div>
 		</div>
 		<fieldset class="field">
 			<legend>{t('form.size')}</legend>
-			<div class="segmented" class:scanned={scanned.has('size_ml')}>
+			<div class="segmented" class:scanned={scanned.includes('size_ml')}>
 				{#each sizes as s (s)}
 					<label class="seg">
 						<input type="radio" name="size_ml" value={s} bind:group={v.size_ml} />
@@ -305,12 +394,21 @@
 		</fieldset>
 		<label class="field">
 			{t('form.location')}
-			<input class="input" name="location" bind:value={v.location} maxlength="100" placeholder={t('form.locationHint')} />
+			<input
+				class="input"
+				name="location"
+				bind:value={v.location}
+				maxlength="100"
+				placeholder={t('form.locationHint')}
+			/>
 		</label>
 	</section>
 
 	<details class="card" bind:open={tasteOpen}>
-		<summary><h2>{t('form.taste')}</h2><Icon name="chevron" /></summary>
+		<summary
+			><h2>{t('form.taste')}</h2>
+			<Icon name="chevron" /></summary
+		>
 		<div class="stack details-body">
 			{#if !touched && (v.body || v.drink_from)}<p class="muted small">{t('form.suggested')}</p>{/if}
 			<div class="grid2">
@@ -336,7 +434,10 @@
 	{/each}
 
 	<details class="card" bind:open={privateOpen}>
-		<summary><h2>{t('form.private')}</h2><Icon name="chevron" /></summary>
+		<summary
+			><h2>{t('form.private')}</h2>
+			<Icon name="chevron" /></summary
+		>
 		<div class="stack details-body">
 			<div class="grid2">
 				<label class="field">

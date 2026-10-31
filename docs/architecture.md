@@ -5,14 +5,14 @@ There is no separate API service, no object storage and no third-party request.
 
 ## Stack
 
-| Part | Choice | Notes |
-|---|---|---|
-| Framework | SvelteKit 3, Svelte 5 (runes), TypeScript | Config in `vite.config.ts`. Imports use `#lib/…` subpath imports. |
-| Server | `@sveltejs/adapter-node` | Runs as a plain Node process, see `Dockerfile`. |
-| Database | PostgreSQL via `postgres` (postgres.js v4) | Raw SQL, no ORM. |
-| Auth | WebAuthn passkeys via `@simplewebauthn/*` | Discoverable credentials, no passwords. |
-| OCR | `tesseract.js` in the browser | Engine and language data are self-hosted under `/ocr/`. |
-| Styling | Plain CSS, system fonts | Tokens in `src/lib/styles/app.css`, light and dark. |
+| Part      | Choice                                     | Notes                                                             |
+| --------- | ------------------------------------------ | ----------------------------------------------------------------- |
+| Framework | SvelteKit 3, Svelte 5 (runes), TypeScript  | Config in `vite.config.ts`. Imports use `#lib/…` subpath imports. |
+| Server    | `@sveltejs/adapter-node`                   | Runs as a plain Node process, see `Dockerfile`.                   |
+| Database  | PostgreSQL via `postgres` (postgres.js v4) | Raw SQL, no ORM.                                                  |
+| Auth      | WebAuthn passkeys via `@simplewebauthn/*`  | Discoverable credentials, no passwords.                           |
+| OCR       | `tesseract.js` in the browser              | Engine and language data are self-hosted under `/ocr/`.           |
+| Styling   | Plain CSS, system fonts                    | Tokens in `src/lib/styles/app.css`, light and dark.               |
 
 ## Layout
 
@@ -74,7 +74,7 @@ a Postgres advisory lock, so several instances can start at once.
 ## Wine logic
 
 - Drinking window = vintage + (`region.age` ?? average of the grapes' ages ?? a colour default).
-  Status: *wait*, *ready*, *drink soon* (last year of the window), *past peak*.
+  Status: _wait_, _ready_, _drink soon_ (last year of the window), _past peak_.
 - Taste suggestion: the average of the known grapes, or the region's typical grapes.
   The form keeps suggesting until the user changes a taste or window field.
 - OCR parsing (`parse.ts`): accent-stripped matching against grape, region and country names

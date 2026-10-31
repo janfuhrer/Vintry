@@ -1,6 +1,7 @@
 <script lang="ts">
 	import Stars from '#lib/components/Stars.svelte';
 	import Thumb from '#lib/components/Thumb.svelte';
+	import { groupBy } from '#lib/group.ts';
 	import { useI18n } from '#lib/i18n.ts';
 	import type { PageProps } from './$types';
 
@@ -9,18 +10,17 @@
 	const { t } = i18n;
 
 	const months = $derived.by(() => {
-		const map = new Map<string, typeof data.drinks>();
-		for (const d of data.drinks) {
-			const key = d.drunk_on.slice(0, 7);
-			map.set(key, [...(map.get(key) ?? []), d]);
-		}
-		return [...map.entries()].map(([key, drinks]) => ({
+		return groupBy(data.drinks, (d) => d.drunk_on.slice(0, 7)).map(([key, drinks]) => ({
 			key,
-			label: new Date(`${key}-15T12:00:00`).toLocaleDateString(i18n.locale, { month: 'long', year: 'numeric' }),
+			label: new Date(`${key}-15T12:00:00`).toLocaleDateString(i18n.locale, {
+				month: 'long',
+				year: 'numeric'
+			}),
 			drinks
 		}));
 	});
-	const day = (d: string) => new Date(`${d}T12:00:00`).toLocaleDateString(i18n.locale, { day: 'numeric', weekday: 'short' });
+	const day = (d: string) =>
+		new Date(`${d}T12:00:00`).toLocaleDateString(i18n.locale, { day: 'numeric', weekday: 'short' });
 </script>
 
 <svelte:head><title>Vintry · {t('history.title')}</title></svelte:head>
@@ -32,11 +32,22 @@
 	{/if}
 	{#each months as m (m.key)}
 		<section>
-			<h2 class="month">{m.label} <span class="muted small">{m.drinks.length === 1 ? t('cellar.bottle') : t('history.count', { n: m.drinks.length })}</span></h2>
+			<h2 class="month">
+				{m.label}
+				<span class="muted small"
+					>{m.drinks.length === 1 ? t('cellar.bottle') : t('history.count', { n: m.drinks.length })}</span
+				>
+			</h2>
 			<div class="card list">
 				{#each m.drinks as d (d.id)}
 					<a class="item" href="/wine/{d.wine_id}">
-						<Thumb id={d.wine_id} color={d.color} hasPhoto={d.has_photo} version={d.photo_version} size={44} />
+						<Thumb
+							id={d.wine_id}
+							color={d.color}
+							hasPhoto={d.has_photo}
+							version={d.photo_version}
+							size={44}
+						/>
 						<div class="body">
 							<div class="name">{d.name}</div>
 							<div class="muted small">{[d.producer, d.vintage].filter(Boolean).join(' · ')}</div>

@@ -20,7 +20,9 @@
 	<WineForm
 		{initial}
 		bind:photo
-		existingPhoto={data.wine.has_photo ? `/photo/${data.wine.id}?s=t&v=${data.wine.photo_version ?? 0}` : null}
+		existingPhoto={data.wine.has_photo
+			? `/photo/${data.wine.id}?s=t&v=${data.wine.photo_version ?? 0}`
+			: null}
 		errors={form?.errors ?? {}}
 		submitLabel={t('common.save')}
 	/>

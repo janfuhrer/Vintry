@@ -26,7 +26,13 @@
 	--safe-b: env(safe-area-inset-bottom, 0px);
 	--safe-t: env(safe-area-inset-top, 0px);
 	color-scheme: light;
-	font-family: system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+	font-family:
+		system-ui,
+		-apple-system,
+		'Segoe UI',
+		Roboto,
+		'Helvetica Neue',
+		sans-serif;
 	-webkit-text-size-adjust: 100%;
 	-webkit-tap-highlight-color: transparent;
 }
@@ -168,7 +174,9 @@ button {
 	background: var(--surface-2);
 	font-weight: 600;
 	text-align: center;
-	transition: transform 0.1s ease, opacity 0.15s;
+	transition:
+		transform 0.1s ease,
+		opacity 0.15s;
 }
 
 .btn:active {
@@ -296,18 +304,40 @@ textarea.input {
 	flex: none;
 }
 
-.status-wait { --status: var(--wait); }
-.status-ready { --status: var(--ready); }
-.status-soon { --status: var(--soon); }
-.status-past { --status: var(--past); }
-.status-unknown { --status: var(--line); }
+.status-wait {
+	--status: var(--wait);
+}
+.status-ready {
+	--status: var(--ready);
+}
+.status-soon {
+	--status: var(--soon);
+}
+.status-past {
+	--status: var(--past);
+}
+.status-unknown {
+	--status: var(--line);
+}
 
-.swatch-red { --swatch: var(--wine-red); }
-.swatch-white { --swatch: var(--wine-white); }
-.swatch-rose { --swatch: var(--wine-rose); }
-.swatch-sparkling { --swatch: var(--wine-sparkling); }
-.swatch-sweet { --swatch: var(--wine-sweet); }
-.swatch-fortified { --swatch: var(--wine-fortified); }
+.swatch-red {
+	--swatch: var(--wine-red);
+}
+.swatch-white {
+	--swatch: var(--wine-white);
+}
+.swatch-rose {
+	--swatch: var(--wine-rose);
+}
+.swatch-sparkling {
+	--swatch: var(--wine-sparkling);
+}
+.swatch-sweet {
+	--swatch: var(--wine-sweet);
+}
+.swatch-fortified {
+	--swatch: var(--wine-fortified);
+}
 
 .visually-hidden {
 	position: absolute;

@@ -1,7 +1,11 @@
 <script lang="ts">
 	import type { Snippet } from 'svelte';
 
-	let { open = $bindable(false), title, children }: { open: boolean; title: string; children: Snippet } = $props();
+	let {
+		open = $bindable(false),
+		title,
+		children
+	}: { open: boolean; title: string; children: Snippet } = $props();
 
 	let dialog: HTMLDialogElement | undefined = $state();
 

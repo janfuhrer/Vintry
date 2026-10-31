@@ -1,5 +1,6 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { getWine, parsePhoto, parseWineForm, updateWine } from '#lib/server/wines.ts';
+import { parsePhoto, parseWineForm } from '#lib/server/wine-form.ts';
+import { getWine, updateWine } from '#lib/server/wines.ts';
 import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals, params }) => {

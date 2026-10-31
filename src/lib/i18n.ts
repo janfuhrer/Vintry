@@ -32,7 +32,8 @@ const en = {
 	'invite.name': 'Your name',
 	'invite.button': 'Create passkey',
 	'invite.deviceButton': 'Add passkey',
-	'invite.explain': 'A passkey replaces passwords. Your device stores it and unlocks it with your face, fingerprint or PIN.',
+	'invite.explain':
+		'A passkey replaces passwords. Your device stores it and unlocks it with your face, fingerprint or PIN.',
 	'invite.invalid': 'This link is invalid, used or expired.',
 	'invite.failed': 'Could not create the passkey. Try again.',
 
@@ -193,7 +194,8 @@ const de: Record<Key, string> = {
 	'invite.name': 'Dein Name',
 	'invite.button': 'Passkey erstellen',
 	'invite.deviceButton': 'Passkey hinzufügen',
-	'invite.explain': 'Ein Passkey ersetzt das Passwort. Dein Gerät speichert ihn und entsperrt ihn mit Gesicht, Fingerabdruck oder PIN.',
+	'invite.explain':
+		'Ein Passkey ersetzt das Passwort. Dein Gerät speichert ihn und entsperrt ihn mit Gesicht, Fingerabdruck oder PIN.',
 	'invite.invalid': 'Dieser Link ist ungültig, benutzt oder abgelaufen.',
 	'invite.failed': 'Passkey konnte nicht erstellt werden. Nochmals versuchen.',
 

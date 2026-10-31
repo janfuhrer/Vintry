@@ -1,9 +1,18 @@
 <script lang="ts">
 	import { onMount } from 'svelte';
 	import Icon from '#lib/components/Icon.svelte';
+	import { groupBy } from '#lib/group.ts';
 	import WineCard from '#lib/components/WineCard.svelte';
 	import { useI18n, type Key } from '#lib/i18n.ts';
-	import { COLORS, countryName, flag, normalize, windowStatus, type Color, type WindowStatus } from '#lib/wine.ts';
+	import {
+		COLORS,
+		countryName,
+		flag,
+		normalize,
+		windowStatus,
+		type Color,
+		type WindowStatus
+	} from '#lib/wine.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -38,7 +47,9 @@
 	}
 
 	const bottles = $derived(data.wines.reduce((n, w) => n + w.quantity, 0));
-	const colorsPresent = $derived(COLORS.filter((c) => data.wines.some((w) => w.color === c && (showEmpty || w.quantity > 0))));
+	const colorsPresent = $derived(
+		COLORS.filter((c) => data.wines.some((w) => w.color === c && (showEmpty || w.quantity > 0)))
+	);
 	const hasEmpty = $derived(data.wines.some((w) => w.quantity === 0));
 
 	const filtered = $derived.by(() => {
@@ -48,7 +59,15 @@
 			if (color && w.color !== color) return false;
 			if (!q) return true;
 			const hay = normalize(
-				[w.name, w.producer, w.vintage, w.region, w.location, countryName(w.country, i18n.locale), ...w.grapes]
+				[
+					w.name,
+					w.producer,
+					w.vintage,
+					w.region,
+					w.location,
+					countryName(w.country, i18n.locale),
+					...w.grapes
+				]
 					.filter(Boolean)
 					.join(' ')
 			);
@@ -58,21 +77,21 @@
 
 	const groups = $derived.by(() => {
 		if (group === 'none') return [{ key: '', label: '', wines: filtered }];
-		const map = new Map<string, typeof filtered>();
-		const add = (k: string, w: (typeof filtered)[number]) => map.set(k, [...(map.get(k) ?? []), w]);
-		for (const w of filtered) {
-			if (group === 'country') add(w.country ?? '', w);
-			else if (group === 'window') add(windowStatus(w.drink_from, w.drink_to), w);
-			else if (w.grapes.length) for (const g of w.grapes) add(g, w);
-			else add('', w);
-		}
+		const grouped = groupBy(filtered, (w) => {
+			if (group === 'country') return w.country ?? '';
+			if (group === 'window') return windowStatus(w.drink_from, w.drink_to);
+			return w.grapes.length ? w.grapes : '';
+		});
 		const label = (k: string) => {
 			if (group === 'country') return k ? `${flag(k)} ${countryName(k, i18n.locale)}` : t('cellar.unknown');
 			if (group === 'window') return t(`status.${k}` as Key);
 			return k || t('cellar.unknown');
 		};
-		const entries = [...map.entries()].map(([key, wines]) => ({ key, label: label(key), wines }));
-		if (group === 'window') entries.sort((a, b) => STATUS_ORDER.indexOf(a.key as WindowStatus) - STATUS_ORDER.indexOf(b.key as WindowStatus));
+		const entries = grouped.map(([key, wines]) => ({ key, label: label(key), wines }));
+		if (group === 'window')
+			entries.sort(
+				(a, b) => STATUS_ORDER.indexOf(a.key as WindowStatus) - STATUS_ORDER.indexOf(b.key as WindowStatus)
+			);
 		else entries.sort((a, b) => (!a.key ? 1 : !b.key ? -1 : a.label.localeCompare(b.label)));
 		return entries;
 	});
@@ -120,7 +139,9 @@
 				</label>
 				<span class="spacer"></span>
 				{#if hasEmpty}
-					<label class="row small muted"><input type="checkbox" bind:checked={showEmpty} />{t('cellar.showEmpty')}</label>
+					<label class="row small muted"
+						><input type="checkbox" bind:checked={showEmpty} />{t('cellar.showEmpty')}</label
+					>
 				{/if}
 			</div>
 		</div>
@@ -132,7 +153,9 @@
 		{#each groups as g (g.key)}
 			<section class="group">
 				{#if g.label}
-					<h2 class="group-title">{g.label} <span class="muted">{g.wines.reduce((n, w) => n + w.quantity, 0)}</span></h2>
+					<h2 class="group-title">
+						{g.label} <span class="muted">{g.wines.reduce((n, w) => n + w.quantity, 0)}</span>
+					</h2>
 				{/if}
 				<div class="list">
 					{#each g.wines as wine (wine.id)}<WineCard {wine} />{/each}

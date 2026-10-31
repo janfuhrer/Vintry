@@ -20,10 +20,14 @@
 		"preview": "vite preview",
 		"start": "node build",
 		"icons": "node scripts/icons.mjs",
-		"test": "node --test scripts/*.test.mjs",
+		"test": "vitest run",
 		"prepare": "svelte-kit sync || echo \"\"",
 		"check": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json",
-		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch"
+		"check:watch": "svelte-kit sync && svelte-check --tsconfig ./tsconfig.json --watch",
+		"test:watch": "vitest",
+		"test:e2e": "node tests/e2e/run.mjs",
+		"lint": "prettier --check . && eslint .",
+		"format": "prettier --write ."
 	},
 	"imports": {
 		"#lib/*": "./src/lib/*"

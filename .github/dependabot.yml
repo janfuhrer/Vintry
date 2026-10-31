@@ -9,6 +9,15 @@ updates:
       dev-dependencies:
         dependency-type: development
         update-types: [minor, patch]
+    ignore:
+      # svelte-check supports TypeScript up to 6
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
+      # wait for eslint-plugin-svelte to support ESLint 10
+      - dependency-name: eslint
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@eslint/js'
+        update-types: ['version-update:semver-major']
   - package-ecosystem: github-actions
     directory: /
     schedule:
@@ -20,3 +29,7 @@ updates:
     directory: /
     schedule:
       interval: weekly
+    ignore:
+      # stay on even-numbered (LTS) Node releases; bump majors by hand
+      - dependency-name: node
+        update-types: ['version-update:semver-major']

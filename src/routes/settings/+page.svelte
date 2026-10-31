@@ -9,7 +9,8 @@
 	const { t } = i18n;
 
 	const names: Record<string, string> = { en: 'English', de: 'Deutsch' };
-	const fmt = (d: Date) => new Date(d).toLocaleDateString(i18n.locale, { day: 'numeric', month: 'short', year: 'numeric' });
+	const fmt = (d: Date) =>
+		new Date(d).toLocaleDateString(i18n.locale, { day: 'numeric', month: 'short', year: 'numeric' });
 
 	let copied = $state('');
 	async function copy(text: string) {
@@ -29,7 +30,9 @@
 	<div class="link-box">
 		<input class="input" readonly value={link} onfocus={(e) => e.currentTarget.select()} aria-label="Link" />
 		<button type="button" class="btn small primary" onclick={() => copy(link)}>
-			<Icon name={copied === link ? 'check' : 'link'} size={16} />{copied === link ? t('common.copied') : t('common.copy')}
+			<Icon name={copied === link ? 'check' : 'link'} size={16} />{copied === link
+				? t('common.copied')
+				: t('common.copy')}
 		</button>
 	</div>
 	<p class="muted small">{hint}</p>
@@ -65,7 +68,8 @@
 					{#if data.passkeys.length > 1}
 						<form method="POST" action="?/deletePasskey" use:enhance>
 							<input type="hidden" name="id" value={p.id} />
-							<button class="icon-btn" aria-label={t('common.delete')}><Icon name="trash" size={18} /></button>
+							<button class="icon-btn" aria-label={t('common.delete')}><Icon name="trash" size={18} /></button
+							>
 						</form>
 					{/if}
 				</li>
@@ -87,7 +91,14 @@
 			{#if form?.inviteLink}
 				{@render linkBox(form.inviteLink, t('settings.inviteHint'))}
 			{/if}
-			<form method="POST" action="?/invite" use:enhance={() => async ({ update }) => update({ reset: true })} class="stack">
+			<form
+				method="POST"
+				action="?/invite"
+				use:enhance={() =>
+					async ({ update }) =>
+						update({ reset: true })}
+				class="stack"
+			>
 				<label class="field">
 					{t('settings.inviteNote')}
 					<input class="input" name="note" maxlength="100" />
@@ -102,7 +113,9 @@
 					{#each data.admin.invites as inv (inv.id)}
 						<li class="row">
 							<div class="grow">
-								<div>{inv.note ?? '–'}{#if inv.is_admin}{' · '}{t('settings.admin')}{/if}</div>
+								<div>
+									{inv.note ?? '–'}{#if inv.is_admin}<span> · </span>{t('settings.admin')}{/if}
+								</div>
 								<div class="muted small">{t('settings.expires', { date: fmt(inv.expires_at) })}</div>
 							</div>
 							<form method="POST" action="?/revoke" use:enhance>
@@ -119,7 +132,9 @@
 				{#each data.admin.users as u (u.id)}
 					<li class="row">
 						<div class="grow">
-							<div>{u.name}{#if u.is_admin}{' · '}<span class="muted">{t('settings.admin')}</span>{/if}</div>
+							<div>
+								{u.name}{#if u.is_admin}<span> · </span><span class="muted">{t('settings.admin')}</span>{/if}
+							</div>
 							<div class="muted small">{fmt(u.created_at)} · {u.wines} 🍷</div>
 						</div>
 					</li>

@@ -25,15 +25,18 @@
 	let drinkOpen = $state(false);
 	let drinkRating = $state<number | null>(null);
 	let rateForm: HTMLFormElement | undefined = $state();
-	let ratingValue = $state<number | null>(null);
-	$effect(() => {
-		ratingValue = wine.rating;
-	});
+	// optimistic: set on tap, re-synced from the server after the action
+	let ratingValue = $derived<number | null>(wine.rating);
 
 	const today = () => new Date().toISOString().slice(0, 10);
 	const fmtDate = (d: string) =>
-		new Date(`${d}T12:00:00`).toLocaleDateString(i18n.locale, { day: 'numeric', month: 'short', year: 'numeric' });
-	const money = (n: number) => n.toLocaleString(i18n.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+		new Date(`${d}T12:00:00`).toLocaleDateString(i18n.locale, {
+			day: 'numeric',
+			month: 'short',
+			year: 'numeric'
+		});
+	const money = (n: number) =>
+		n.toLocaleString(i18n.locale, { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 	function rate(v: number | null) {
 		ratingValue = v;
@@ -50,12 +53,20 @@
 		{/if}
 		<div class="hero-bar">
 			<a class="icon-btn glass" href="/" aria-label={t('common.back')}><Icon name="back" /></a>
-			<a class="icon-btn glass" href="/wine/{wine.id}/edit" aria-label={t('common.edit')}><Icon name="pen" size={20} /></a>
+			<a class="icon-btn glass" href="/wine/{wine.id}/edit" aria-label={t('common.edit')}
+				><Icon name="pen" size={20} /></a
+			>
 		</div>
 	</header>
 
 	<section class="title">
-		{#if !wine.has_photo}<Thumb id={wine.id} color={wine.color} hasPhoto={false} version={null} size={64} />{/if}
+		{#if !wine.has_photo}<Thumb
+				id={wine.id}
+				color={wine.color}
+				hasPhoto={false}
+				version={null}
+				size={64}
+			/>{/if}
 		<div>
 			<h1>{wine.name}</h1>
 			{#if wine.producer}<p class="muted">{wine.producer}</p>{/if}
@@ -63,16 +74,26 @@
 	</section>
 
 	<div class="chips">
-		<span class="chip"><span class="dot swatch-{wine.color}" style="background: var(--swatch)"></span>{t(`color.${wine.color}`)}</span>
+		<span class="chip"
+			><span class="dot swatch-{wine.color}" style="background: var(--swatch)"></span>{t(
+				`color.${wine.color}`
+			)}</span
+		>
 		{#if wine.vintage}
-			<span class="chip">{wine.vintage}{#if age !== null && age > 0}{' · '}{age === 1 ? t('wine.year') : t('wine.years', { n: age })}{/if}</span>
+			<span class="chip"
+				>{wine.vintage}{#if age !== null && age > 0}<span> · </span>{age === 1
+						? t('wine.year')
+						: t('wine.years', { n: age })}{/if}</span
+			>
 		{/if}
 		{#if wine.country || wine.region}
 			<span class="chip">{flag(wine.country)} {wine.region || countryName(wine.country, i18n.locale)}</span>
 		{/if}
 		{#each wine.grapes as g (g)}<span class="chip">{g}</span>{/each}
 		{#if wine.alcohol}<span class="chip">{wine.alcohol}%</span>{/if}
-		{#if wine.size_ml && wine.size_ml !== 750}<span class="chip">{wine.size_ml >= 1000 ? `${wine.size_ml / 1000} l` : `${wine.size_ml / 10} cl`}</span>{/if}
+		{#if wine.size_ml && wine.size_ml !== 750}<span class="chip"
+				>{wine.size_ml >= 1000 ? `${wine.size_ml / 1000} l` : `${wine.size_ml / 10} cl`}</span
+			>{/if}
 	</div>
 
 	<section class="card stack">
@@ -83,12 +104,18 @@
 			</div>
 			<span class="spacer"></span>
 			<form method="POST" action="?/quantity" use:enhance class="stepper">
-				<button class="icon-btn" name="delta" value="-1" aria-label="−1" disabled={wine.quantity === 0}><Icon name="minus" /></button>
+				<button class="icon-btn" name="delta" value="-1" aria-label="−1" disabled={wine.quantity === 0}
+					><Icon name="minus" /></button
+				>
 				<span class="qty" aria-live="polite">{wine.quantity}</span>
 				<button class="icon-btn" name="delta" value="1" aria-label="+1"><Icon name="plus" /></button>
 			</form>
 		</div>
-		<button class="btn primary block" disabled={wine.quantity === 0} onclick={() => ((drinkRating = null), (drinkOpen = true))}>
+		<button
+			class="btn primary block"
+			disabled={wine.quantity === 0}
+			onclick={() => ((drinkRating = null), (drinkOpen = true))}
+		>
 			<Icon name="glass" size={20} />{t('wine.drinkOne')}
 		</button>
 	</section>
@@ -113,7 +140,9 @@
 				<Dots label={t('taste.sweetness')} value={wine.sweetness} />
 			{/if}
 			{#if aromaWords.length}
-				<p class="aromas"><span class="muted small">{t('taste.aroma')}</span><br />{aromaWords.join(' · ')}</p>
+				<p class="aromas">
+					<span class="muted small">{t('taste.aroma')}</span><br />{aromaWords.join(' · ')}
+				</p>
 			{/if}
 		</section>
 	{/if}
@@ -131,10 +160,14 @@
 		<section class="card stack">
 			<h2>{t('form.private')}</h2>
 			<dl class="facts small">
-				{#if wine.purchased_on}<dt>{t('form.purchasedOn')}</dt><dd>{fmtDate(wine.purchased_on)}</dd>{/if}
-				{#if wine.purchased_at}<dt>{t('form.purchasedAt')}</dt><dd>{wine.purchased_at}</dd>{/if}
-				{#if wine.price}<dt>{t('form.price')}</dt><dd>{money(wine.price)}</dd>{/if}
-				{#if wine.gifted_by}<dt>{t('form.giftedBy')}</dt><dd>{wine.gifted_by}</dd>{/if}
+				{#if wine.purchased_on}<dt>{t('form.purchasedOn')}</dt>
+					<dd>{fmtDate(wine.purchased_on)}</dd>{/if}
+				{#if wine.purchased_at}<dt>{t('form.purchasedAt')}</dt>
+					<dd>{wine.purchased_at}</dd>{/if}
+				{#if wine.price}<dt>{t('form.price')}</dt>
+					<dd>{money(wine.price)}</dd>{/if}
+				{#if wine.gifted_by}<dt>{t('form.giftedBy')}</dt>
+					<dd>{wine.gifted_by}</dd>{/if}
 			</dl>
 			{#if wine.notes}<p class="notes">{wine.notes}</p>{/if}
 		</section>
@@ -154,7 +187,9 @@
 							<span class="spacer"></span>
 							<form method="POST" action="?/deleteDrink" use:enhance>
 								<input type="hidden" name="id" value={d.id} />
-								<button class="icon-btn small-icon" aria-label={t('common.delete')}><Icon name="x" size={16} /></button>
+								<button class="icon-btn small-icon" aria-label={t('common.delete')}
+									><Icon name="x" size={16} /></button
+								>
 							</form>
 						</div>
 						{#if d.note}<p class="muted small note">{d.note}</p>{/if}
@@ -197,7 +232,8 @@
 		</div>
 		<label class="field">
 			{t('drink.note')}
-			<textarea class="input" name="note" maxlength="2000" placeholder={t('drink.notePlaceholder')}></textarea>
+			<textarea class="input" name="note" maxlength="2000" placeholder={t('drink.notePlaceholder')}
+			></textarea>
 		</label>
 		<button class="btn primary block">{t('drink.button')}</button>
 	</form>

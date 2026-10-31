@@ -30,16 +30,70 @@ for (const [k, region] of regionIndex) places.set(k, { kind: 'region', region })
 for (const [k, grape] of grapeIndex) places.set(k, { kind: 'grape', grape });
 
 const PRODUCER_WORDS = [
-	'chateau', 'domaine', 'weingut', 'tenuta', 'bodega', 'bodegas', 'cantina', 'cantine',
-	'maison', 'azienda', 'cave', 'caves', 'clos', 'castello', 'fattoria', 'quinta', 'herdade',
-	'podere', 'winery', 'vineyards', 'estate', 'weinbau', 'kellerei', 'cellier', 'mas', 'schloss'
+	'chateau',
+	'domaine',
+	'weingut',
+	'tenuta',
+	'bodega',
+	'bodegas',
+	'cantina',
+	'cantine',
+	'maison',
+	'azienda',
+	'cave',
+	'caves',
+	'clos',
+	'castello',
+	'fattoria',
+	'quinta',
+	'herdade',
+	'podere',
+	'winery',
+	'vineyards',
+	'estate',
+	'weinbau',
+	'kellerei',
+	'cellier',
+	'mas',
+	'schloss'
 ];
 
 const COLOR_WORDS: [Color, string[]][] = [
 	// most specific first: "rosé brut" is sparkling, "vin rouge doux" is sweet
-	['sparkling', ['brut', 'spumante', 'cremant', 'cava', 'prosecco', 'champagne', 'sekt', 'frizzante', 'franciacorta', 'mousseux', 'extra dry', 'pet nat']],
+	[
+		'sparkling',
+		[
+			'brut',
+			'spumante',
+			'cremant',
+			'cava',
+			'prosecco',
+			'champagne',
+			'sekt',
+			'frizzante',
+			'franciacorta',
+			'mousseux',
+			'extra dry',
+			'pet nat'
+		]
+	],
 	['fortified', ['porto', 'port wine', 'sherry', 'jerez', 'madeira', 'marsala', 'vin doux naturel']],
-	['sweet', ['sauternes', 'auslese', 'beerenauslese', 'trockenbeerenauslese', 'eiswein', 'ice wine', 'tokaji', 'passito', 'vendange tardive', 'liquoreux', 'moelleux']],
+	[
+		'sweet',
+		[
+			'sauternes',
+			'auslese',
+			'beerenauslese',
+			'trockenbeerenauslese',
+			'eiswein',
+			'ice wine',
+			'tokaji',
+			'passito',
+			'vendange tardive',
+			'liquoreux',
+			'moelleux'
+		]
+	],
 	['rose', ['rose', 'rosato', 'rosado', 'oeil de perdrix', 'weissherbst']],
 	['white', ['blanc', 'bianco', 'blanco', 'weiss', 'weisswein', 'white', 'branco']],
 	['red', ['rouge', 'rosso', 'tinto', 'rot', 'rotwein', 'red', 'tinta']]
@@ -48,7 +102,7 @@ const COLOR_WORDS: [Color, string[]][] = [
 const VINTAGE = /\b(19[5-9]\d|20[0-4]\d)\b/g;
 const ALCOHOL = /\b(\d{1,2})\s?[.,]\s?(\d)\s?%\s?(vol)?/i;
 const ALCOHOL_INT = /\b(\d{1,2})\s?%\s?vol/i;
-const SIZE = /\b(\d{2,4}(?:[.,]\d{1,2})?)\s?(ml|cl|l|ltr|litre|liter)\b/i;
+const SIZE = /\b(\d{1,4}(?:[.,]\d{1,3})?)\s?(ml|cl|l|ltr|litre|liter)\b/i;
 
 /** Finds the longest known names in the text; each span is used once */
 function matchAll<T>(text: string, keys: Map<string, T>, minLength = 4): T[] {
@@ -73,7 +127,10 @@ function titleCase(s: string): string {
 
 /** Drops OCR noise: stray symbols at the edges, mostly non-letter lines */
 function clean(line: string): string {
-	const s = line.replace(/^[^\p{L}\d]+|[^\p{L}\d.)]+$/gu, '').replace(/\s+/g, ' ').trim();
+	const s = line
+		.replace(/^[^\p{L}\d]+|[^\p{L}\d.)]+$/gu, '')
+		.replace(/\s+/g, ' ')
+		.trim();
 	const letters = (s.match(/\p{L}/gu) ?? []).length;
 	return letters >= 3 && letters / s.replace(/\s/g, '').length >= 0.6 ? s : '';
 }
@@ -128,11 +185,11 @@ export function parseLabel(lines: OcrLine[], year = new Date().getFullYear()): P
 	}
 
 	// producer: a line naming an estate
-	const cleaned = lines
-		.map((l) => ({ text: clean(l.text), height: l.height }))
-		.filter((l) => l.text);
+	const cleaned = lines.map((l) => ({ text: clean(l.text), height: l.height })).filter((l) => l.text);
 	const producerLine = cleaned.find((l) =>
-		normalize(l.text).split(' ').some((w) => PRODUCER_WORDS.includes(w))
+		normalize(l.text)
+			.split(' ')
+			.some((w) => PRODUCER_WORDS.includes(w))
 	);
 	if (producerLine) out.producer = titleCase(producerLine.text);
 
@@ -147,7 +204,9 @@ export function parseLabel(lines: OcrLine[], year = new Date().getFullYear()): P
 			SIZE.test(s) ||
 			countryNames.has(stripped) ||
 			!!findGrape(stripped) ||
-			/^(appellation|denominazione|produce|product|contains|enthalt|mis en bouteille|imbottigliato|abgefullt)/.test(n)
+			/^(appellation|denominazione|produce|product|contains|enthalt|mis en bouteille|imbottigliato|abgefullt)/.test(
+				n
+			)
 		);
 	};
 	const candidates = cleaned

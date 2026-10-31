@@ -1,0 +1,183 @@
+// Runs in order and shares state: each step builds on the previous one.
+// Started by run.mjs, which provides E2E_BASE and E2E_INVITE.
+import assert from 'node:assert/strict';
+import { randomBytes } from 'node:crypto';
+import { describe, test } from 'node:test';
+import { Authenticator, Client } from './client.mjs';
+
+const base = process.env.E2E_BASE;
+const rpId = new URL(base).hostname;
+const inviteFrom = (s) => s.match(/invite\/([A-Za-z0-9_-]+)/)[1];
+const jpeg = () => new Blob([Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), randomBytes(200)])]);
+
+const alice = new Client(base);
+const aliceKey = new Authenticator(rpId);
+const bob = new Client(base);
+let wineUrl;
+let wineId;
+
+describe('auth', () => {
+	test('admin signs up with the bootstrap invite', async () => {
+		const r = await aliceKey.register(alice, process.env.E2E_INVITE, 'Alice');
+		assert.equal(r.ok, true, JSON.stringify(r.body));
+		assert.equal((await alice.req('/', { page: true })).status, 200);
+	});
+
+	test('the bootstrap invite works only once', async () => {
+		const r = await new Authenticator(rpId).register(new Client(base), process.env.E2E_INVITE, 'Mallory');
+		assert.equal(r.ok, false);
+		assert.equal(r.body.error, 'invite');
+	});
+
+	test('passkey login on a new device session', async () => {
+		const c = new Client(base);
+		assert.equal(await aliceKey.login(c), true);
+		assert.equal((await c.req('/history', { page: true })).status, 200);
+	});
+
+	test('a tampered signature is rejected', async () => {
+		const evil = new Authenticator(rpId);
+		evil.id = aliceKey.id; // claims Alice's credential, signs with another key
+		evil.userHandle = aliceKey.userHandle;
+		assert.equal(await evil.login(new Client(base)), false);
+	});
+
+	test('signed-out requests are redirected or refused', async () => {
+		const anon = new Client(base);
+		const page = await anon.req('/', { page: true });
+		assert.equal(page.status, 303);
+		assert.equal(page.headers.get('location'), '/login');
+		assert.equal((await anon.req(`/photo/${'0'.repeat(8)}-0000-0000-0000-${'0'.repeat(12)}`)).status, 401);
+	});
+
+	test('security headers are set', async () => {
+		const res = await new Client(base).req('/login'); // signed in, /login would redirect
+		assert.match(res.headers.get('content-security-policy') ?? '', /default-src 'self'/);
+		assert.equal(res.headers.get('x-frame-options'), 'DENY');
+		assert.equal(res.headers.get('x-content-type-options'), 'nosniff');
+	});
+});
+
+describe('cellar', () => {
+	test('add a wine with a photo', async () => {
+		const fd = new FormData();
+		const fields = {
+			name: 'Cornalin Test',
+			producer: 'Domaine X',
+			vintage: '2019',
+			color: 'red',
+			country: 'CH',
+			region: 'Valais',
+			quantity: '3',
+			size_ml: '750',
+			drink_from: '2022',
+			drink_to: '2030',
+			body: '4',
+			price: '32.50',
+			purchased_on: '2024-05-01'
+		};
+		for (const [k, v] of Object.entries(fields)) fd.append(k, v);
+		fd.append('grapes', 'cornalin');
+		fd.append('grapes', 'Humagne rouge');
+		fd.append('photo', jpeg(), 'p.jpg');
+		fd.append('thumb', jpeg(), 't.jpg');
+		const r = await alice.req('/add', { method: 'POST', form: fd, page: true });
+		assert.equal(r.status, 303);
+		wineUrl = r.headers.get('location');
+		assert.match(wineUrl, /^\/wine\/[0-9a-f-]{36}$/);
+		wineId = wineUrl.split('/').pop();
+		const html = await (await alice.req(wineUrl, { page: true })).text();
+		assert.ok(html.includes('Cornalin Test'));
+		assert.ok(html.includes('Humagne Rouge'), 'grape names are canonicalised');
+	});
+
+	test('invalid input is reported, not stored', async () => {
+		const r = await alice.action('/add', { name: '', vintage: 'abc' });
+		assert.equal(r.type, 'failure');
+	});
+
+	test('drink one logs it and takes a bottle out', async () => {
+		const r = await alice.action(`${wineUrl}?/drink`, {
+			drunk_on: '2026-10-30',
+			rating: '5',
+			note: 'lovely'
+		});
+		assert.equal(r.type, 'success');
+		const data = await (await alice.req(`${wineUrl}/__data.json`)).text();
+		assert.ok(data.includes('lovely'));
+		const html = await (await alice.req('/history', { page: true })).text();
+		assert.ok(html.includes('Cornalin Test'));
+	});
+
+	test('quantity never goes below zero', async () => {
+		for (let i = 0; i < 4; i++) await alice.action(`${wineUrl}?/quantity`, { delta: '-1' });
+		const r = await alice.action(`${wineUrl}?/drink`, { drunk_on: '2026-10-31' });
+		assert.equal(r.type, 'failure', 'cannot drink from an empty cellar');
+	});
+
+	test('the photo is served to its owner, privately cached', async () => {
+		const r = await alice.req(`/photo/${wineId}?s=t&v=1`);
+		assert.equal(r.status, 200);
+		assert.equal(r.headers.get('content-type'), 'image/jpeg');
+		assert.match(r.headers.get('cache-control'), /private/);
+	});
+});
+
+describe('people', () => {
+	let bobKey;
+
+	test('an admin invites someone', async () => {
+		const r = await alice.action('/settings?/invite', { note: 'Bob' });
+		assert.equal(r.type, 'success');
+		bobKey = new Authenticator(rpId);
+		const reg = await bobKey.register(bob, inviteFrom(r.data), 'Bob');
+		assert.equal(reg.ok, true);
+	});
+
+	test("cellars are private: Bob can't see Alice's wine or photo", async () => {
+		assert.equal((await bob.req(wineUrl, { page: true })).status, 404);
+		assert.equal((await bob.req(`/photo/${wineId}?s=t`)).status, 404);
+		assert.equal((await bob.action(`${wineUrl}?/delete`, {})).type, 'redirect');
+		assert.equal((await alice.req(wineUrl, { page: true })).status, 200, "Bob's delete did nothing");
+	});
+
+	test('a non-admin cannot invite', async () => {
+		assert.equal((await bob.action('/settings?/invite', { note: 'x' })).type, 'error');
+	});
+
+	test('add a device with a one-time link', async () => {
+		const r = await bob.action('/settings?/addDevice', {});
+		const phone = new Authenticator(rpId);
+		assert.equal((await phone.register(new Client(base), inviteFrom(r.data), 'ignored')).ok, true);
+		assert.equal(await phone.login(new Client(base)), true);
+	});
+
+	test('the last passkey cannot be deleted', async () => {
+		const c = new Client(base);
+		const solo = new Authenticator(rpId);
+		const r = await alice.action('/settings?/invite', { note: 'Carol' });
+		await solo.register(c, inviteFrom(r.data), 'Carol');
+		const res = await c.action('/settings?/deletePasskey', {
+			id: Buffer.from(solo.id).toString('base64url')
+		});
+		assert.equal(res.type, 'failure');
+		assert.equal(await solo.login(new Client(base)), true);
+	});
+});
+
+describe('session', () => {
+	test('cross-origin form posts are blocked', async () => {
+		const r = await alice.req('/settings?/signOut', {
+			method: 'POST',
+			form: {},
+			headers: { origin: 'https://evil.example' }
+		});
+		assert.equal(r.status, 403);
+	});
+
+	test('sign out ends the session', async () => {
+		const r = await alice.req('/settings?/signOut', { method: 'POST', form: {}, page: true });
+		assert.equal(r.status, 303);
+		assert.equal((await alice.req('/', { page: true })).status, 303);
+	});
+});

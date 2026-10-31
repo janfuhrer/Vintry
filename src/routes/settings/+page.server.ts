@@ -6,7 +6,9 @@ import type { Actions, PageServerLoad } from './$types';
 
 export const load: PageServerLoad = async ({ locals }) => {
 	const user = locals.user!;
-	const passkeys = await sql<{ id: string; label: string | null; created_at: Date; last_used_at: Date | null }[]>`
+	const passkeys = await sql<
+		{ id: string; label: string | null; created_at: Date; last_used_at: Date | null }[]
+	>`
 		select id, label, created_at, last_used_at from credentials
 		where user_id = ${user.id} order by created_at
 	`;
@@ -48,7 +50,10 @@ export const actions: Actions = {
 	invite: async ({ request, locals }) => {
 		if (!locals.user!.is_admin) error(403, 'Forbidden');
 		const fd = await request.formData();
-		const note = String(fd.get('note') ?? '').trim().slice(0, 100) || undefined;
+		const note =
+			String(fd.get('note') ?? '')
+				.trim()
+				.slice(0, 100) || undefined;
 		const { url } = await createInvite({
 			createdBy: locals.user!.id,
 			isAdmin: fd.get('is_admin') === 'on',

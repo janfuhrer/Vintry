@@ -9,7 +9,11 @@
 
 <div class="dots-row">
 	<span class="label">{label}</span>
-	<div class="dots" role={onchange ? 'radiogroup' : 'img'} aria-label={onchange ? label : `${label}: ${value ?? '–'}/5`}>
+	<div
+		class="dots"
+		role={onchange ? 'radiogroup' : 'img'}
+		aria-label={onchange ? label : `${label}: ${value ?? '–'}/5`}
+	>
 		{#each [1, 2, 3, 4, 5] as n (n)}
 			{#if onchange}
 				<button

@@ -1,6 +1,12 @@
 import { error, fail, redirect } from '@sveltejs/kit';
 import {
-	deleteDrink, deleteWine, drinkOne, drinksForWine, getWine, setQuantity, setRating
+	deleteDrink,
+	deleteWine,
+	drinkOne,
+	drinksForWine,
+	getWine,
+	setQuantity,
+	setRating
 } from '#lib/server/wines.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -28,7 +34,10 @@ export const actions: Actions = {
 	drink: async ({ request, locals, params }) => {
 		const fd = await request.formData();
 		const date = String(fd.get('drunk_on') ?? '');
-		const note = String(fd.get('note') ?? '').trim().slice(0, 2000) || null;
+		const note =
+			String(fd.get('note') ?? '')
+				.trim()
+				.slice(0, 2000) || null;
 		const ok = await drinkOne(locals.user!.id, params.id, {
 			drunk_on: /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : new Date().toISOString().slice(0, 10),
 			rating: rating(fd.get('rating')),

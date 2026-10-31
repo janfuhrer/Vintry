@@ -127,8 +127,7 @@ export function suggestTaste(input: {
 	return {
 		body: clampLevel(avg(known.map((g) => g.body))),
 		acidity: clampLevel(avg(known.map((g) => g.acidity))),
-		tannin:
-			input.color === 'red' ? clampLevel(avg(known.map((g) => g.tannin))) : clampLevel(1),
+		tannin: input.color === 'red' ? clampLevel(avg(known.map((g) => g.tannin))) : clampLevel(1),
 		sweetness: sweet ? clampLevel(sweet) : clampLevel(avg(known.map((g) => g.sweetness))),
 		aroma: { en: [...new Set(aroma.en)].slice(0, 5), de: [...new Set(aroma.de)].slice(0, 5) }
 	};

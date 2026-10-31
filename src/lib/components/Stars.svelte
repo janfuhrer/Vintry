@@ -6,7 +6,12 @@
 		onchange,
 		size = 28,
 		label = 'Rating'
-	}: { value: number | null; onchange?: (v: number | null) => void; size?: number; label?: string } = $props();
+	}: {
+		value: number | null;
+		onchange?: (v: number | null) => void;
+		size?: number;
+		label?: string;
+	} = $props();
 </script>
 
 {#if onchange}

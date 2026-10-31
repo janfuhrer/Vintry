@@ -16,9 +16,11 @@ See the [README](README.md#quick-start-development). You need Node.js 22.17+ and
 ## Before you open a pull request
 
 ```sh
-npm run check   # types
-npm test        # unit tests
-npm run build   # production build
+npm run lint      # formatting and lint
+npm run check     # types
+npm test          # unit tests
+npm run build     # production build
+npm run test:e2e  # end-to-end, needs a throwaway database (see README)
 ```
 
 CI runs the same steps, plus CodeQL, a secret scan, a dependency review and a container scan.
@@ -27,7 +29,7 @@ CI runs the same steps, plus CodeQL, a secret scan, a dependency review and a co
 - Add user-facing text to **both** dictionaries in `src/lib/i18n.ts` (English and German).
 - Database changes are new entries at the end of `src/lib/server/migrations.ts`. Never edit an applied migration.
 - Grape and region data live in `src/lib/data/`. Corrections are very welcome.
-- Write commit messages in the imperative ("Add region filter"), and say *why* in the body.
+- Write commit messages in the imperative ("Add region filter"), and say _why_ in the body.
 
 ## Licence of contributions
 
