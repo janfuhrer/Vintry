@@ -382,7 +382,7 @@
 								>{t('add.recrop')}</button
 							>
 							<label class="btn small" aria-disabled={backBusy}>
-								{backBusy ? t('add.reading') : t('add.scanBack')}
+								<Icon name="camera" size={16} />{backBusy ? t('add.reading') : t('add.scanBack')}
 								<input
 									class="visually-hidden"
 									type="file"
@@ -392,6 +392,13 @@
 									onchange={scanBack}
 								/>
 							</label>
+							{#if !backBusy}
+								<!-- no capture attribute: the phone offers its photo library -->
+								<label class="btn small">
+									<Icon name="image" size={16} />{t('add.pickBack')}
+									<input class="visually-hidden" type="file" accept="image/*" onchange={scanBack} />
+								</label>
+							{/if}
 						</div>
 					{/if}
 				</div>

@@ -114,6 +114,7 @@ const en = {
 	'add.cropKeys': 'Arrow keys move the frame; with Shift they resize it.',
 	'add.readAgain': 'Read again',
 	'add.scanBack': 'Scan the back label too',
+	'add.pickBack': 'Back label from photos',
 	'add.backFilled': 'From the back label: {n} more field(s), marked.',
 	'add.backNothing': 'The back label added nothing new.',
 
@@ -407,6 +408,7 @@ const de: Record<Key, string> = {
 	'add.cropKeys': 'Pfeiltasten verschieben den Rahmen, mit Shift ändern sie die Grösse.',
 	'add.readAgain': 'Neu lesen',
 	'add.scanBack': 'Auch die Rückseite scannen',
+	'add.pickBack': 'Rückseite aus Fotos',
 	'add.backFilled': 'Von der Rückseite: {n} weitere(s) Feld(er), markiert.',
 	'add.backNothing': 'Die Rückseite brachte nichts Neues.',
 
