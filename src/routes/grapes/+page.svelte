@@ -3,6 +3,7 @@
 	import { useI18n } from '#lib/i18n.ts';
 	import { grapes, grapeSlug, normalize } from '#lib/wine.ts';
 
+	let { data } = $props();
 	const i18n = useI18n();
 	const { t } = i18n;
 	let query = $state('');
@@ -45,6 +46,13 @@
 									{#if g.synonyms.length}<span class="muted small syn">{g.synonyms.join(', ')}</span>{/if}
 								</span>
 								<span class="muted small">{g.aroma[i18n.locale].slice(0, 2).join(', ')}</span>
+								{#if data.bottles[g.name]}
+									<span class="mine"
+										><span aria-hidden="true">×{data.bottles[g.name]}</span><span class="visually-hidden"
+											>{t('history.count', { n: data.bottles[g.name] })}</span
+										></span
+									>
+								{/if}
 							</a>
 						</li>
 					{/each}
@@ -55,6 +63,11 @@
 </main>
 
 <style>
+	.mine {
+		font-weight: 650;
+		font-variant-numeric: tabular-nums;
+		color: var(--accent);
+	}
 	.head {
 		display: flex;
 		align-items: center;

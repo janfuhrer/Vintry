@@ -439,7 +439,9 @@ describe('people', () => {
 		const theirs = await (await bob.req('/grapes/cornalin', { page: true })).text();
 		assert.ok(!theirs.includes('Cornalin Test'));
 		assert.equal((await alice.req('/grapes/not-a-grape', { page: true })).status, 404);
-		assert.equal((await alice.req('/grapes', { page: true })).status, 200);
+		const index = await (await alice.req('/grapes', { page: true })).text();
+		assert.match(index, /class="mine/, 'the index counts her bottles per grape');
+		assert.doesNotMatch(await (await bob.req('/grapes', { page: true })).text(), /class="mine/);
 	});
 
 	test('region pages match any spelling and list only your own wines', async () => {
