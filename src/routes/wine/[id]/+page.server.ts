@@ -7,9 +7,11 @@ import {
 	drinkOne,
 	drinksForWine,
 	getWine,
+	restock,
 	setQuantity,
 	setRating
 } from '#lib/server/wines.ts';
+import { parsePhoto, type FieldErrors } from '#lib/server/wine-form.ts';
 import { isISODate } from '#lib/dates.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -31,6 +33,14 @@ export const actions: Actions = {
 	},
 	bought: async ({ locals, params }) => {
 		await markBought(locals.user!.id, params.id);
+	},
+	// "Already in your cellar" after a scan: one more bottle, and the label photo if it had none
+	restock: async ({ request, locals, params }) => {
+		const fd = await request.formData();
+		const errors: FieldErrors = {};
+		const photo = (await parsePhoto(fd, errors)) ?? undefined;
+		if (Object.keys(errors).length) return fail(400, { errors });
+		if (!(await restock(locals.user!.id, params.id, photo))) error(404, 'Not found');
 	},
 	quantity: async ({ request, locals, params }) => {
 		const delta = Number((await request.formData()).get('delta'));

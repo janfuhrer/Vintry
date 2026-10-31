@@ -7,6 +7,7 @@ export type Owned = {
 	vintage: number | null;
 	quantity: number;
 	wishlist: boolean;
+	has_photo: boolean;
 };
 
 /**

@@ -176,6 +176,29 @@ export async function setQuantity(userId: string, id: string, delta: number) {
 	`;
 }
 
+/**
+ * One more bottle of a wine the user scanned again (or the first, for a wish), plus the
+ * label photo when the wine had none. An existing photo is never replaced from here.
+ */
+export async function restock(userId: string, id: string, photo?: { image: Buffer; thumb: Buffer }) {
+	if (!isUuid(id)) return false;
+	return sql.begin(async (tx) => {
+		const [wine] = await tx<{ has_photo: boolean }[]>`
+			update wines set
+				quantity = case when wishlist then greatest(quantity, 1) else quantity + 1 end,
+				wishlist = false, updated_at = now()
+			where id = ${id} and user_id = ${userId}
+			returning has_photo
+		`;
+		if (!wine) return false;
+		if (photo && !wine.has_photo) {
+			await tx`insert into wine_photos (wine_id, image, thumb) values (${id}, ${photo.image}::bytea, ${photo.thumb}::bytea)`;
+			await tx`update wines set has_photo = true where id = ${id}`;
+		}
+		return true;
+	});
+}
+
 export async function setRating(userId: string, id: string, rating: number | null) {
 	if (!isUuid(id)) return;
 	await sql`update wines set rating = ${rating} where id = ${id} and user_id = ${userId}`;
@@ -278,7 +301,7 @@ export interface Suggestions {
 /** Just enough to recognise a scanned label as a wine the user already has */
 export async function ownedWines(userId: string): Promise<Owned[]> {
 	return sql<Owned[]>`
-		select id, name, producer, vintage, quantity, wishlist from wines where user_id = ${userId}
+		select id, name, producer, vintage, quantity, wishlist, has_photo from wines where user_id = ${userId}
 	`;
 }
 

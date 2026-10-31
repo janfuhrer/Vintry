@@ -209,14 +209,20 @@
 				</p>
 				<form
 					method="POST"
-					action="/wine/{id}?/{same.wishlist ? 'bought' : 'quantity'}"
-					use:enhance={() =>
-						async ({ result }) => {
+					action="/wine/{id}?/restock"
+					enctype="multipart/form-data"
+					use:enhance={({ formData }) => {
+						// the label photo goes along when the wine has none yet
+						if (photo && !same?.has_photo) {
+							formData.set('photo', new File([photo.image], 'photo.jpg', { type: 'image/jpeg' }));
+							formData.set('thumb', new File([photo.thumb], 'thumb.jpg', { type: 'image/jpeg' }));
+						}
+						return async ({ result }) => {
 							if (result.type === 'success') await goto(`/wine/${id}`);
 							else await applyAction(result);
-						}}
+						};
+					}}
 				>
-					<input type="hidden" name="delta" value="1" />
 					<button class="btn primary small">{same.wishlist ? t('wine.bought') : t('add.addBottle')}</button>
 					<a class="btn small" href="/wine/{id}">{t('add.openWine')}</a>
 				</form>

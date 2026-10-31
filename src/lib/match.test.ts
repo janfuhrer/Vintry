@@ -8,6 +8,7 @@ const wine = (o: Partial<Owned>): Owned => ({
 	vintage: null,
 	quantity: 1,
 	wishlist: false,
+	has_photo: false,
 	...o
 });
 

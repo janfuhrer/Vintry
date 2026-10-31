@@ -157,6 +157,44 @@ describe('cellar', () => {
 		assert.deepEqual([owned.wishlist, owned.quantity], [false, 1]);
 	});
 
+	test('restock after a scan: one more bottle, the label photo only if there was none', async () => {
+		const add = async (fields) => {
+			const fd = new FormData();
+			for (const [k, v] of Object.entries(fields)) fd.append(k, v);
+			return (await alice.req('/add', { method: 'POST', form: fd, page: true })).headers.get('location');
+		};
+		const find = async (name) =>
+			(await (await alice.req('/export/vintry.json')).json()).wines.find((w) => w.name === name);
+		const withPhoto = (fd = new FormData()) => {
+			fd.append('photo', jpeg(), 'p.jpg');
+			fd.append('thumb', jpeg(), 't.jpg');
+			return fd;
+		};
+
+		const url = await add({ name: 'Restock Red', color: 'red', quantity: '2' });
+		assert.equal((await alice.action(`${url}?/restock`, withPhoto())).type, 'success');
+		let w = await find('Restock Red');
+		assert.deepEqual([w.quantity, w.has_photo], [3, true]);
+		const photo = await (await alice.req(`/photo/${w.id}`)).arrayBuffer();
+		// a second scan adds a bottle but keeps the photo the wine already has
+		await alice.action(`${url}?/restock`, withPhoto());
+		w = await find('Restock Red');
+		assert.equal(w.quantity, 4);
+		assert.deepEqual(
+			Buffer.from(await (await alice.req(`/photo/${w.id}`)).arrayBuffer()),
+			Buffer.from(photo)
+		);
+
+		const wish = await add({ name: 'Restock Wish', color: 'white', wishlist: 'on' });
+		await alice.action(`${wish}?/restock`, new FormData());
+		w = await find('Restock Wish');
+		assert.deepEqual([w.wishlist, w.quantity, w.has_photo], [false, 1, false]);
+
+		// not Alice: nothing changes
+		assert.notEqual((await bob.action(`${url}?/restock`, new FormData())).type, 'success');
+		assert.equal((await find('Restock Red')).quantity, 4);
+	});
+
 	test('removing a drink entry puts the bottle back', async () => {
 		const qty = async () => {
 			const html = await (await alice.req(wineUrl, { page: true })).text();
