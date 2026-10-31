@@ -70,12 +70,15 @@
 		font-variant-numeric: tabular-nums;
 		color: var(--muted);
 	}
+	/* gold is fine for the icon; small gold text would miss AA contrast in light mode */
 	.wish {
 		display: inline-flex;
 		align-items: center;
 		gap: 6px;
-		color: var(--gold);
 		font-weight: 600;
+	}
+	.wish :global(svg) {
+		color: var(--gold);
 	}
 	.sub {
 		overflow: hidden;
