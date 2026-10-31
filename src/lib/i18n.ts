@@ -230,6 +230,7 @@ const en = {
 	'settings.createLink': 'Create link',
 	'settings.keepOne': 'You need at least one passkey.',
 	'settings.signOut': 'Sign out',
+	'settings.build': 'Version of {date}',
 	'settings.locations': 'Storage locations',
 	'settings.locationsHint':
 		'Renaming a place changes it for all its wines; an existing name merges the two. Empty removes it.',
@@ -517,6 +518,7 @@ const de: Record<Key, string> = {
 	'settings.createLink': 'Link erstellen',
 	'settings.keepOne': 'Mindestens ein Passkey ist nötig.',
 	'settings.signOut': 'Abmelden',
+	'settings.build': 'Version vom {date}',
 	'settings.locations': 'Lagerorte',
 	'settings.locationsHint':
 		'Umbenennen ändert den Ort bei allen Weinen dort; ein bestehender Name führt beide zusammen. Leer entfernt ihn.',

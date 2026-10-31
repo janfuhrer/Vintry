@@ -1,5 +1,6 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
+	import { version } from '$app/env';
 	import Icon from '#lib/components/Icon.svelte';
 	import { decodeText, parseCsvRecords } from '#lib/csv.ts';
 	import { LOCALES, useI18n } from '#lib/i18n.ts';
@@ -15,6 +16,10 @@
 		new Date(d).toLocaleDateString(i18n.locale, { day: 'numeric', month: 'short', year: 'numeric' });
 
 	let renaming = $state<string | null>(null);
+	// in UTC, so the server's rendering and the browser's agree
+	const build = /^\d+$/.test(version)
+		? `${new Date(Number(version)).toISOString().slice(0, 16).replace('T', ' ')} UTC`
+		: version;
 
 	// CSV import: parsed in the browser for the preview, validated again on the server
 	let preview = $state<{ columns: ColumnMapping[]; rows: ImportRow[] } | null>(null);
@@ -411,7 +416,11 @@
 		</form>
 	</details>
 
-	<p class="muted small center">{t('settings.about')}</p>
+	<p class="muted small center">
+		{t('settings.about')}<br />
+		<!-- which build this device runs: the service worker can keep an older one until reload -->
+		{t('settings.build', { date: build })}
+	</p>
 </main>
 
 <style>
