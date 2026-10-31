@@ -104,7 +104,9 @@
 		color: var(--muted);
 		font-variant-numeric: tabular-nums;
 	}
-	.empty {
-		opacity: 0.55;
+	.empty,
+	.empty .grow {
+		color: var(--muted);
+		font-weight: 500;
 	}
 </style>

@@ -221,7 +221,6 @@
 	}
 	.scan-btn .muted {
 		color: inherit;
-		opacity: 0.8;
 	}
 	.scan-icon {
 		display: grid;

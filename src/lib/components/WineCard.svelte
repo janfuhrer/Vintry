@@ -31,8 +31,13 @@
 	.wine:active {
 		transform: scale(0.99);
 	}
-	.empty {
-		opacity: 0.55;
+	/* finished wines: muted colour instead of opacity, which would break text contrast */
+	.empty .name,
+	.empty .qty {
+		color: var(--muted);
+	}
+	.empty :global(.thumb) {
+		opacity: 0.5;
 	}
 	.body {
 		min-width: 0;

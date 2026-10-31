@@ -3,15 +3,16 @@
 	--surface: #ffffff;
 	--surface-2: #f3eeea;
 	--text: #1f1a1c;
-	--muted: #7a6f73;
+	/* light-theme values tuned for WCAG AA on bg, surface and surface-2 */
+	--muted: #6f6468;
 	--line: #e9e2dd;
 	--accent: #7b2240;
 	--accent-ink: #ffffff;
 	--accent-soft: #f4e4e9;
-	--gold: #c8925a;
+	--gold: #b07a3e;
 	--wait: #64748b;
-	--ready: #2f855a;
-	--soon: #c27c0e;
+	--ready: #2b7a52;
+	--soon: #9e6108;
 	--past: #b4534f;
 	--wine-red: #7b2240;
 	--wine-white: #e8d9a0;
