@@ -105,6 +105,11 @@ const en = {
 	'add.sameWish': '{name} is on your wishlist.',
 	'add.addBottle': 'Add a bottle to it',
 	'add.openWine': 'Open it',
+	'add.recrop': 'Crop to the label and read again',
+	'add.cropTitle': 'Label frame',
+	'add.cropHint': 'Drag the frame over the label, or its corners to resize it.',
+	'add.cropKeys': 'Arrow keys move the frame; with Shift they resize it.',
+	'add.readAgain': 'Read again',
 
 	'form.wine': 'Wine',
 	'form.name': 'Name',
@@ -382,6 +387,11 @@ const de: Record<Key, string> = {
 	'add.sameWish': '{name} steht auf deiner Merkliste.',
 	'add.addBottle': 'Eine Flasche dazulegen',
 	'add.openWine': 'Öffnen',
+	'add.recrop': 'Auf die Etikette zuschneiden und neu lesen',
+	'add.cropTitle': 'Etikettenrahmen',
+	'add.cropHint': 'Zieh den Rahmen über die Etikette, an den Ecken änderst du die Grösse.',
+	'add.cropKeys': 'Pfeiltasten verschieben den Rahmen, mit Shift ändern sie die Grösse.',
+	'add.readAgain': 'Neu lesen',
 
 	'form.wine': 'Wein',
 	'form.name': 'Name',

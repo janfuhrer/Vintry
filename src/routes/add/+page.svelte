@@ -5,7 +5,8 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import WineForm, { emptyValues, toValues, type WineFormValues } from '#lib/components/WineForm.svelte';
 	import { useI18n } from '#lib/i18n.ts';
-	import { preparePhotoForScan } from '#lib/image.ts';
+	import CropBox from '#lib/components/CropBox.svelte';
+	import { prepareCropForScan, preparePhotoForScan, type Crop } from '#lib/image.ts';
 	import { findSameWine, type Owned } from '#lib/match.ts';
 	import { parseLabel } from '#lib/parse.ts';
 	import type { PageProps } from './$types';
@@ -13,7 +14,7 @@
 	let { form, data }: PageProps = $props();
 	const { t } = useI18n();
 
-	type Step = 'choose' | 'scanning' | 'form';
+	type Step = 'choose' | 'scanning' | 'crop' | 'form';
 	type Copy = NonNullable<typeof data.copy>;
 
 	// "Buy again" starts from a copy of an existing wine, without the purchase details
@@ -44,6 +45,19 @@
 	let imageError = $state(false);
 	// bumped on cancel: a scan that finishes after the user went back is ignored
 	let scanRun = 0;
+	// the photo as taken, kept to crop it to the label and read again
+	let source = $state<{ file: Blob; preview: Blob } | null>(null);
+	let crop = $state<Crop>({ x: 0.1, y: 0.1, w: 0.8, h: 0.8 });
+	let cropUrl = $state<string | null>(null);
+	$effect(() => {
+		if (step !== 'crop' || !source) return;
+		const url = URL.createObjectURL(source.preview);
+		cropUrl = url;
+		return () => {
+			URL.revokeObjectURL(url);
+			cropUrl = null;
+		};
+	});
 
 	// show the photo while it's being read
 	let previewUrl = $state<string | null>(null);
@@ -86,11 +100,26 @@
 		});
 	});
 
-	async function scan(e: Event) {
+	function scan(e: Event) {
 		const input = e.currentTarget as HTMLInputElement;
 		const file = input.files?.[0];
 		input.value = '';
 		if (!file) return;
+		source = null;
+		crop = { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
+		read(async () => {
+			const prepared = await preparePhotoForScan(file);
+			source = { file, preview: prepared.photo.image };
+			return prepared;
+		});
+	}
+
+	// "crop to the label and read again": the same reading on the framed part, cut from the original
+	function readCrop() {
+		if (source) read(() => prepareCropForScan(source!.file, crop));
+	}
+
+	async function read(prepare: () => Promise<{ photo: { image: Blob; thumb: Blob }; ocr: Blob }>) {
 		const run = ++scanRun;
 		same = null;
 		step = 'scanning';
@@ -99,7 +128,7 @@
 		imageError = false;
 		let prepared;
 		try {
-			prepared = await preparePhotoForScan(file);
+			prepared = await prepare();
 		} catch (err) {
 			// the browser can't decode it (e.g. HEIC outside Safari): say so, don't pretend to scan
 			console.error(err);
@@ -145,6 +174,7 @@
 	}
 
 	function manual() {
+		source = null;
 		same = null;
 		values = emptyValues();
 		scanned = [];
@@ -159,7 +189,11 @@
 
 <main class="page" style="--form-bottom: calc(var(--nav-h) + var(--safe-b))">
 	<header class="head">
-		{#if step === 'form' || step === 'scanning'}
+		{#if step === 'crop'}
+			<button class="icon-btn" aria-label={t('common.back')} onclick={() => (step = 'form')}
+				><Icon name="back" /></button
+			>
+		{:else if step === 'form' || step === 'scanning'}
 			<button class="icon-btn" aria-label={t('common.back')} onclick={() => (scanRun++, (step = 'choose'))}
 				><Icon name="back" /></button
 			>
@@ -194,6 +228,16 @@
 			{/if}
 			<p>{stage === 'loading' ? t('add.loading') : t('add.reading')}</p>
 			<progress max="1" value={progress}></progress>
+		</div>
+	{:else if step === 'crop'}
+		<div class="crop stack">
+			<p class="muted small">{t('add.cropHint')}</p>
+			{#if cropUrl}
+				<div class="crop-frame">
+					<CropBox src={cropUrl} bind:crop label={t('add.cropTitle')} hint={t('add.cropKeys')} />
+				</div>
+			{/if}
+			<button class="btn primary block" onclick={readCrop}>{t('add.readAgain')}</button>
 		</div>
 	{:else}
 		{#if same}
@@ -230,7 +274,14 @@
 				</form>
 			</div>
 		{/if}
-		{#if notice}<p class="notice small">{notice}</p>{/if}
+		{#if notice}
+			<div class="notice small">
+				<p>{notice}</p>
+				{#if source}
+					<button class="btn small" onclick={() => (step = 'crop')}>{t('add.recrop')}</button>
+				{/if}
+			</div>
+		{/if}
 		{#key formKey}
 			<WineForm
 				initial={values}
@@ -358,6 +409,15 @@
 		to {
 			transform: translateY(60%);
 		}
+	}
+	.notice p {
+		margin: 0;
+	}
+	.notice .btn {
+		margin-top: 8px;
+	}
+	.crop-frame {
+		text-align: center;
 	}
 	.same p {
 		margin: 0 0 10px;

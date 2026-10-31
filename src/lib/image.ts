@@ -49,3 +49,35 @@ export async function preparePhotoForScan(file: Blob) {
 	const thumb = await resizeImage(image, 320, 0.75);
 	return { photo: { image, thumb }, ocr };
 }
+
+/** A part of a photo, as fractions of its width and height */
+export interface Crop {
+	x: number;
+	y: number;
+	w: number;
+	h: number;
+}
+
+/**
+ * Like preparePhotoForScan, for the part of the photo that shows the label. The crop is cut
+ * from the original at full resolution, so the small print gets sharper rather than just
+ * bigger; it also becomes the stored photo, which is nicer than a cluttered table.
+ */
+export async function prepareCropForScan(file: Blob, crop: Crop) {
+	const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' });
+	const sx = Math.round(crop.x * bitmap.width);
+	const sy = Math.round(crop.y * bitmap.height);
+	const sw = Math.max(1, Math.round(crop.w * bitmap.width));
+	const sh = Math.max(1, Math.round(crop.h * bitmap.height));
+	// up to 2200 px like a full scan; a small crop may be enlarged at most twice
+	const scale = Math.min(2, 2200 / Math.max(sw, sh));
+	const canvas = document.createElement('canvas');
+	canvas.width = Math.round(sw * scale);
+	canvas.height = Math.round(sh * scale);
+	canvas.getContext('2d')!.drawImage(bitmap, sx, sy, sw, sh, 0, 0, canvas.width, canvas.height);
+	bitmap.close();
+	const ocr = await encode(canvas, 0.9);
+	const image = await resizeImage(ocr, 1280);
+	const thumb = await resizeImage(image, 320, 0.75);
+	return { photo: { image, thumb }, ocr };
+}
