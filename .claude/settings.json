@@ -28,12 +28,15 @@
       "Bash(gh pr checks *)",
       "Bash(gh pr list *)",
       "Bash(gh issue view *)",
-      "Bash(gh issue list *)"
-    ],
-    "ask": [
+      "Bash(gh issue list *)",
       "Bash(git add *)",
       "Bash(git commit *)",
       "Bash(git push *)",
+      "Bash(gh api *)",
+      "Bash(npm install *)",
+      "Bash(docker run *)"
+    ],
+    "ask": [
       "Bash(git tag *)",
       "Bash(git checkout *)",
       "Bash(git switch *)",
@@ -42,11 +45,8 @@
       "Bash(gh pr create *)",
       "Bash(gh pr merge *)",
       "Bash(gh release *)",
-      "Bash(gh api *)",
-      "Bash(npm install *)",
       "Bash(npm uninstall *)",
       "Bash(npm update *)",
-      "Bash(docker run *)",
       "Edit(/.npmrc)",
       "Edit(/LICENSE)"
     ],
@@ -93,7 +93,11 @@
       "Bash(npm publish *)",
       "Bash(npm login *)",
       "Bash(npm token *)",
-      "Bash(npm config *)"
+      "Bash(npm config *)",
+      "Bash(gh api -X DELETE *)",
+      "Bash(gh api --method DELETE *)",
+      "Bash(gh api * -X DELETE*)",
+      "Bash(gh api * --method DELETE*)"
     ]
   }
 }
