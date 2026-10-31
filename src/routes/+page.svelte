@@ -75,36 +75,58 @@
 			.sort((a, b) => nullsLast(a.drink_to, b.drink_to))
 	);
 
+	const matches = (w: (typeof data.wines)[number], q: string) => {
+		if (color && w.color !== color) return false;
+		if (!q) return true;
+		const hay = normalize(
+			[
+				w.name,
+				w.producer,
+				w.vintage,
+				w.region,
+				w.location,
+				w.purchased_at,
+				w.notes,
+				countryName(w.country, i18n.locale),
+				...w.grapes
+			]
+				.filter(Boolean)
+				.join(' ')
+		);
+		return q.split(' ').every((part) => hay.includes(part));
+	};
+	type Shelf = 'cellar' | 'finished' | 'wish';
+	const shelf = (w: (typeof data.wines)[number]): Shelf =>
+		w.wishlist ? 'wish' : w.quantity > 0 ? 'cellar' : 'finished';
+	const visible = (s: Shelf) => (wishOnly ? s === 'wish' : s === 'cellar' || (showEmpty && s === 'finished'));
+
 	const filtered = $derived.by(() => {
 		const q = normalize(query);
-		const list = data.wines.filter((w) => {
-			if (w.wishlist !== wishOnly) return false;
-			if (!wishOnly && !showEmpty && w.quantity === 0) return false;
-			if (color && w.color !== color) return false;
-			if (!q) return true;
-			const hay = normalize(
-				[
-					w.name,
-					w.producer,
-					w.vintage,
-					w.region,
-					w.location,
-					w.purchased_at,
-					w.notes,
-					countryName(w.country, i18n.locale),
-					...w.grapes
-				]
-					.filter(Boolean)
-					.join(' ')
-			);
-			return q.split(' ').every((part) => hay.includes(part));
-		});
+		const list = data.wines.filter((w) => visible(shelf(w)) && matches(w, q));
 		if (sort === 'name') list.sort(byName);
 		else if (sort === 'vintage') list.sort((a, b) => nullsLast(a.vintage, b.vintage) || byName(a, b));
 		else if (sort === 'window') list.sort((a, b) => nullsLast(a.drink_to, b.drink_to) || byName(a, b));
 		else if (sort === 'rating') list.sort((a, b) => (b.rating ?? 0) - (a.rating ?? 0) || byName(a, b));
 		return list;
 	});
+
+	// "Do I have this?" shouldn't answer no when the wine is finished or only wished for
+	const elsewhere = $derived.by(() => {
+		const q = normalize(query);
+		if (!q || filtered.length) return [];
+		const counts = new Map<Shelf, number>();
+		for (const w of data.wines) {
+			const s = shelf(w);
+			if (!visible(s) && matches(w, q)) counts.set(s, (counts.get(s) ?? 0) + 1);
+		}
+		return (['cellar', 'finished', 'wish'] as const)
+			.filter((s) => counts.has(s))
+			.map((s) => ({ shelf: s, n: counts.get(s)! }));
+	});
+	function show(s: Shelf) {
+		wishOnly = s === 'wish';
+		if (s === 'finished') showEmpty = true;
+	}
 
 	const groups = $derived.by(() => {
 		if (group === 'none') return [{ key: '', label: '', wines: filtered }];
@@ -231,6 +253,22 @@
 
 		{#if filtered.length === 0}
 			<p class="muted center">{t('cellar.noMatch')}</p>
+			{#if elsewhere.length}
+				<div class="elsewhere">
+					{#each elsewhere as e (e.shelf)}
+						<button class="btn small" onclick={() => show(e.shelf)}>
+							{t(
+								e.shelf === 'cellar'
+									? 'cellar.alsoCellar'
+									: e.shelf === 'finished'
+										? 'cellar.alsoFinished'
+										: 'cellar.alsoWish',
+								{ n: e.n }
+							)}
+						</button>
+					{/each}
+				</div>
+			{/if}
 		{/if}
 
 		{#each groups as g (g.key)}
@@ -254,6 +292,13 @@
 </main>
 
 <style>
+	.elsewhere {
+		display: flex;
+		flex-wrap: wrap;
+		justify-content: center;
+		gap: 8px;
+		margin-top: 12px;
+	}
 	.head {
 		display: flex;
 		justify-content: space-between;
