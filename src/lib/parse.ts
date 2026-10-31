@@ -147,7 +147,18 @@ function clean(line: string): string {
 	return letters >= 3 && letters / s.replace(/\s/g, '').length >= 0.6 ? s : '';
 }
 
-export function parseLabel(lines: OcrLine[], year = new Date().getFullYear()): Parsed {
+/**
+ * OCR splits letter-spaced capitals: "CHÂTEAU M ONTLAURENT". In an all-caps line a lone
+ * capital before a capitalised word is glued back, except letters that are words themselves.
+ */
+export function joinSplitCaps(line: string): string {
+	const letters = line.replace(/[^\p{L}]/gu, '');
+	if (letters.length < 4 || letters !== letters.toUpperCase()) return line;
+	return line.replace(/(^|\s)([^\sAÀEÉOY\P{Lu}])\s(?=\p{Lu}{3,})/gu, '$1$2');
+}
+
+export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): Parsed {
+	const lines = input.map((l) => ({ ...l, text: joinSplitCaps(l.text) }));
 	const raw = lines.map((l) => l.text).join('\n');
 	const text = normalize(raw);
 	const out: Parsed = {};

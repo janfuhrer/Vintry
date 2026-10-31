@@ -107,3 +107,19 @@ describe('lessons from real OCR output', () => {
 		expect(p.producer).toBe('Clos des Fées');
 	});
 });
+
+describe('joinSplitCaps', () => {
+	test('glues a lone capital back onto its word', async () => {
+		const { joinSplitCaps } = await import('./parse');
+		expect(joinSplitCaps('CHÂTEAU M ONTLAURENT')).toBe('CHÂTEAU MONTLAURENT');
+		expect(joinSplitCaps('B AROLO')).toBe('BAROLO');
+	});
+
+	test('leaves real one-letter words, mixed case and short lines alone', async () => {
+		const { joinSplitCaps } = await import('./parse');
+		expect(joinSplitCaps('VIN A BOIRE')).toBe('VIN A BOIRE');
+		expect(joinSplitCaps('ROSSO E BIANCO')).toBe('ROSSO E BIANCO');
+		expect(joinSplitCaps('Château M Ontlaurent')).toBe('Château M Ontlaurent');
+		expect(joinSplitCaps('M AB')).toBe('M AB');
+	});
+});

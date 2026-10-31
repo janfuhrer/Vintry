@@ -3,7 +3,7 @@
 	import Icon from '#lib/components/Icon.svelte';
 	import WineForm, { emptyValues, toValues, type WineFormValues } from '#lib/components/WineForm.svelte';
 	import { useI18n } from '#lib/i18n.ts';
-	import { preparePhoto } from '#lib/image.ts';
+	import { preparePhotoForScan } from '#lib/image.ts';
 	import { parseLabel } from '#lib/parse.ts';
 	import type { PageProps } from './$types';
 
@@ -73,9 +73,10 @@
 		progress = 0;
 		stage = 'loading';
 		try {
-			photo = await preparePhoto(file);
+			const prepared = await preparePhotoForScan(file);
+			photo = prepared.photo;
 			const { readLabel } = await import('#lib/ocr.ts');
-			const { lines, text } = await readLabel(photo.image, (s, p) => {
+			const { lines, text } = await readLabel(prepared.ocr, (s, p) => {
 				stage = s;
 				progress = p;
 			});

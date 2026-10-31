@@ -21,3 +21,15 @@ export async function preparePhoto(file: Blob) {
 	const thumb = await resizeImage(image, 320, 0.75);
 	return { image, thumb };
 }
+
+/**
+ * Stored photo plus a sharper copy for text recognition. On a phone photo the label fills
+ * only part of the frame, so at 1280 px the small print is ~10–15 px tall, too small for
+ * tesseract. The OCR copy is used once and never uploaded.
+ */
+export async function preparePhotoForScan(file: Blob) {
+	const ocr = await resizeImage(file, 2200, 0.9);
+	const image = await resizeImage(ocr, 1280);
+	const thumb = await resizeImage(image, 320, 0.75);
+	return { photo: { image, thumb }, ocr };
+}

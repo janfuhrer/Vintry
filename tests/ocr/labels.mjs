@@ -15,6 +15,16 @@ const label = (lines, { w = 1000, h = 1200, bg = '#f7f1e3', ink = '#2a1d16' } = 
 	return `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}"><rect width="100%" height="100%" fill="${bg}"/><rect x="30" y="30" width="${w - 60}" height="${h - 60}" fill="none" stroke="${ink}" stroke-width="3"/>${els}</svg>`;
 };
 
+/** The label as a phone photo would show it: tilted, smaller, on a dark cluttered table */
+export function inPhoto(svg, { angle = 4, scale = 0.62 } = {}) {
+	const inner = svg.replace('<svg xmlns="http://www.w3.org/2000/svg"', '<svg');
+	return `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="1600">
+		<rect width="100%" height="100%" fill="#3b2a20"/>
+		<circle cx="200" cy="1400" r="260" fill="#5a4030"/><rect x="1250" y="80" width="300" height="500" rx="40" fill="#22170f"/>
+		<g transform="translate(800 800) rotate(${angle}) scale(${scale}) translate(-500 -600)">${inner}</g>
+	</svg>`;
+}
+
 export const labels = {
 	bordeaux: {
 		svg: label([
