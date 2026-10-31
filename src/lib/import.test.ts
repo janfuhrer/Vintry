@@ -118,6 +118,36 @@ describe('mapTable', () => {
 		expect(rows.map((r) => r.purchased_on)).toEqual(['2024-12-31', '2024-05-01', '2024-02-31']);
 	});
 
+	test('a Vivino export: your rating, not the community average', () => {
+		const { columns, rows } = map(
+			'Winery,Wine name,Vintage,Region,Country,Regional wine style,Average rating,Scan date,Your rating,Your review,Wine price,Wine type,Link to wine\n' +
+				'Cave du Rhône,Fendant,2023,Valais,Switzerland,Swiss Chasselas,3.9,2026-05-01 18:20:11,4.5,Crisp,24.90,White Wine,https://example.com/w/1\n' +
+				"Taylor's,Vintage Port,2017,Douro,Portugal,Portuguese Port,4.6,2026-06-02 20:00:00,,,,Fortified Wine,\n"
+		);
+		expect(columns.find((c) => c.header === 'Average rating')?.field).toBeNull();
+		expect(strip(rows)).toEqual([
+			{
+				producer: 'Cave du Rhône',
+				name: 'Fendant',
+				vintage: '2023',
+				region: 'Valais',
+				country: 'CH',
+				rating: '5',
+				notes: 'Crisp',
+				price: '24.90',
+				color: 'white'
+			},
+			{
+				producer: "Taylor's",
+				name: 'Vintage Port',
+				vintage: '2017',
+				region: 'Douro',
+				country: 'PT',
+				color: 'fortified'
+			}
+		]);
+	});
+
 	test('duplicate and empty headers', () => {
 		const { columns } = map('Name;Notiz;Notiz;;\nA;x;y;;');
 		expect(columns.map((c) => c.field)).toEqual(['name', 'notes', null, null, null]);

@@ -9,10 +9,10 @@ export type ImportRow = Record<string, string | string[]>;
 
 /** Header names people use, normalised (lower case, no accents), per form field */
 const ALIASES: Record<string, string[]> = {
-	name: ['name', 'wine', 'wein', 'vin', 'bezeichnung', 'weinname', 'nom'],
+	name: ['name', 'wine', 'wein', 'vin', 'bezeichnung', 'weinname', 'nom', 'wine name'],
 	producer: ['producer', 'produzent', 'weingut', 'winery', 'domaine', 'erzeuger', 'hersteller', 'producteur'],
 	vintage: ['vintage', 'jahrgang', 'year', 'jahr', 'millesime'],
-	color: ['color', 'colour', 'farbe', 'art', 'type', 'typ', 'couleur'],
+	color: ['color', 'colour', 'farbe', 'art', 'type', 'typ', 'couleur', 'wine type'],
 	country: ['country', 'land', 'pays'],
 	region: ['region', 'gebiet', 'anbaugebiet', 'appellation'],
 	grapes: [
@@ -29,15 +29,36 @@ const ALIASES: Record<string, string[]> = {
 	],
 	alcohol: ['alcohol', 'alkohol', 'alc', 'vol', 'abv'],
 	size_ml: ['size ml', 'size', 'grosse', 'flaschengrosse', 'inhalt', 'volume', 'ml'],
-	quantity: ['quantity', 'anzahl', 'menge', 'bottles', 'flaschen', 'stuck', 'qty', 'bestand'],
+	quantity: [
+		'quantity',
+		'anzahl',
+		'menge',
+		'bottles',
+		'flaschen',
+		'stuck',
+		'qty',
+		'bestand',
+		'user cellar count'
+	],
 	location: ['location', 'lagerort', 'ort', 'regal', 'platz', 'fach'],
 	drink_from: ['drink from', 'trinken ab', 'ab', 'from'],
 	drink_to: ['drink to', 'drink by', 'trinken bis', 'bis', 'to', 'until'],
-	rating: ['rating', 'bewertung', 'note', 'sterne', 'stars', 'score'],
-	notes: ['notes', 'notizen', 'notiz', 'kommentar', 'comment', 'bemerkung', 'remarks'],
+	// "Average rating" (a community score, e.g. Vivino's) is deliberately not the user's rating
+	rating: ['rating', 'bewertung', 'note', 'sterne', 'stars', 'score', 'your rating', 'my rating'],
+	notes: [
+		'notes',
+		'notizen',
+		'notiz',
+		'kommentar',
+		'comment',
+		'bemerkung',
+		'remarks',
+		'your review',
+		'personal note'
+	],
 	purchased_on: ['purchased on', 'gekauft am', 'kaufdatum', 'datum', 'date', 'bought'],
 	purchased_at: ['purchased at', 'gekauft bei', 'handler', 'shop', 'laden', 'bezugsquelle', 'store'],
-	price: ['price', 'preis', 'kosten', 'prix', 'cost'],
+	price: ['price', 'preis', 'kosten', 'prix', 'cost', 'wine price'],
 	gifted_by: ['gifted by', 'geschenk von', 'geschenkt von', 'gift from', 'geschenk']
 };
 const FIELD_BY_HEADER = new Map(
