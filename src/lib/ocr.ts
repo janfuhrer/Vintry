@@ -1,6 +1,6 @@
 import type { Worker } from 'tesseract.js';
 import { encode } from './image';
-import { betterPass, extractLines, needsInvertedPass } from './ocr-lines';
+import { betterPass, extractLines, needsInvertedPass, TILT_LIMIT, tiltOf } from './ocr-lines';
 import type { OcrLine } from './parse';
 
 let worker: Promise<Worker> | undefined;
@@ -69,11 +69,26 @@ export async function readLabel(
 	onProgress = progress;
 	progress('loading', 0);
 	const w = await getWorker();
-	const read = async (img: Blob) => {
-		const { data } = await w.recognize(img, {}, { text: true, blocks: true });
-		return { lines: extractLines(data), text: data.text };
+	const read = async (img: Blob, rotateRadians = 0) => {
+		const { data } = await w.recognize(img, { rotateRadians }, { text: true, blocks: true });
+		return { lines: extractLines(data), text: data.text, tilt: tiltOf(data) };
 	};
-	const first = await read(image);
-	if (!needsInvertedPass(first.lines)) return first;
-	return betterPass(first, await read(await invertedCopy(image)));
+	let pass = await read(image);
+	let source = image;
+	// light text on a dark label: try the inverted image
+	if (needsInvertedPass(pass.lines)) {
+		const inverted = await invertedCopy(image);
+		const second = await read(inverted);
+		if (betterPass(pass, second) === second) [pass, source] = [second, inverted];
+	}
+	// a tilted photo breaks lines apart: straighten it by the measured angle and read again,
+	// correcting once more for what is left of the tilt (the first measure is rough)
+	if (pass.tilt !== null && Math.abs(pass.tilt) > TILT_LIMIT) {
+		const turn = -pass.tilt;
+		let straight = await read(source, turn);
+		if (straight.tilt !== null && Math.abs(straight.tilt) > TILT_LIMIT / 2)
+			straight = betterPass(straight, await read(source, turn - straight.tilt));
+		pass = betterPass(pass, straight);
+	}
+	return { lines: pass.lines, text: pass.text };
 }

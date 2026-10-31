@@ -27,7 +27,8 @@ const server = await createServer({
 	server: { middlewareMode: true, hmr: false }
 });
 const { parseLabel } = await server.ssrLoadModule('/src/lib/parse.ts');
-const { extractLines, needsInvertedPass, betterPass } = await server.ssrLoadModule('/src/lib/ocr-lines.ts');
+const { extractLines, needsInvertedPass, betterPass, tiltOf, TILT_LIMIT } =
+	await server.ssrLoadModule('/src/lib/ocr-lines.ts');
 const worker = await createWorker(['eng', 'fra', 'deu'], 1, {
 	langPath: `${root}static/ocr/lang`,
 	gzip: true
@@ -51,25 +52,43 @@ const cases = widths.flatMap((width) =>
 // and as photographed: tilted, on a table, label filling ~60% of the frame
 for (const [name, l] of picked)
 	cases.push({ name: `${name} photo`, svg: inPhoto(l.svg), expect: l.expect, width: 2200 });
+// and a carelessly held phone: 12°, read through the straightened second pass
+for (const [name, l] of picked)
+	if (!l.hardTilt)
+		cases.push({ name: `${name} tilted`, svg: inPhoto(l.svg, { angle: 12 }), expect: l.expect, width: 2200 });
 
 for (const { name, svg, expect, width } of cases) {
 	const render = (source) =>
 		new Resvg(source, { font: { loadSystemFonts: true }, fitTo: { mode: 'width', value: width } })
 			.render()
 			.asPng();
-	const read = async (png) => {
-		const { data } = await worker.recognize(png, {}, { text: true, blocks: true });
-		return { lines: extractLines(data) };
+	const read = async (png, rotateRadians = 0) => {
+		const { data } = await worker.recognize(png, { rotateRadians }, { text: true, blocks: true });
+		return { lines: extractLines(data), tilt: tiltOf(data) };
 	};
-	// same flow as src/lib/ocr.ts: a second, inverted pass when the first finds almost nothing
-	let pass = await read(render(svg));
-	if (needsInvertedPass(pass.lines)) pass = betterPass(pass, await read(render(inverted(svg))));
+	// same flow as src/lib/ocr.ts: a second, inverted pass when the first finds almost nothing,
+	// and a straightened one when the text is tilted
+	let source = render(svg);
+	let pass = await read(source);
+	if (needsInvertedPass(pass.lines)) {
+		const flipped = render(inverted(svg));
+		const second = await read(flipped);
+		if (betterPass(pass, second) === second) [pass, source] = [second, flipped];
+	}
+	if (pass.tilt !== null && Math.abs(pass.tilt) > TILT_LIMIT) {
+		const turn = -pass.tilt;
+		let straight = await read(source, turn);
+		// what is left of the tilt after one turn, corrected once more
+		if (straight.tilt !== null && Math.abs(straight.tilt) > TILT_LIMIT / 2)
+			straight = betterPass(straight, await read(source, turn - straight.tilt));
+		pass = betterPass(pass, straight);
+	}
 	const { lines } = pass;
 	const got = parseLabel(lines, 2026);
 
 	// Clean renders must be exact. On small or photographed labels a secondary field may be
 	// missing (OCR couldn't read it), but it must never be filled with something wrong.
-	const strict = !name.includes('photo') && !name.includes('@600px');
+	const strict = !name.includes('photo') && !name.includes('tilted') && !name.includes('@600px');
 	const misses = [];
 	for (const [key, want] of Object.entries(expect)) {
 		const field = key === 'producerHas' ? 'producer' : key;

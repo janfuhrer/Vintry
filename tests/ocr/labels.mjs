@@ -29,6 +29,8 @@ export function inPhoto(svg, { angle = 4, scale = 0.62 } = {}) {
 
 export const labels = {
 	bordeaux: {
+		// at 12° straightening works with macOS fonts but not yet with Linux ones (CI)
+		hardTilt: true,
 		svg: label([
 			['GRAND VIN DE BORDEAUX', 28, { spacing: 4, gap: 120 }],
 			['CHÂTEAU MONTLAURENT', 52, { bold: true, gap: 80 }],
@@ -97,6 +99,8 @@ export const labels = {
 		}
 	},
 	riesling: {
+		// at 12° the small print still breaks up after straightening; not yet readable
+		hardTilt: true,
 		svg: label([
 			['Weingut Hofmann', 40, { gap: 150, family: 'Helvetica, Arial, sans-serif' }],
 			['Riesling', 100, { gap: 100 }],
@@ -120,6 +124,8 @@ export const labels = {
 	},
 	chianti: {
 		// all-caps title starting with the Italian article "I", appellation with DOCG
+		// at 12° straightening works with macOS fonts but not yet with Linux ones (CI)
+		hardTilt: true,
 		svg: label([
 			['FATTORIA LE CORTI', 34, { spacing: 3, gap: 150 }],
 			['I SODI', 104, { bold: true, gap: 100 }],
@@ -141,6 +147,8 @@ export const labels = {
 		}
 	},
 	champagne: {
+		// at 12° straightening works with macOS fonts but not yet with Linux ones (CI)
+		hardTilt: true,
 		svg: label(
 			[
 				['CHAMPAGNE', 90, { bold: true, spacing: 6, gap: 170 }],
@@ -213,6 +221,8 @@ export const labels = {
 		}
 	},
 	gruner: {
+		// at 12° the small print still breaks up after straightening; not yet readable
+		hardTilt: true,
 		svg: label([
 			['WEINGUT BERGER', 36, { spacing: 3, gap: 150 }],
 			['Grüner Veltliner', 76, { gap: 100 }],
