@@ -34,6 +34,9 @@
 		gap: 14px;
 		align-items: center;
 		padding: 12px;
+		/* a big cellar is a long list: off-screen cards skip layout and paint */
+		content-visibility: auto;
+		contain-intrinsic-size: auto 80px;
 	}
 	.wine:active {
 		transform: scale(0.99);
