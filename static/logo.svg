@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <!-- barrique lying on its cradle: flat heads left and right, bulging staves -->
+    <clipPath id="b"><path d="M100 172V340Q100 352 110 359C184 404 328 404 402 359Q412 352 412 340V172Q412 160 402 153C328 108 184 108 110 153Q100 160 100 172Z"/></clipPath>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#4A1526"/>
+  <g clip-path="url(#b)">
+    <rect width="512" height="512" fill="#F4E9DF"/>
+    <path d="M100 222C176 208 336 208 412 222M100 290C176 304 336 304 412 290" fill="none" stroke="#4A1526" stroke-opacity=".2" stroke-width="8"/>
+    <rect x="146" width="28" height="512" fill="#E8B07A"/>
+    <rect x="338" width="28" height="512" fill="#E8B07A"/>
+  </g>
+  <path d="M150 396L190 360M362 396L322 360M128 404H384" stroke="#F4E9DF" stroke-width="18" stroke-linecap="round"/>
+</svg>

@@ -1,0 +1,26 @@
+name: Bug report
+description: Something doesn't work as expected
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you do, what did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: |
+        1. Open …
+        2. Tap …
+  - type: input
+    id: device
+    attributes:
+      label: Device and browser
+      placeholder: iPhone 15, Safari 26 (installed as app)
+  - type: markdown
+    attributes:
+      value: "**Security issues:** please don't file them here. See SECURITY.md."

@@ -1,0 +1,14 @@
+.git
+.github
+.local
+.svelte-kit
+.vscode
+build
+node_modules
+static/ocr
+.env
+.env.*
+*.md
+!README.md
+Dockerfile
+.dockerignore

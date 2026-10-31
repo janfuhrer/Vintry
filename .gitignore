@@ -1,0 +1,32 @@
+node_modules
+
+# Output
+.output
+.vercel
+.netlify
+.wrangler
+/.svelte-kit
+/build
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+!.env.example
+!.env.test
+
+# Vite
+vite.config.js.timestamp-*
+vite.config.ts.timestamp-*
+
+# OCR assets copied from node_modules at build time
+/static/ocr
+
+# Private notes: deployment target, accounts, owner decisions. Never commit.
+/.local
+
+# Personal Claude Code overrides (hosting provider, local MCP servers)
+/.claude/settings.local.json

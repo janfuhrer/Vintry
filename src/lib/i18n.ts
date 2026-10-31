@@ -1,0 +1,370 @@
+import { getContext, setContext } from 'svelte';
+
+export const LOCALES = ['en', 'de'] as const;
+export type Locale = (typeof LOCALES)[number];
+
+const en = {
+	'app.tagline': 'Your wine cellar, in your pocket.',
+	'nav.cellar': 'Cellar',
+	'nav.add': 'Add',
+	'nav.history': 'History',
+	'nav.settings': 'Settings',
+	'common.save': 'Save',
+	'common.cancel': 'Cancel',
+	'common.delete': 'Delete',
+	'common.edit': 'Edit',
+	'common.back': 'Back',
+	'common.copy': 'Copy',
+	'common.copied': 'Copied',
+	'common.close': 'Close',
+	'common.optional': 'optional',
+	'common.error': 'Something went wrong.',
+	'common.offline': 'You are offline.',
+
+	'login.title': 'Sign in',
+	'login.button': 'Sign in with passkey',
+	'login.hint': 'Vintry is invite only. Ask the owner for a link.',
+	'login.failed': 'Sign-in failed. Try again.',
+	'login.unsupported': 'This browser does not support passkeys.',
+
+	'invite.title': 'Welcome to Vintry',
+	'invite.device': 'Add this device for {name}',
+	'invite.name': 'Your name',
+	'invite.button': 'Create passkey',
+	'invite.deviceButton': 'Add passkey',
+	'invite.explain': 'A passkey replaces passwords. Your device stores it and unlocks it with your face, fingerprint or PIN.',
+	'invite.invalid': 'This link is invalid, used or expired.',
+	'invite.failed': 'Could not create the passkey. Try again.',
+
+	'cellar.title': 'Cellar',
+	'cellar.bottles': '{n} bottles',
+	'cellar.bottle': '1 bottle',
+	'cellar.search': 'Search',
+	'cellar.all': 'All',
+	'cellar.group': 'Group',
+	'cellar.group.none': 'None',
+	'cellar.group.country': 'Country',
+	'cellar.group.grape': 'Grape',
+	'cellar.group.window': 'Window',
+	'cellar.empty': 'Your cellar is empty.',
+	'cellar.emptyHint': 'Scan a label to add your first bottle.',
+	'cellar.noMatch': 'Nothing matches.',
+	'cellar.showEmpty': 'Show finished',
+	'cellar.unknown': 'Unknown',
+
+	'color.red': 'Red',
+	'color.white': 'White',
+	'color.rose': 'Rosé',
+	'color.sparkling': 'Sparkling',
+	'color.sweet': 'Sweet',
+	'color.fortified': 'Fortified',
+
+	'status.wait': 'Wait',
+	'status.ready': 'Ready',
+	'status.soon': 'Drink soon',
+	'status.past': 'Past peak',
+	'status.unknown': 'No window',
+
+	'add.title': 'Add wine',
+	'add.scan': 'Scan label',
+	'add.scanHint': 'Take a photo of the front label.',
+	'add.manual': 'Enter manually',
+	'add.reading': 'Reading label…',
+	'add.loading': 'Loading text recognition…',
+	'add.scanned': 'Filled in from the label. Check the marked fields.',
+	'add.scanFailed': 'Could not read the label. Fill in what you know.',
+	'add.retake': 'Retake',
+
+	'form.wine': 'Wine',
+	'form.name': 'Name',
+	'form.producer': 'Producer',
+	'form.vintage': 'Vintage',
+	'form.color': 'Type',
+	'form.country': 'Country',
+	'form.region': 'Region',
+	'form.grapes': 'Grapes',
+	'form.grapesAdd': 'Add grape',
+	'form.alcohol': 'Alcohol %',
+	'form.cellar': 'Cellar',
+	'form.quantity': 'Bottles',
+	'form.size': 'Size',
+	'form.location': 'Location',
+	'form.locationHint': 'e.g. rack B, shelf 2',
+	'form.taste': 'Taste & window',
+	'form.suggested': 'Suggested from grapes and region',
+	'form.drinkFrom': 'Drink from',
+	'form.drinkTo': 'Drink by',
+	'form.private': 'Private notes',
+	'form.purchasedOn': 'Bought on',
+	'form.purchasedAt': 'Bought at',
+	'form.price': 'Price',
+	'form.giftedBy': 'Gift from',
+	'form.notes': 'Notes',
+	'form.photo': 'Photo',
+	'form.removePhoto': 'Remove photo',
+	'form.changePhoto': 'Change photo',
+	'form.addPhoto': 'Add photo',
+	'form.required': 'Name is required.',
+	'form.invalid': 'Please check the fields.',
+
+	'taste.body': 'Body',
+	'taste.acidity': 'Acidity',
+	'taste.tannin': 'Tannin',
+	'taste.sweetness': 'Sweetness',
+	'taste.aroma': 'Aromas',
+
+	'wine.years': '{n} years',
+	'wine.year': '1 year',
+	'wine.window': 'Drinking window',
+	'wine.inCellar': 'In cellar',
+	'wine.drinkOne': 'Drink one',
+	'wine.rating': 'Your rating',
+	'wine.history': 'Drunk',
+	'wine.noHistory': 'Not opened yet.',
+	'wine.deleteConfirm': 'Delete this wine and its history?',
+	'wine.notes': 'Notes',
+	'wine.details': 'Details',
+	'wine.gift': 'Gift from {name}',
+
+	'drink.title': 'Drink one',
+	'drink.date': 'Date',
+	'drink.rating': 'Rating',
+	'drink.note': 'Note',
+	'drink.notePlaceholder': 'With whom, what food, how was it?',
+	'drink.button': 'Cheers',
+
+	'history.title': 'History',
+	'history.empty': 'Nothing drunk yet.',
+	'history.count': '{n} bottles',
+
+	'settings.title': 'Settings',
+	'settings.language': 'Language',
+	'settings.passkeys': 'Passkeys',
+	'settings.passkeyUnnamed': 'Passkey',
+	'settings.lastUsed': 'Last used {date}',
+	'settings.never': 'Never used',
+	'settings.addDevice': 'Add a device',
+	'settings.addDeviceHint': 'Open this link on your other device within 24 hours. It works once.',
+	'settings.createLink': 'Create link',
+	'settings.keepOne': 'You need at least one passkey.',
+	'settings.signOut': 'Sign out',
+	'settings.admin': 'Admin',
+	'settings.invite': 'Invite someone',
+	'settings.inviteNote': 'Note (who is it for?)',
+	'settings.inviteAdmin': 'Make admin',
+	'settings.inviteHint': 'Shown once. Valid 7 days, works once.',
+	'settings.users': 'People',
+	'settings.pending': 'Open invites',
+	'settings.revoke': 'Revoke',
+	'settings.expires': 'Expires {date}',
+	'settings.you': 'you',
+	'settings.about': 'Vintry keeps your cellar private. Labels are read on your device.'
+};
+
+export type Key = keyof typeof en;
+
+const de: Record<Key, string> = {
+	'app.tagline': 'Dein Weinkeller, immer dabei.',
+	'nav.cellar': 'Keller',
+	'nav.add': 'Neu',
+	'nav.history': 'Verlauf',
+	'nav.settings': 'Einstellungen',
+	'common.save': 'Speichern',
+	'common.cancel': 'Abbrechen',
+	'common.delete': 'Löschen',
+	'common.edit': 'Bearbeiten',
+	'common.back': 'Zurück',
+	'common.copy': 'Kopieren',
+	'common.copied': 'Kopiert',
+	'common.close': 'Schliessen',
+	'common.optional': 'optional',
+	'common.error': 'Etwas ist schiefgelaufen.',
+	'common.offline': 'Du bist offline.',
+
+	'login.title': 'Anmelden',
+	'login.button': 'Mit Passkey anmelden',
+	'login.hint': 'Vintry ist nur auf Einladung. Frag nach einem Link.',
+	'login.failed': 'Anmeldung fehlgeschlagen. Nochmals versuchen.',
+	'login.unsupported': 'Dieser Browser unterstützt keine Passkeys.',
+
+	'invite.title': 'Willkommen bei Vintry',
+	'invite.device': 'Dieses Gerät für {name} hinzufügen',
+	'invite.name': 'Dein Name',
+	'invite.button': 'Passkey erstellen',
+	'invite.deviceButton': 'Passkey hinzufügen',
+	'invite.explain': 'Ein Passkey ersetzt das Passwort. Dein Gerät speichert ihn und entsperrt ihn mit Gesicht, Fingerabdruck oder PIN.',
+	'invite.invalid': 'Dieser Link ist ungültig, benutzt oder abgelaufen.',
+	'invite.failed': 'Passkey konnte nicht erstellt werden. Nochmals versuchen.',
+
+	'cellar.title': 'Keller',
+	'cellar.bottles': '{n} Flaschen',
+	'cellar.bottle': '1 Flasche',
+	'cellar.search': 'Suchen',
+	'cellar.all': 'Alle',
+	'cellar.group': 'Gruppieren',
+	'cellar.group.none': 'Keine',
+	'cellar.group.country': 'Land',
+	'cellar.group.grape': 'Traube',
+	'cellar.group.window': 'Trinkfenster',
+	'cellar.empty': 'Dein Keller ist leer.',
+	'cellar.emptyHint': 'Scanne eine Etikette, um die erste Flasche zu erfassen.',
+	'cellar.noMatch': 'Nichts gefunden.',
+	'cellar.showEmpty': 'Getrunkene zeigen',
+	'cellar.unknown': 'Unbekannt',
+
+	'color.red': 'Rot',
+	'color.white': 'Weiss',
+	'color.rose': 'Rosé',
+	'color.sparkling': 'Schaumwein',
+	'color.sweet': 'Süsswein',
+	'color.fortified': 'Likörwein',
+
+	'status.wait': 'Warten',
+	'status.ready': 'Trinkreif',
+	'status.soon': 'Bald trinken',
+	'status.past': 'Über dem Höhepunkt',
+	'status.unknown': 'Kein Fenster',
+
+	'add.title': 'Wein erfassen',
+	'add.scan': 'Etikette scannen',
+	'add.scanHint': 'Fotografiere die Vorderseite.',
+	'add.manual': 'Manuell erfassen',
+	'add.reading': 'Etikette wird gelesen…',
+	'add.loading': 'Texterkennung wird geladen…',
+	'add.scanned': 'Von der Etikette übernommen. Prüfe die markierten Felder.',
+	'add.scanFailed': 'Etikette nicht lesbar. Fülle aus, was du weisst.',
+	'add.retake': 'Neues Foto',
+
+	'form.wine': 'Wein',
+	'form.name': 'Name',
+	'form.producer': 'Produzent',
+	'form.vintage': 'Jahrgang',
+	'form.color': 'Art',
+	'form.country': 'Land',
+	'form.region': 'Region',
+	'form.grapes': 'Trauben',
+	'form.grapesAdd': 'Traube hinzufügen',
+	'form.alcohol': 'Alkohol %',
+	'form.cellar': 'Keller',
+	'form.quantity': 'Flaschen',
+	'form.size': 'Grösse',
+	'form.location': 'Lagerort',
+	'form.locationHint': 'z. B. Regal B, Fach 2',
+	'form.taste': 'Geschmack & Trinkfenster',
+	'form.suggested': 'Vorschlag aus Trauben und Region',
+	'form.drinkFrom': 'Trinken ab',
+	'form.drinkTo': 'Trinken bis',
+	'form.private': 'Private Notizen',
+	'form.purchasedOn': 'Gekauft am',
+	'form.purchasedAt': 'Gekauft bei',
+	'form.price': 'Preis',
+	'form.giftedBy': 'Geschenk von',
+	'form.notes': 'Notizen',
+	'form.photo': 'Foto',
+	'form.removePhoto': 'Foto entfernen',
+	'form.changePhoto': 'Foto ändern',
+	'form.addPhoto': 'Foto hinzufügen',
+	'form.required': 'Name fehlt.',
+	'form.invalid': 'Bitte Felder prüfen.',
+
+	'taste.body': 'Körper',
+	'taste.acidity': 'Säure',
+	'taste.tannin': 'Tannin',
+	'taste.sweetness': 'Süsse',
+	'taste.aroma': 'Aromen',
+
+	'wine.years': '{n} Jahre',
+	'wine.year': '1 Jahr',
+	'wine.window': 'Trinkfenster',
+	'wine.inCellar': 'Im Keller',
+	'wine.drinkOne': 'Eine trinken',
+	'wine.rating': 'Deine Bewertung',
+	'wine.history': 'Getrunken',
+	'wine.noHistory': 'Noch nicht geöffnet.',
+	'wine.deleteConfirm': 'Diesen Wein samt Verlauf löschen?',
+	'wine.notes': 'Notizen',
+	'wine.details': 'Details',
+	'wine.gift': 'Geschenk von {name}',
+
+	'drink.title': 'Eine trinken',
+	'drink.date': 'Datum',
+	'drink.rating': 'Bewertung',
+	'drink.note': 'Notiz',
+	'drink.notePlaceholder': 'Mit wem, zu welchem Essen, wie war er?',
+	'drink.button': 'Prost',
+
+	'history.title': 'Verlauf',
+	'history.empty': 'Noch nichts getrunken.',
+	'history.count': '{n} Flaschen',
+
+	'settings.title': 'Einstellungen',
+	'settings.language': 'Sprache',
+	'settings.passkeys': 'Passkeys',
+	'settings.passkeyUnnamed': 'Passkey',
+	'settings.lastUsed': 'Zuletzt benutzt {date}',
+	'settings.never': 'Nie benutzt',
+	'settings.addDevice': 'Gerät hinzufügen',
+	'settings.addDeviceHint': 'Öffne den Link innert 24 Stunden auf dem anderen Gerät. Er funktioniert einmal.',
+	'settings.createLink': 'Link erstellen',
+	'settings.keepOne': 'Mindestens ein Passkey ist nötig.',
+	'settings.signOut': 'Abmelden',
+	'settings.admin': 'Admin',
+	'settings.invite': 'Jemanden einladen',
+	'settings.inviteNote': 'Notiz (für wen?)',
+	'settings.inviteAdmin': 'Als Admin',
+	'settings.inviteHint': 'Wird nur einmal angezeigt. 7 Tage gültig, einmal nutzbar.',
+	'settings.users': 'Personen',
+	'settings.pending': 'Offene Einladungen',
+	'settings.revoke': 'Widerrufen',
+	'settings.expires': 'Läuft ab {date}',
+	'settings.you': 'du',
+	'settings.about': 'Vintry hält deinen Keller privat. Etiketten werden auf deinem Gerät gelesen.'
+};
+
+const dictionaries: Record<Locale, Record<Key, string>> = { en, de };
+
+export const isLocale = (v: unknown): v is Locale => LOCALES.includes(v as Locale);
+
+/** Best match from an Accept-Language header (or navigator.languages joined) */
+export function pickLocale(header: string | null | undefined): Locale {
+	for (const part of (header ?? '').split(',')) {
+		const tag = part.split(';')[0].trim().slice(0, 2).toLowerCase();
+		if (isLocale(tag)) return tag;
+	}
+	return 'en';
+}
+
+export interface I18n {
+	locale: Locale;
+	t: (key: Key, vars?: Record<string, string | number>) => string;
+}
+
+export function createI18n(locale: Locale): I18n {
+	const dict = dictionaries[locale];
+	return {
+		locale,
+		t: (key, vars) => {
+			let s = dict[key] ?? en[key] ?? key;
+			if (vars) for (const [k, v] of Object.entries(vars)) s = s.replace(`{${k}}`, String(v));
+			return s;
+		}
+	};
+}
+
+// Locale comes from per-request data, so it travels through component context,
+// never through module state (shared across requests during SSR).
+const KEY = Symbol('i18n');
+
+/** Pass a getter so the context follows locale changes; `t` stays reactive when destructured */
+export function setI18n(get: () => I18n) {
+	setContext<I18n>(KEY, {
+		get locale() {
+			return get().locale;
+		},
+		t: (key, vars) => get().t(key, vars)
+	});
+}
+
+export function useI18n(): I18n {
+	return getContext<I18n>(KEY);
+}
