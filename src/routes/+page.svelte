@@ -67,6 +67,11 @@
 		COLORS.filter((c) => owned.some((w) => w.color === c && (showEmpty || w.quantity > 0)))
 	);
 	const hasEmpty = $derived(owned.some((w) => w.quantity === 0));
+	const bottlesOf = $derived(
+		Object.fromEntries(
+			COLORS.map((c) => [c, owned.reduce((n, w) => n + (w.color === c ? w.quantity : 0), 0)])
+		) as Record<Color, number>
+	);
 
 	// bottles at the end of their window, or past it
 	const drinkNow = $derived(
@@ -206,6 +211,7 @@
 						onclick={() => ((color = color === c ? null : c), (wishOnly = false))}
 					>
 						<span class="dot swatch-{c}" style="background: var(--swatch)"></span>{t(`color.${c}`)}
+						<span class="n">{bottlesOf[c]}</span>
 					</button>
 				{/each}
 			</div>
@@ -342,6 +348,11 @@
 		scrollbar-width: none;
 		margin: 0 -16px;
 		padding: 0 16px;
+	}
+	/* lighter, not fainter: opacity would cost the text its contrast */
+	.chip .n {
+		font-variant-numeric: tabular-nums;
+		font-weight: 400;
 	}
 	.chips::-webkit-scrollbar {
 		display: none;
