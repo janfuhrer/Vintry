@@ -22,6 +22,8 @@ const en = {
 	'common.optional': 'optional',
 	'common.error': 'Something went wrong.',
 	'common.offline': 'Offline · showing the copy saved on this device',
+	'common.offlineTitle': 'No connection',
+	'common.offlineAction': 'No connection. Try again when you have signal.',
 	'common.notFound': 'Not found.',
 
 	'login.title': 'Sign in',
@@ -279,6 +281,8 @@ const de: Record<Key, string> = {
 	'common.optional': 'optional',
 	'common.error': 'Etwas ist schiefgelaufen.',
 	'common.offline': 'Offline · gespeicherter Stand auf diesem Gerät',
+	'common.offlineTitle': 'Keine Verbindung',
+	'common.offlineAction': 'Keine Verbindung. Versuch es nochmals, sobald du Empfang hast.',
 	'common.notFound': 'Nicht gefunden.',
 
 	'login.title': 'Anmelden',
