@@ -23,36 +23,46 @@ src/
   service-worker.ts       cache-first for build output and /ocr/, network for everything private
   lib/
     data/                 grapes, regions, countries (static tables)
-    wine.ts               lookups, drinking window, taste suggestion, flags
-    parse.ts              OCR text → wine fields
+    wine.ts               lookups, drinking window, taste suggestion, serving temperature, flags
+    parse.ts              OCR lines → wine fields
+    ocr-lines.ts          OCR result → lines; when to run the inverted second pass
     ocr.ts, image.ts      browser-only: tesseract worker, photo resizing
+    csv.ts, import.ts     CSV writing/parsing, spreadsheet → wine fields
+    stats.ts, dates.ts    year statistics, local calendar dates
     i18n.ts               en/de dictionaries, exposed through Svelte context
-    components/           WineForm, WineCard, Dots, Stars, WindowBar, Sheet, …
+    components/           WineForm, WineCard, Dots, Stars, WindowBar, Sheet, InstallHint, …
     server/
       db.ts, migrations.ts
       auth.ts             sessions, invites, challenges, bootstrap invite
       webauthn.ts         relying-party config from APP_URL
       wines.ts            all wine/drink queries (always scoped by user_id)
+      wine-form.ts        validation of the wine form (also used per row by the import)
+      device.ts           user agent → "iPhone · Safari"
       ratelimit.ts        in-memory limiter for /api/auth/*
   routes/
     /                     cellar (search, colour filter, grouping run client-side)
     /add                  scan or enter manually
     /wine/[id]            detail, rate, drink one, history
     /wine/[id]/edit
-    /history              drinks by month
-    /settings             language, passkeys, add a device, invites (admin)
+    /history              this year's stats, drinks by month
+    /settings             language, passkeys, devices, import/export, account, invites (admin)
+    /grapes, /grapes/[slug], /regions/[slug]   the built-in tables as pages, with your wines
+    /export/[file]        wines.csv, drinks.csv, vintry.json (own data only)
     /login, /invite/[token], /api/auth/*
     /photo/[id]           owner-only JPEG, immutable caching via a version parameter
+    /healthz, /readyz     liveness (process) and readiness (database) probes
 ```
 
 ## Data model
 
-Migration 001 in `src/lib/server/migrations.ts`. Migrations run in the `init` hook under
-a Postgres advisory lock, so several instances can start at once.
+Migrations live in `src/lib/server/migrations.ts` (append only: 001 schema, 002 session device
+info). They run in the `init` hook under a Postgres advisory lock, so several instances can start
+at once.
 
 - `users`: name, WebAuthn user handle, admin flag, locale
 - `credentials`: passkeys (public key, counter, transports, device label)
-- `sessions`: `id = sha256(token)`; the token itself lives only in the cookie. 30-day sliding expiry.
+- `sessions`: `id = sha256(token)`; the token itself lives only in the cookie. 30-day sliding expiry,
+  user agent and last activity for the device list in settings.
 - `invites`: `id = sha256(token)`, single use, optionally for an existing user ("add a device")
 - `challenges`: single-use WebAuthn challenges, referenced from a short-lived httpOnly cookie
 - `wines`: one row per wine per user, with quantity, window, taste, rating and private notes
@@ -77,9 +87,20 @@ a Postgres advisory lock, so several instances can start at once.
   Status: _wait_, _ready_, _drink soon_ (last year of the window), _past peak_.
 - Taste suggestion: the average of the known grapes, or the region's typical grapes.
   The form keeps suggesting until the user changes a taste or window field.
-- OCR parsing (`parse.ts`): accent-stripped matching against grape, region and country names
-  (longest match first), regexes for vintage, alcohol and bottle size, estate words for the producer,
-  and the tallest remaining text line as the wine's name.
+- OCR (`ocr.ts`): tesseract.js in sparse-text mode on a 2200 px copy of the photo; if that finds
+  almost nothing (light text on a dark label), a second pass on an inverted, contrast-stretched copy.
+- Parsing (`parse.ts`): accent-stripped matching against grape, region and country names
+  (longest match first, in one pass), regexes for vintage, alcohol and bottle size (with common OCR
+  misreadings), estate words for the producer, and the tallest line that isn't appellation or origin
+  boilerplate as the wine's name. Implausible values are dropped rather than guessed.
+
+## Tests
+
+- `npm test`: Vitest unit tests next to the code (parser, wine logic, form validation, CSV, …).
+- `npm run test:e2e`: the production build against a throwaway PostgreSQL, driven over HTTP with a
+  software passkey authenticator (`tests/e2e`).
+- `npm run test:ocr`: renders sample labels (clean, small and as tilted photos), runs the app's OCR
+  setup on them and checks the parsed fields (`tests/ocr`).
 
 ## Security headers
 
@@ -90,4 +111,12 @@ only, for the OCR engine. `handle` adds HSTS, `nosniff`, `Referrer-Policy: same-
 ## PWA
 
 `static/manifest.webmanifest`, icons rendered from `static/logo.svg` by `scripts/icons.mjs`.
-The service worker never caches pages, data or photos, because they are private.
+The service worker never caches pages, data or photos, because they are private. The OCR engine is
+cached on first use under a name that carries the tesseract version.
+
+## Operations
+
+- `/healthz` answers without touching the database (liveness); `/readyz` checks it (readiness).
+- On SIGTERM adapter-node stops accepting requests; the database pool is closed afterwards so the
+  process exits promptly.
+- The container runs as an unprivileged user and works with a read-only root filesystem.

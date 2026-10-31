@@ -159,6 +159,8 @@ const en = {
 	'wine.gift': 'Gift from {name}',
 	'wine.buyAgain': 'Buy again',
 	'wine.share': 'Share',
+	'wine.serve': 'Serving',
+	'wine.serveAt': 'Best at {from}–{to} °C',
 	'wine.shared': 'Copied',
 
 	'drink.title': 'Drink one',
@@ -396,6 +398,8 @@ const de: Record<Key, string> = {
 	'wine.gift': 'Geschenk von {name}',
 	'wine.buyAgain': 'Nachkaufen',
 	'wine.share': 'Teilen',
+	'wine.serve': 'Servieren',
+	'wine.serveAt': 'Am besten bei {from}–{to} °C',
 	'wine.shared': 'Kopiert',
 
 	'drink.title': 'Eine trinken',

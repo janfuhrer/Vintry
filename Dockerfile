@@ -14,7 +14,12 @@ ENV NODE_ENV=production \
     BODY_SIZE_LIMIT=2M
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
-RUN npm ci --omit=dev --ignore-scripts && npm cache clean --force
+# npm is only needed to install; removing it (and corepack) from the runtime image drops a
+# whole dependency tree the app never runs, and every CVE scanners report in it
+RUN npm ci --omit=dev --ignore-scripts \
+    && npm cache clean --force \
+    && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+              /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 COPY --from=build /app/build ./build
 USER node
 EXPOSE 3000

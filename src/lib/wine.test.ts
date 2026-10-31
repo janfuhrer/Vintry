@@ -120,3 +120,16 @@ describe('data tables', () => {
 		}
 	});
 });
+
+describe('serving temperature', () => {
+	test('by style and body', async () => {
+		const { servingTemp } = await import('./wine');
+		expect(servingTemp('sparkling', null)).toEqual([6, 8]);
+		expect(servingTemp('white', 2)).toEqual([8, 10]);
+		expect(servingTemp('white', 4)).toEqual([10, 12]);
+		expect(servingTemp('red', 2)).toEqual([12, 14]);
+		expect(servingTemp('red', 3)).toEqual([14, 16]);
+		expect(servingTemp('red', 5)).toEqual([16, 18]);
+		expect(servingTemp('red', null)).toEqual([14, 16]);
+	});
+});

@@ -176,3 +176,23 @@ export function windowStatus(
 export function canonicalGrape(name: string): string {
 	return findGrape(name)?.name ?? name.trim();
 }
+
+/**
+ * Serving temperature in °C by style and body. Rules of thumb: sparkling and sweet cold,
+ * whites cool (fuller ones less so), reds below room temperature, lighter ones cooler.
+ */
+export function servingTemp(color: Color, body: number | null | undefined): [number, number] {
+	switch (color) {
+		case 'sparkling':
+			return [6, 8];
+		case 'sweet':
+		case 'rose':
+			return [8, 10];
+		case 'fortified':
+			return [12, 16];
+		case 'white':
+			return body && body >= 4 ? [10, 12] : [8, 10];
+		case 'red':
+			return body && body >= 4 ? [16, 18] : body && body <= 2 ? [12, 14] : [14, 16];
+	}
+}

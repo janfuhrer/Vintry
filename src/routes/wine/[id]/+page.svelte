@@ -17,6 +17,7 @@
 		flag,
 		grapeSlug,
 		regionSlug,
+		servingTemp,
 		windowStatus
 	} from '#lib/wine.ts';
 	import type { PageProps } from './$types';
@@ -30,6 +31,7 @@
 	const age = $derived(wine.vintage ? year - wine.vintage : null);
 	const status = $derived(windowStatus(wine.drink_from, wine.drink_to));
 	const aromaWords = $derived(aromas(wine.grapes, i18n.locale));
+	const temp = $derived(servingTemp(wine.color, wine.body));
 	const hasTaste = $derived([wine.body, wine.acidity, wine.tannin, wine.sweetness].some((x) => x !== null));
 
 	// sharing tells others about the wine: no price, shop, notes or location
@@ -186,6 +188,13 @@
 			<WindowBar from={wine.drink_from ?? wine.drink_to!} to={wine.drink_to ?? wine.drink_from!} />
 		</section>
 	{/if}
+
+	<section class="card serve">
+		<h2>{t('wine.serve')}</h2>
+		<p class="serve-line">
+			<Icon name="thermo" size={18} />{t('wine.serveAt', { from: temp[0], to: temp[1] })}
+		</p>
+	</section>
 
 	{#if hasTaste || aromaWords.length}
 		<section class="card">
@@ -445,6 +454,19 @@
 	.note {
 		margin: 2px 0 0;
 		white-space: pre-wrap;
+	}
+	.serve h2 {
+		margin-bottom: 8px;
+	}
+	.serve-line {
+		display: flex;
+		align-items: center;
+		gap: 8px;
+		margin: 0;
+	}
+	.serve-line :global(svg) {
+		color: var(--muted);
+		flex: none;
 	}
 	.actions {
 		gap: 10px;
