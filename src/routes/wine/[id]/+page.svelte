@@ -479,6 +479,7 @@
 	.hero.has-photo {
 		aspect-ratio: 4 / 3;
 		max-height: 60vh;
+		overflow: hidden;
 		background: var(--surface-2);
 	}
 	.toast {
@@ -506,10 +507,12 @@
 			opacity: 0;
 		}
 	}
+	/* absolute, not height: 100%: Safari doesn't resolve percentages against an
+	   aspect-ratio box, and the photo then ran over the title */
 	.hero-btn {
+		position: absolute;
+		inset: 0;
 		display: block;
-		width: 100%;
-		height: 100%;
 		padding: 0;
 		border: 0;
 		background: none;
@@ -542,6 +545,7 @@
 		background: rgb(0 0 0 / 0.5);
 	}
 	.hero-img {
+		display: block;
 		width: 100%;
 		height: 100%;
 		object-fit: cover;
