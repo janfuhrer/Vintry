@@ -9,7 +9,16 @@
 	import WindowBar from '#lib/components/WindowBar.svelte';
 	import { localISODate } from '#lib/dates.ts';
 	import { useI18n } from '#lib/i18n.ts';
-	import { aromas, countryName, findGrape, flag, grapeSlug, windowStatus } from '#lib/wine.ts';
+	import {
+		aromas,
+		countryName,
+		findGrape,
+		findRegion,
+		flag,
+		grapeSlug,
+		regionSlug,
+		windowStatus
+	} from '#lib/wine.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -98,7 +107,11 @@
 						: t('wine.years', { n: age })}{/if}</span
 			>
 		{/if}
-		{#if wine.country || wine.region}
+		{#if wine.region && findRegion(wine.region)}
+			<a class="chip link-chip" href="/regions/{regionSlug(findRegion(wine.region)!.name)}"
+				>{flag(wine.country)} {wine.region}</a
+			>
+		{:else if wine.country || wine.region}
 			<span class="chip">{flag(wine.country)} {wine.region || countryName(wine.country, i18n.locale)}</span>
 		{/if}
 		{#each wine.grapes as g (g)}

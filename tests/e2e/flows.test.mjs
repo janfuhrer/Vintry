@@ -231,6 +231,21 @@ describe('people', () => {
 		assert.equal((await alice.req('/grapes', { page: true })).status, 200);
 	});
 
+	test('region pages match any spelling and list only your own wines', async () => {
+		const mine = await (await alice.req('/regions/valais', { page: true })).text();
+		assert.ok(mine.includes('Cornalin Test'), 'region stored as "Valais"');
+		const theirs = await (await bob.req('/regions/valais', { page: true })).text();
+		assert.ok(!theirs.includes('Cornalin Test'));
+		assert.equal((await alice.req('/regions/atlantis', { page: true })).status, 404);
+	});
+
+	test('the history shows the cellar value', async () => {
+		// an earlier test emptied this wine; the value only counts bottles still in the cellar
+		await alice.action(`${wineUrl}?/quantity`, { delta: '1' });
+		const html = await (await alice.req('/history', { page: true })).text();
+		assert.ok(/Cellar value|Kellerwert/.test(html));
+	});
+
 	test('a non-admin cannot invite', async () => {
 		assert.equal((await bob.action('/settings?/invite', { note: 'x' })).type, 'error');
 	});

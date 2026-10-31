@@ -2,7 +2,7 @@
 	import Dots from '#lib/components/Dots.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { useI18n } from '#lib/i18n.ts';
-	import { countryName, findGrape, flag, regionsForGrape } from '#lib/wine.ts';
+	import { countryName, findGrape, flag, regionSlug, regionsForGrape } from '#lib/wine.ts';
 	import type { PageProps } from './$types';
 
 	let { data }: PageProps = $props();
@@ -43,7 +43,9 @@
 			<h2>{t('grapes.regions')}</h2>
 			<div class="chips">
 				{#each regions as r (r.name)}
-					<span class="chip" title={countryName(r.country, i18n.locale)}>{flag(r.country)} {r.name}</span>
+					<a class="chip" href="/regions/{regionSlug(r.name)}" title={countryName(r.country, i18n.locale)}
+						>{flag(r.country)} {r.name}</a
+					>
 				{/each}
 			</div>
 		</section>

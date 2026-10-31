@@ -139,6 +139,10 @@ const en = {
 	'grapes.yourWines': 'In your cellar',
 	'grapes.noWines': 'None in your cellar yet.',
 	'grapes.profile': 'Typical profile',
+	'regions.grapes': 'Typical grapes',
+	'regions.style': 'Typical style',
+	'regions.aging': 'Wines from here are usually ready {from}–{to} years after the vintage',
+	'regions.alsoKnown': 'Also written',
 
 	'wine.years': '{n} years',
 	'wine.year': '1 year',
@@ -171,6 +175,8 @@ const en = {
 	'history.avgRating': 'Avg. rating',
 	'history.topGrape': 'Most drunk grape',
 	'history.topCountry': 'Most drunk country',
+	'history.cellarValue': 'Cellar value',
+	'history.cellarValueHint': 'Purchase price of {n} bottles',
 
 	'settings.title': 'Settings',
 	'settings.language': 'Language',
@@ -367,6 +373,10 @@ const de: Record<Key, string> = {
 	'grapes.yourWines': 'In deinem Keller',
 	'grapes.noWines': 'Noch keine in deinem Keller.',
 	'grapes.profile': 'Typisches Profil',
+	'regions.grapes': 'Typische Trauben',
+	'regions.style': 'Typischer Stil',
+	'regions.aging': 'Weine von hier sind meist {from}–{to} Jahre nach dem Jahrgang trinkreif',
+	'regions.alsoKnown': 'Auch geschrieben',
 
 	'wine.years': '{n} Jahre',
 	'wine.year': '1 Jahr',
@@ -399,6 +409,8 @@ const de: Record<Key, string> = {
 	'history.avgRating': 'Ø Bewertung',
 	'history.topGrape': 'Meistgetrunkene Traube',
 	'history.topCountry': 'Meistgetrunkenes Land',
+	'history.cellarValue': 'Kellerwert',
+	'history.cellarValueHint': 'Kaufpreis von {n} Flaschen',
 
 	'settings.title': 'Einstellungen',
 	'settings.language': 'Sprache',

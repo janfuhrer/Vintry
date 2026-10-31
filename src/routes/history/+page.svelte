@@ -31,14 +31,16 @@
 
 <main class="page">
 	<h1 class="title">{t('history.title')}</h1>
-	{#if stats.bottles > 0}
+	{#if stats.bottles > 0 || data.value.value > 0}
 		<section class="card stats" aria-label={t('history.thisYear', { year: stats.year })}>
 			<h2 class="small muted">{t('history.thisYear', { year: stats.year })}</h2>
 			<dl>
-				<div>
-					<dt>{t('history.bottles')}</dt>
-					<dd>{stats.bottles}</dd>
-				</div>
+				{#if stats.bottles > 0}
+					<div>
+						<dt>{t('history.bottles')}</dt>
+						<dd>{stats.bottles}</dd>
+					</div>
+				{/if}
 				{#if stats.avgRating !== null}
 					<div>
 						<dt>{t('history.avgRating')}</dt>
@@ -55,6 +57,12 @@
 					<div>
 						<dt>{t('history.topCountry')}</dt>
 						<dd class="text">{flag(stats.topCountry)} {countryName(stats.topCountry, i18n.locale)}</dd>
+					</div>
+				{/if}
+				{#if data.value.value > 0}
+					<div title={t('history.cellarValueHint', { n: data.value.bottles })}>
+						<dt>{t('history.cellarValue')}</dt>
+						<dd>{Math.round(data.value.value).toLocaleString(i18n.locale)}</dd>
 					</div>
 				{/if}
 			</dl>

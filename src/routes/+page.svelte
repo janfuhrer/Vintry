@@ -8,7 +8,9 @@
 	import {
 		COLORS,
 		countryName,
+		findGrape,
 		flag,
+		grapeSlug,
 		normalize,
 		windowStatus,
 		type Color,
@@ -82,6 +84,8 @@
 					w.vintage,
 					w.region,
 					w.location,
+					w.purchased_at,
+					w.notes,
 					countryName(w.country, i18n.locale),
 					...w.grapes
 				]
@@ -206,7 +210,12 @@
 			<section class="group">
 				{#if g.label}
 					<h2 class="group-title">
-						{g.label} <span class="muted">{g.wines.reduce((n, w) => n + w.quantity, 0)}</span>
+						{#if group === 'grape' && findGrape(g.key)}
+							<a class="group-link" href="/grapes/{grapeSlug(g.key)}">{g.label}</a>
+						{:else}
+							{g.label}
+						{/if}
+						<span class="muted">{g.wines.reduce((n, w) => n + w.quantity, 0)}</span>
 					</h2>
 				{/if}
 				<div class="list">
@@ -274,6 +283,11 @@
 	}
 	.group {
 		margin-top: 12px;
+	}
+	.group-link {
+		text-decoration: underline;
+		text-decoration-color: var(--line);
+		text-underline-offset: 3px;
 	}
 	.drink-now {
 		margin: 4px 0 8px;

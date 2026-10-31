@@ -47,6 +47,8 @@ export type WineListItem = Pick<
 	| 'drink_to'
 	| 'rating'
 	| 'location'
+	| 'purchased_at'
+	| 'notes'
 	| 'has_photo'
 	| 'photo_version'
 >;
@@ -58,7 +60,7 @@ export type WineInput = Omit<Wine, 'id' | 'has_photo' | 'photo_version' | 'creat
 export async function listWines(userId: string): Promise<WineListItem[]> {
 	return sql<WineListItem[]>`
 		select w.id, w.name, w.producer, w.vintage, w.color, w.country, w.region, w.grapes,
-			w.quantity, w.drink_from, w.drink_to, w.rating, w.location, w.has_photo, (extract(epoch from p.updated_at) * 1000)::int8 as photo_version
+			w.quantity, w.drink_from, w.drink_to, w.rating, w.location, w.purchased_at, w.notes, w.has_photo, (extract(epoch from p.updated_at) * 1000)::int8 as photo_version
 		from wines w left join wine_photos p on p.wine_id = w.id
 		where w.user_id = ${userId}
 		order by w.updated_at desc
@@ -320,4 +322,13 @@ export async function importWines(userId: string, inputs: WineInput[]): Promise<
 		`;
 		return result.count;
 	});
+}
+
+/** Purchase value of the bottles still in the cellar, where a price was entered */
+export async function cellarValue(userId: string): Promise<{ value: number; bottles: number }> {
+	const [row] = await sql<{ value: number | null; bottles: number }[]>`
+		select sum(price * quantity)::numeric(12, 2) as value, coalesce(sum(quantity), 0)::int as bottles
+		from wines where user_id = ${userId} and quantity > 0 and price is not null
+	`;
+	return { value: row.value ?? 0, bottles: row.bottles };
 }

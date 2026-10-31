@@ -41,6 +41,10 @@ export const findGrapeBySlug = (slug: string): Grape | undefined => grapeBySlug.
 /** Regions where the grape is typical */
 export const regionsForGrape = (name: string): Region[] => regions.filter((r) => r.grapes.includes(name));
 
+export const regionSlug = grapeSlug;
+const regionBySlug = new Map(regions.map((r) => [regionSlug(r.name), r]));
+export const findRegionBySlug = (slug: string): Region | undefined => regionBySlug.get(slug);
+
 export { grapes };
 
 export function regionNames(country?: string | null): string[] {
