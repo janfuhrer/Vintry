@@ -21,7 +21,7 @@ export const init: ServerInit = async () => {
 	});
 };
 
-const PUBLIC_PREFIXES = ['/login', '/invite/', '/api/auth/', '/icons/', '/ocr/', '/_app/'];
+const PUBLIC_PREFIXES = ['/login', '/invite/', '/api/auth/', '/icons/', '/ocr/', '/_app/', '/screenshots/'];
 const PUBLIC_FILES = new Set([
 	'/manifest.webmanifest',
 	'/favicon.svg',

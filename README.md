@@ -16,10 +16,10 @@
 </p>
 
 <p align="center">
-  <img src="docs/screenshots/cellar.jpg" width="200" alt="Cellar with a drink-now strip and status per wine">
-  <img src="docs/screenshots/wine.jpg" width="200" alt="A wine with its drinking window, serving temperature and food pairing">
-  <img src="docs/screenshots/grape.jpg" width="200" alt="Grape page with profile, aromas and typical regions">
-  <img src="docs/screenshots/history.jpg" width="200" alt="History with this year's statistics">
+  <img src="static/screenshots/cellar.jpg" width="200" alt="Cellar with a drink-now strip and status per wine">
+  <img src="static/screenshots/wine.jpg" width="200" alt="A wine with its drinking window, serving temperature and food pairing">
+  <img src="static/screenshots/grape.jpg" width="200" alt="Grape page with profile, aromas and typical regions">
+  <img src="static/screenshots/history.jpg" width="200" alt="History with this year's statistics">
 </p>
 
 ---

@@ -13,8 +13,9 @@ const ALL = [...immutable, ...assets].map((a) => toPath(a.path));
 // written by scripts/copy-ocr-assets.mjs, e.g. /ocr/version-7.0.0-7.0.0.txt
 const ocrVersion = ALL.map((p) => p.match(/^\/ocr\/version-(.+)\.txt$/)?.[1]).find(Boolean);
 const OCR_CACHE = `vintry-ocr-${ocrVersion ?? 'v1'}`;
-// OCR assets are large (~27 MB); cached on first use instead
-const PRECACHE = ALL.filter((p) => !p.startsWith('/ocr/'));
+// OCR assets are large (~27 MB); cached on first use instead.
+// install screenshots are only for the browser's install dialog
+const PRECACHE = ALL.filter((p) => !p.startsWith('/ocr/') && !p.startsWith('/screenshots/'));
 
 self.addEventListener('install', (event) => {
 	event.waitUntil(

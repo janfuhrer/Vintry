@@ -9,9 +9,71 @@
 	"background_color": "#FAF7F4",
 	"theme_color": "#4A1526",
 	"icons": [
-		{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
-		{ "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
-		{ "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
-		{ "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml" }
+		{
+			"src": "/icons/icon-192.png",
+			"sizes": "192x192",
+			"type": "image/png"
+		},
+		{
+			"src": "/icons/icon-512.png",
+			"sizes": "512x512",
+			"type": "image/png"
+		},
+		{
+			"src": "/icons/maskable-512.png",
+			"sizes": "512x512",
+			"type": "image/png",
+			"purpose": "maskable"
+		},
+		{
+			"src": "/logo.svg",
+			"sizes": "any",
+			"type": "image/svg+xml"
+		}
+	],
+	"id": "/",
+	"lang": "en",
+	"categories": ["food", "lifestyle"],
+	"shortcuts": [
+		{
+			"name": "Scan a label",
+			"short_name": "Scan",
+			"url": "/add",
+			"icons": [
+				{
+					"src": "/icons/icon-192.png",
+					"sizes": "192x192",
+					"type": "image/png"
+				}
+			]
+		},
+		{
+			"name": "History",
+			"short_name": "History",
+			"url": "/history",
+			"icons": [
+				{
+					"src": "/icons/icon-192.png",
+					"sizes": "192x192",
+					"type": "image/png"
+				}
+			]
+		}
+	],
+	"screenshots": [
+		{
+			"src": "/screenshots/cellar.jpg",
+			"sizes": "606x759",
+			"type": "image/jpeg",
+			"form_factor": "narrow",
+			"label": "Your cellar with what to drink now"
+		},
+		{
+			"src": "/screenshots/wine.jpg",
+			"sizes": "606x759",
+			"type": "image/jpeg",
+			"form_factor": "narrow",
+			"label": "A wine with its drinking window and serving tips"
+		}
 	]
 }
