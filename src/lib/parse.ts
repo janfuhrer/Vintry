@@ -124,8 +124,10 @@ const COLOR_WORDS: [Color, string[]][] = [
 ];
 
 const VINTAGE = /\b(19[5-9]\d|20[0-4]\d)\b/g;
-const ALCOHOL = /\b(\d{1,2})\s?[.,]\s?(\d)\s?%\s?(vol)?/i;
-const ALCOHOL_INT = /\b(\d{1,2})\s?%\s?vol/i;
+// "13,5% vol", and "12,5° vol" as older French and Spanish labels write it (° only before
+// "vol", so "serve at 16°" never counts); OCR may break the line before the sign or "vol"
+const ALCOHOL = /\b(\d{1,2})\s?[.,]\s?(\d)\s{0,2}(?:%|°(?=\s{0,2}vol))\s{0,2}(vol)?/i;
+const ALCOHOL_INT = /\b(\d{1,2})\s{0,2}[%°]\s{0,2}vol/i;
 // "el" is OCR's reading of "cl"
 const SIZE = /\b(\d{1,4}(?:[.,]\d{1,3})?)\s?(ml|cl|el|l|ltr|litre|liter)\b/i;
 // OCR reads the "l" of "0,75 l" as 1, I or |

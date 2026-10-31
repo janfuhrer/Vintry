@@ -163,6 +163,10 @@ describe('OCR digit and letter confusions', () => {
 	test('implausibly strong table wine is dropped, port keeps its 20 %', () => {
 		expect(parseLabel(lines(['Schweizer Rotwein', 30], ['18% vol', 20]), 2026).alcohol).toBeUndefined();
 		expect(parseLabel(lines(['Porto', 80], ['20% vol', 20]), 2026).alcohol).toBe(20);
+		// degrees, and a sign OCR put on a line of its own
+		expect(parseLabel(lines(['12,5° vol', 20]), 2026).alcohol).toBe(12.5);
+		expect(parseLabel(lines(['11', 20], ['°', 20], ['vol 75 cl', 20]), 2026).alcohol).toBe(11);
+		expect(parseLabel(lines(['Servir à 16°', 20]), 2026).alcohol).toBeUndefined();
 	});
 });
 

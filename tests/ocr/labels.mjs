@@ -358,5 +358,79 @@ export const labels = {
 			name: 'Cumbre Alta',
 			producerHas: 'Andes'
 		}
+	},
+	prosecco: {
+		// at 12° straightening works with macOS fonts but not yet with Linux ones (CI)
+		hardTilt: true,
+		svg: label(
+			[
+				["Ca' dei Colli", 40, { gap: 160 }],
+				['PROSECCO', 96, { bold: true, spacing: 6, gap: 100, family: 'Helvetica, Arial, sans-serif' }],
+				['Denominazione di Origine Controllata', 24, { gap: 50 }],
+				['Extra Dry · Spumante', 34, { gap: 80 }],
+				['Glera', 30, { gap: 70 }],
+				['Prodotto in Italia', 24, { gap: 230 }],
+				['11% vol    75 cl', 26, { gap: 50, family: 'Helvetica, Arial, sans-serif' }]
+			],
+			{ bg: '#f4f1e8', ink: '#1f3b2c' }
+		),
+		expect: {
+			alcohol: 11,
+			size_ml: 750,
+			country: 'IT',
+			region: 'Prosecco',
+			grapes: ['Glera'],
+			color: 'sparkling',
+			name: 'Prosecco'
+		}
+	},
+	douro: {
+		svg: label([
+			['QUINTA DO VALE ESCURO', 32, { spacing: 3, gap: 150 }],
+			['Encosta Velha', 84, { bold: true, gap: 100 }],
+			['DOURO', 42, { spacing: 10, gap: 80 }],
+			['Denominação de Origem Controlada', 24, { gap: 40 }],
+			['2019', 54, { gap: 100 }],
+			['Touriga Nacional · Touriga Franca', 28, { gap: 80 }],
+			['Vinho Tinto · Produzido em Portugal', 24, { gap: 150 }],
+			['14% vol.    750 ml', 24, { gap: 50 }]
+		]),
+		expect: {
+			vintage: 2019,
+			alcohol: 14,
+			size_ml: 750,
+			country: 'PT',
+			region: 'Douro',
+			color: 'red',
+			name: 'Encosta Velha',
+			producerHas: 'Vale Escuro'
+		}
+	},
+	spatburgunder: {
+		// at 12° straightening works with macOS fonts but not yet with Linux ones (CI)
+		hardTilt: true,
+		svg: label(
+			[
+				['WEINGUT KELLER-BRAUN', 30, { spacing: 4, gap: 150, family: 'Helvetica, Arial, sans-serif' }],
+				['Spätburgunder', 86, { bold: true, gap: 110 }],
+				['Baden', 44, { gap: 80 }],
+				['Qualitätswein trocken', 28, { gap: 50 }],
+				['2021', 54, { gap: 110 }],
+				['Gutsabfüllung · Erzeugnis aus Deutschland', 22, { gap: 180 }],
+				['13% vol    0,75 l', 26, { gap: 50, family: 'Helvetica, Arial, sans-serif' }]
+			],
+			{ bg: '#fbfaf7', ink: '#3a1720' }
+		),
+		expect: {
+			vintage: 2021,
+			alcohol: 13,
+			size_ml: 750,
+			country: 'DE',
+			region: 'Baden',
+			grapes: ['Pinot Noir'],
+			color: 'red',
+			name: 'Spätburgunder',
+			producerHas: 'Keller'
+		}
 	}
 };
