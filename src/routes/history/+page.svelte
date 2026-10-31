@@ -200,6 +200,9 @@
 		gap: 12px;
 		align-items: center;
 		padding: 10px 0;
+		/* the full history can be thousands of rows: off-screen ones skip layout and paint */
+		content-visibility: auto;
+		contain-intrinsic-size: auto 64px;
 	}
 	.item + .item {
 		border-top: 1px solid var(--line);
