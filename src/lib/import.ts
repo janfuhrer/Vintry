@@ -1,8 +1,10 @@
 // Maps a spreadsheet (CSV rows) onto wine form fields. Runs in the browser for the preview;
 // the server validates every row again with the same rules as the wine form.
+import type { CsvRecord } from './csv';
 import { COLORS, type Color } from './data/types';
-import { countryIndex, normalize } from './wine';
+import { countryIndex, findGrape, normalize } from './wine';
 
+/** Form fields of one wine, plus the spreadsheet row it came from (`_row`) for error messages */
 export type ImportRow = Record<string, string | string[]>;
 
 /** Header names people use, normalised (lower case, no accents), per form field */
@@ -58,21 +60,28 @@ const COLOR_WORDS: Record<string, Color> = {
 	schaumwein: 'sparkling',
 	sekt: 'sparkling',
 	champagner: 'sparkling',
+	champagne: 'sparkling',
 	prosecco: 'sparkling',
 	cava: 'sparkling',
 	cremant: 'sparkling',
 	mousseux: 'sparkling',
 	spumante: 'sparkling',
+	petillant: 'sparkling',
+	effervescent: 'sparkling',
 	susswein: 'sweet',
 	suss: 'sweet',
 	dessertwein: 'sweet',
 	dessert: 'sweet',
 	liquoreux: 'sweet',
+	doux: 'sweet',
+	moelleux: 'sweet',
 	likorwein: 'fortified',
 	port: 'fortified',
 	portwein: 'fortified',
+	porto: 'fortified',
 	sherry: 'fortified',
-	madeira: 'fortified'
+	madeira: 'fortified',
+	marsala: 'fortified'
 };
 
 export interface ColumnMapping {
@@ -83,27 +92,39 @@ export interface ColumnMapping {
 /** Undoes the export's formula guard and trims */
 const cell = (s: string | undefined) => (s ?? '').trim().replace(/^'(?=[=+\-@])/, '');
 
+/** "Rot", "White wine", "Rosé", "Champagne" → a colour; unknown → '' (decided later) */
 function color(v: string): string {
-	const n = normalize(v);
-	if ((COLORS as readonly string[]).includes(n)) return n;
-	return COLOR_WORDS[n] ?? COLOR_WORDS[n.split(' ')[0]] ?? '';
+	for (const word of normalize(v).split(' ')) {
+		if ((COLORS as readonly string[]).includes(word)) return word;
+		if (COLOR_WORDS[word]) return COLOR_WORDS[word];
+	}
+	return '';
 }
 
-/** "1.5.2024", "01/05/2024", "2024-05-01" → "2024-05-01" */
+/** "1.5.2024", "01/05/2024", US "12/31/2024", "2024-05-01" → "2024-05-01" (validated server-side) */
 function isoDate(v: string): string {
 	const s = v.trim();
 	if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.slice(0, 10);
 	const m = s.match(/^(\d{1,2})[./](\d{1,2})[./](\d{4})$/);
-	return m ? `${m[3]}-${m[2].padStart(2, '0')}-${m[1].padStart(2, '0')}` : s;
+	if (!m) return '';
+	let [day, month] = [Number(m[1]), Number(m[2])];
+	// day first, as in Europe, unless that can't be: "12/31/2024" is month first
+	if (month > 12 && day <= 12) [day, month] = [month, day];
+	return `${m[3]}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 }
 
-/** "CHF 32.50", "32,50 €", "1'250.–" → "32.50" / "1250" */
+/** "CHF 32.50", "SFr. 25.-", "29,90 €", "€ 1.250", "1'250.50" → "32.50", "25", "29.90", "1250", "1250.50" */
 function number(v: string): string {
-	const s = v
+	let s = v
+		.replace(/[\p{L}$€£¥]+\.?/gu, '') // currency words and symbols, "SFr." included
 		.replace(/['’\s]/g, '')
-		.replace(/[^\d.,-]/g, '')
-		.replace(/[.,]-+$/, '');
-	return /,\d{1,2}$/.test(s) ? s.replace(/\./g, '').replace(',', '.') : s.replace(/,/g, '');
+		.replace(/[.,]-+$/, '') // "25.-"
+		.replace(/^[.,]+/, '');
+	if (/^\d{1,3}([.,]\d{3})+$/.test(s)) return s.replace(/[.,]/g, ''); // thousands only: "1.250"
+	if (/,\d{1,2}$/.test(s))
+		s = s.replace(/\./g, '').replace(',', '.'); // decimal comma
+	else s = s.replace(/,/g, '');
+	return /^-?\d+(\.\d+)?$/.test(s) ? s : '';
 }
 
 /** "75 cl", "0,75 l", "750" → "750" */
@@ -112,12 +133,50 @@ function sizeMl(v: string): string {
 	if (!m) return '';
 	const n = Number(m[1]);
 	const unit = (m[2] ?? (n < 10 ? 'l' : n < 100 ? 'cl' : 'ml')).toLowerCase();
-	return String(Math.round(unit === 'ml' ? n : unit === 'cl' ? n * 10 : n * 1000));
+	const ml = Math.round(unit === 'ml' ? n : unit === 'cl' ? n * 10 : n * 1000);
+	return ml > 0 && ml <= 30000 ? String(ml) : '';
 }
 
-export function mapTable(table: string[][]): { columns: ColumnMapping[]; rows: ImportRow[] } {
-	const [header = [], ...body] = table;
-	const columns = header.map((h) => {
+/** Ratings out of 5, or scores out of 20 or 100, as 1–5 stars; anything else is dropped */
+function stars(v: string): string {
+	const n = Number(number(v));
+	if (!n || n < 0) return '';
+	const out = n <= 5 ? n : n <= 20 ? n / 4 : n <= 100 ? n / 20 : NaN;
+	return Number.isFinite(out) ? String(Math.min(5, Math.max(1, Math.round(out)))) : '';
+}
+
+const year = (v: string) => (/^(1[89]\d{2}|2[01]\d{2})$/.test(v.trim()) ? v.trim() : '');
+
+/**
+ * Optional fields with a value that can't be right are left empty instead of rejecting
+ * the whole row ("NV" vintage, a 92-point score, "75 cl" in an alcohol column).
+ */
+const FIELD: Record<string, (v: string) => string | string[]> = {
+	grapes: (v) =>
+		v
+			.split(/[;,/|+]| und | and | et | e /)
+			.map((g) => g.trim())
+			.filter(Boolean),
+	color,
+	purchased_on: isoDate,
+	price: number,
+	alcohol: (v) => {
+		if (/\b(cl|ml|l)\b/i.test(v)) return '';
+		const n = Number(number(v));
+		return n >= 4 && n <= 25 ? String(n) : '';
+	},
+	size_ml: sizeMl,
+	vintage: year,
+	drink_from: year,
+	drink_to: year,
+	quantity: (v) => (/^\d{1,4}$/.test(v.trim()) ? v.trim() : ''),
+	rating: stars,
+	country: (v) => countryIndex.get(normalize(v))?.code ?? ''
+};
+
+export function mapTable(records: CsvRecord[]): { columns: ColumnMapping[]; rows: ImportRow[] } {
+	const [header, ...body] = records;
+	const columns = (header?.cells ?? []).map((h) => {
 		const n = normalize(h);
 		return { header: h.trim(), field: FIELD_BY_HEADER.get(n) ?? null };
 	});
@@ -127,23 +186,19 @@ export function mapTable(table: string[][]): { columns: ColumnMapping[]; rows: I
 		if (c.field && seen.has(c.field)) c.field = null;
 		else if (c.field) seen.add(c.field);
 	}
-	const rows = body.map((r) => {
-		const row: ImportRow = {};
+	const rows = body.map((record) => {
+		const row: ImportRow = { _row: String(record.row) };
 		columns.forEach((c, i) => {
-			const v = cell(r[i]);
-			if (!c.field || !v) return;
-			if (c.field === 'grapes')
-				row.grapes = v
-					.split(/[;,/|+]| und | and /)
-					.map((g) => g.trim())
-					.filter(Boolean);
-			else if (c.field === 'color') row.color = color(v);
-			else if (c.field === 'purchased_on') row.purchased_on = isoDate(v);
-			else if (c.field === 'price' || c.field === 'alcohol') row[c.field] = number(v);
-			else if (c.field === 'size_ml') row.size_ml = sizeMl(v);
-			else if (c.field === 'country') row.country = countryIndex.get(normalize(v))?.code ?? '';
-			else row[c.field] = v;
+			const raw = cell(record.cells[i]);
+			if (!c.field || !raw) return;
+			const v = FIELD[c.field] ? FIELD[c.field](raw) : raw;
+			if (v.length) row[c.field] = v;
 		});
+		// no usable colour: decide from the grapes, as the label parser does
+		if (!row.color && Array.isArray(row.grapes)) {
+			const colors = new Set(row.grapes.map((g) => findGrape(g)?.color).filter(Boolean));
+			if (colors.size === 1) row.color = [...colors][0]!;
+		}
 		return row;
 	});
 	return { columns, rows: rows.filter((r) => typeof r.name === 'string' && r.name) };

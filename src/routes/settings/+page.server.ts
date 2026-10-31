@@ -132,13 +132,16 @@ export const actions: Actions = {
 		const rejected: number[] = [];
 		for (const [i, row] of rows.entries()) {
 			const fd = new FormData();
+			let line = i + 2;
 			if (row && typeof row === 'object')
-				for (const [k, v] of Object.entries(row))
-					for (const x of Array.isArray(v) ? v : [v]) if (typeof x === 'string') fd.append(k, x);
+				for (const [k, v] of Object.entries(row)) {
+					if (k === '_row')
+						line = Number(v) || line; // the spreadsheet row, for the message
+					else for (const x of Array.isArray(v) ? v : [v]) if (typeof x === 'string') fd.append(k, x);
+				}
 			if (!fd.has('quantity')) fd.set('quantity', '1');
 			const { input, errors } = parseWineForm(fd);
-			if (Object.keys(errors).length)
-				rejected.push(i + 2); // spreadsheet row: header is row 1
+			if (Object.keys(errors).length) rejected.push(line);
 			else inputs.push(withSuggestions(input));
 		}
 		const imported = await importWines(locals.user!.id, inputs);

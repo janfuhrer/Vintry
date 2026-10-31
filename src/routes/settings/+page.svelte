@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import Icon from '#lib/components/Icon.svelte';
-	import { parseCsv } from '#lib/csv.ts';
+	import { decodeText, parseCsvRecords } from '#lib/csv.ts';
 	import { LOCALES, useI18n } from '#lib/i18n.ts';
 	import { mapTable, type ColumnMapping, type ImportRow } from '#lib/import.ts';
 	import type { PageProps } from './$types';
@@ -27,12 +27,15 @@
 		preview = null;
 		if (!file) return;
 		try {
-			preview = mapTable(parseCsv(await file.text()));
+			preview = mapTable(parseCsvRecords(decodeText(await file.arrayBuffer())));
 		} catch {
 			readError = true;
 		}
 	}
 	const hasName = $derived(preview?.columns.some((c) => c.field === 'name') ?? false);
+	// the server takes up to ~2 MB per request; say so here instead of failing there
+	const payload = $derived(preview ? JSON.stringify(preview.rows) : '');
+	const tooBig = $derived(payload.length > 1_800_000);
 	let copied = $state('');
 	async function copy(text: string) {
 		try {
@@ -261,7 +264,9 @@
 		<h2>{t('import.title')}</h2>
 		<p class="muted small">{t('import.hint')}</p>
 		{#if form?.imported !== undefined}
-			<p class="success" role="status">{t('import.done', { n: form.imported })}</p>
+			<p class="success" role="status">
+				{form.imported === 1 ? t('import.doneOne') : t('import.done', { n: form.imported })}
+			</p>
 			{#if form.rejectedCount}
 				<p class="error">
 					{t('import.rejected', {
@@ -272,7 +277,11 @@
 		{/if}
 		{#if form?.importError}
 			<p class="error" role="alert">
-				{form.importError === 'tooMany' ? t('import.tooMany') : t('import.error')}
+				{form.importError === 'tooMany'
+					? t('import.tooMany')
+					: form.importError === 'empty'
+						? t('import.empty')
+						: t('import.error')}
 			</p>
 		{/if}
 		{#if readError}<p class="error" role="alert">{t('import.error')}</p>{/if}
@@ -293,7 +302,7 @@
 				</p>
 				<div class="small">
 					<span class="muted">{t('import.columns')}:</span>
-					{#each preview.columns as c (c.header)}
+					{#each preview.columns as c, i (i)}
 						<span class="chip import-col" class:ignored={!c.field}>
 							{c.header}{#if !c.field}<span class="sep">·</span>{t('import.ignored')}{/if}
 						</span>
@@ -318,9 +327,12 @@
 							preview = null;
 						}}
 				>
-					<input type="hidden" name="rows" value={JSON.stringify(preview.rows)} />
-					<button class="btn primary block" disabled={!preview.rows.length}>
-						{t('import.button', { n: preview.rows.length })}
+					<input type="hidden" name="rows" value={payload} />
+					{#if tooBig}<p class="error">{t('import.tooBig')}</p>{/if}
+					<button class="btn primary block" disabled={!preview.rows.length || tooBig}>
+						{preview.rows.length === 1
+							? t('import.buttonOne')
+							: t('import.button', { n: preview.rows.length })}
 					</button>
 				</form>
 			{/if}

@@ -1,4 +1,5 @@
 // Validation of the wine form. Kept free of database imports so it can be unit-tested.
+import { isISODate } from '#lib/dates.ts';
 import { COLORS, canonicalGrape, suggestTaste, suggestWindow, type Color } from '#lib/wine.ts';
 import type { WineInput } from './wines';
 
@@ -60,7 +61,8 @@ export function parseWineForm(fd: FormData): { input: WineInput; errors: FieldEr
 
 	const year = new Date().getFullYear();
 	const purchasedOn = str(fd, 'purchased_on', 10);
-	if (purchasedOn && !/^\d{4}-\d{2}-\d{2}$/.test(purchasedOn)) errors.purchased_on = 'invalid';
+	// a real calendar day: "2024-02-31" would otherwise fail inside Postgres
+	if (purchasedOn && !isISODate(purchasedOn)) errors.purchased_on = 'invalid';
 
 	const input: WineInput = {
 		name: name ?? '',

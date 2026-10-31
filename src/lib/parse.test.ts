@@ -182,3 +182,26 @@ describe('font-dependent OCR readings', () => {
 		expect(p.name).toBe('Barolo');
 	});
 });
+
+describe('third review', () => {
+	test('a surname that is also a country adjective does not beat the region', () => {
+		const p = parseLabel(
+			lines(['Weingut Schweizer', 30], ['Riesling', 60], ['Qualitätswein Pfalz', 20]),
+			2026
+		);
+		expect(p.country).toBe('DE');
+	});
+
+	test('estate-bottled and import lines are not the producer or the name', () => {
+		expect(parseLabel(lines(['NAPA VALLEY', 70], ['Estate Bottled', 40]), 2026).name).toBe('Napa Valley');
+		const p = parseLabel(lines(['CHIANTI CLASSICO', 70], ['Imported by Acme Vineyards', 45]), 2026);
+		expect(p.name).toBe('Chianti Classico');
+		expect(p.producer).toBeUndefined();
+	});
+});
+
+test('an origin line with an adjective is not the name', () => {
+	const p = parseLabel(lines(['Schweizer Rotwein', 60], ['Gamaret', 40]), 2026);
+	expect(p.name).toBe('Gamaret');
+	expect(p.country).toBe('CH');
+});

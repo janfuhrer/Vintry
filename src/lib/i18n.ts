@@ -238,6 +238,10 @@ const en = {
 	'import.rejected': 'Skipped rows with invalid values: {rows}',
 	'import.error': 'The file could not be read.',
 	'import.tooMany': 'At most 2000 wines per import.',
+	'import.tooBig': 'This file is too large for one import. Split it into smaller files.',
+	'import.buttonOne': 'Import 1 wine',
+	'import.doneOne': '1 wine imported.',
+	'import.empty': 'No wines to import.',
 	'settings.deleteAccount': 'Delete account',
 	'settings.deleteAccountHint':
 		'Deletes your cellar, history, photos and passkeys. This cannot be undone. Type your name to confirm.',
@@ -483,6 +487,10 @@ const de: Record<Key, string> = {
 	'import.rejected': 'Übersprungene Zeilen mit ungültigen Werten: {rows}',
 	'import.error': 'Die Datei konnte nicht gelesen werden.',
 	'import.tooMany': 'Höchstens 2000 Weine pro Import.',
+	'import.tooBig': 'Diese Datei ist für einen Import zu gross. Teile sie in kleinere Dateien auf.',
+	'import.buttonOne': '1 Wein importieren',
+	'import.doneOne': '1 Wein importiert.',
+	'import.empty': 'Keine Weine zum Importieren.',
 	'settings.deleteAccount': 'Konto löschen',
 	'settings.deleteAccountHint':
 		'Löscht deinen Keller, Verlauf, Fotos und Passkeys. Das lässt sich nicht rückgängig machen. Tippe deinen Namen zur Bestätigung.',

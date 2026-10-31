@@ -23,24 +23,26 @@ export interface Parsed {
 // names only: two-letter codes would match random OCR tokens ("it", "de")
 const countryNames = new Map<string, string>();
 for (const c of countries) for (const n of c.names) countryNames.set(normalize(n), c.code);
-// adjectives labels use for the origin ("Schweizer Rotwein", "vino italiano")
-for (const [adj, code] of Object.entries({
-	schweizer: 'CH',
-	svizzero: 'CH',
-	svizzera: 'CH',
-	italiano: 'IT',
-	italienischer: 'IT',
-	francais: 'FR',
-	francaise: 'FR',
-	franzosischer: 'FR',
-	espanol: 'ES',
-	spanischer: 'ES',
-	portugues: 'PT',
-	deutscher: 'DE',
-	osterreichischer: 'AT',
-	osterreichisch: 'AT'
-}))
-	countryNames.set(adj, code);
+// Adjectives labels use for the origin ("Schweizer Rotwein", "vino italiano"). Some are
+// surnames too ("Weingut Schweizer"), so they only count when nothing better names the country.
+const countryAdjectives = new Map(
+	Object.entries({
+		schweizer: 'CH',
+		svizzero: 'CH',
+		svizzera: 'CH',
+		italiano: 'IT',
+		italienischer: 'IT',
+		francais: 'FR',
+		francaise: 'FR',
+		franzosischer: 'FR',
+		espanol: 'ES',
+		spanischer: 'ES',
+		portugues: 'PT',
+		deutscher: 'DE',
+		osterreichischer: 'AT',
+		osterreichisch: 'AT'
+	})
+);
 
 type Place = { kind: 'grape'; grape: Grape } | { kind: 'region'; region: Region };
 const places = new Map<string, Place>();
@@ -130,7 +132,8 @@ const META_WORDS = new Set(
 	(
 		'aoc aop doc docg dop do doca dac igt igp qba vdp vqa ava cru grand premier ' +
 		'appellation controlee protegee denominazione denominacion origine origen controllata garantita calificada ' +
-		'vin vino vinho wein wine qualitatswein landwein tafelwein rouge rosso tinto rot red blanc bianco blanco weiss white ' +
+		'vin vino vinho wein wine qualitatswein landwein tafelwein rotwein weisswein rosewein schaumwein susswein ' +
+		'rouge rosso tinto rot red blanc bianco blanco weiss white ' +
 		'rose rosato rosado du de di del della des d la le et and of from von aus'
 	).split(' ')
 );
@@ -138,7 +141,8 @@ const META_WORDS = new Set(
 const STRONG_META = new Set(
 	(
 		'aoc aop doc docg dop do doca dac igt igp qba vdp vqa ava appellation controlee protegee denominazione ' +
-		'denominacion origine origen controllata garantita calificada vin vino vinho wein wine qualitatswein landwein tafelwein'
+		'denominacion origine origen controllata garantita calificada vin vino vinho wein wine qualitatswein landwein tafelwein ' +
+		'rotwein weisswein rosewein schaumwein susswein'
 	).split(' ')
 );
 const APPELLATION_TAG = /\s+\b(aoc|aop|doc|docg|dop|do|doca|dac|igt|igp)\b\.?$/i;
@@ -224,7 +228,7 @@ export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): P
 	if (grapes.length) out.grapes = grapes.map((g) => g.name);
 
 	const country = matchAll(text, countryNames)[0];
-	out.country = country ?? region?.country;
+	out.country = country ?? region?.country ?? matchAll(text, countryAdjectives)[0];
 	if (!out.country) delete out.country;
 
 	for (const [color, words] of COLOR_WORDS) {
@@ -245,8 +249,9 @@ export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): P
 
 	// producer: a line naming an estate
 	const cleaned = lines.map((l) => ({ text: clean(l.text), height: l.height })).filter((l) => l.text);
+	// bottling, import and distribution lines name a company, not the wine's producer
 	const BOTTLING =
-		/^(mis en bouteille|mise en bouteille|imbottigliato|abgefullt|embotellado|bottled|produced|prodotto|elabore)/;
+		/^(mis en bouteille|mise en bouteille|imbottigliato|abgefullt|embotellado|bottled|estate bottled|produced|prodotto|elabore|imported|importe|importiert|importato|importado|distributed|vertrieb)/;
 	const producerLine = cleaned.find((l) => {
 		const n = normalize(l.text);
 		return !BOTTLING.test(n) && n.split(' ').some((w) => PRODUCER_WORDS.includes(w));
@@ -278,9 +283,10 @@ export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): P
 			.replace(/_region_/g, ' ')
 			.split(' ')
 			.filter(Boolean);
-		if (!words.every((w) => META_WORDS.has(w) || countryNames.has(w))) return false;
+		const origin = (w: string) => countryNames.has(w) || countryAdjectives.has(w);
+		if (!words.every((w) => META_WORDS.has(w) || origin(w))) return false;
 		if (hadRegion) return afterPreposition || words.some((w) => WINE_WORDS.has(w));
-		return words.length > 0 && words.some((w) => STRONG_META.has(w) || countryNames.has(w));
+		return words.length > 0 && words.some((w) => STRONG_META.has(w) || origin(w));
 	};
 	const isMeta = (s: string) => {
 		const n = normalize(s);

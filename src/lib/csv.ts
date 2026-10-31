@@ -21,20 +21,33 @@ export function toCsv<T extends Record<string, Cell>>(rows: T[], columns: (keyof
 	return '\uFEFF' + lines.join('\r\n') + '\r\n';
 }
 
+export interface CsvRecord {
+	/** Row number as a spreadsheet shows it (header = 1; a cell with line breaks is one row) */
+	row: number;
+	cells: string[];
+}
+
 /**
- * Parses CSV text into rows of cells. Handles a UTF-8 BOM, quoted fields with "" escapes and
+ * Parses CSV text into records. Handles a UTF-8 BOM, quoted fields with "" escapes and
  * line breaks, CRLF, and guesses the delimiter: Excel writes ";" in German-speaking locales.
+ * Blank records are dropped but still counted, so row numbers match the spreadsheet.
  */
-export function parseCsv(text: string): string[][] {
+export function parseCsvRecords(text: string): CsvRecord[] {
 	const src = text.replace(/^\uFEFF/, '');
 	const firstLine = src.slice(0, src.search(/\r?\n|$/));
 	const delimiter = [',', ';', '\t'].reduce((best, d) =>
 		firstLine.split(d).length > firstLine.split(best).length ? d : best
 	);
-	const rows: string[][] = [];
+	const records: CsvRecord[] = [];
 	let row: string[] = [];
 	let field = '';
 	let quoted = false;
+	const end = () => {
+		row.push(field);
+		records.push({ row: records.length + 1, cells: row });
+		row = [];
+		field = '';
+	};
 	for (let i = 0; i < src.length; i++) {
 		const c = src[i];
 		if (quoted) {
@@ -49,15 +62,26 @@ export function parseCsv(text: string): string[][] {
 			field = '';
 		} else if (c === '\n' || c === '\r') {
 			if (c === '\r' && src[i + 1] === '\n') i++;
-			row.push(field);
-			rows.push(row);
-			row = [];
-			field = '';
+			end();
 		} else field += c;
 	}
-	if (field !== '' || row.length) {
-		row.push(field);
-		rows.push(row);
+	if (field !== '' || row.length) end();
+	return records.filter((r) => r.cells.some((cell) => cell.trim() !== ''));
+}
+
+/** Rows of cells, without row numbers */
+export function parseCsv(text: string): string[][] {
+	return parseCsvRecords(text).map((r) => r.cells);
+}
+
+/**
+ * Decodes an uploaded file: UTF-8 if it is valid UTF-8, else Windows-1252, which is what
+ * Excel on German-language Windows writes for "CSV (Trennzeichen-getrennt)".
+ */
+export function decodeText(bytes: ArrayBuffer): string {
+	try {
+		return new TextDecoder('utf-8', { fatal: true }).decode(bytes);
+	} catch {
+		return new TextDecoder('windows-1252').decode(bytes);
 	}
-	return rows.filter((r) => r.some((cell) => cell.trim() !== ''));
 }
