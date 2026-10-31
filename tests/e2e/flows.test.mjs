@@ -209,6 +209,57 @@ describe('cellar', () => {
 		assert.equal((await find('Restock Red')).quantity, 4);
 	});
 
+	test('history stats per year count every drink of that year', async () => {
+		const add = async (fields) => {
+			const fd = new FormData();
+			for (const [k, v] of Object.entries(fields)) for (const x of [v].flat()) fd.append(k, x);
+			return (await alice.req('/add', { method: 'POST', form: fd, page: true })).headers.get('location');
+		};
+		const pinot = await add({
+			name: 'Stats Pinot',
+			color: 'red',
+			country: 'CH',
+			grapes: ['Pinot Noir', 'Gamay'],
+			quantity: '5'
+		});
+		const merlot = await add({
+			name: 'Stats Merlot',
+			color: 'red',
+			country: 'FR',
+			grapes: 'Merlot',
+			quantity: '5'
+		});
+		const drink = (url, drunk_on, rating) =>
+			alice.action(`${url}?/drink`, { drunk_on, ...(rating ? { rating } : {}) });
+		await drink(pinot, '2019-10-01', '4');
+		await drink(pinot, '2019-03-12', '5');
+		await drink(merlot, '2019-01-02');
+		await drink(merlot, '2018-12-31', '1');
+		// a tie between Merlot and Pinot Noir in 2017 goes to the most recent drink
+		await drink(merlot, '2017-04-01');
+		await drink(pinot, '2017-05-01');
+
+		const json = await (await alice.req('/history/__data.json')).json();
+		const page = devalue.unflatten(json.nodes.at(-1).data);
+		const year = (y) => page.years.find((s) => s.year === y);
+		assert.deepEqual(year(2019), {
+			year: 2019,
+			bottles: 3,
+			avgRating: 4.5,
+			topGrape: 'Pinot Noir',
+			topCountry: 'CH'
+		});
+		assert.deepEqual(year(2018), {
+			year: 2018,
+			bottles: 1,
+			avgRating: 1,
+			topGrape: 'Merlot',
+			topCountry: 'FR'
+		});
+		assert.equal(year(2017).topCountry, 'CH');
+		assert.equal(year(2017).topGrape, 'Pinot Noir');
+	});
+
 	test('removing a drink entry puts the bottle back', async () => {
 		const qty = async () => {
 			const html = await (await alice.req(wineUrl, { page: true })).text();

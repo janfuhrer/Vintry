@@ -290,7 +290,10 @@ export type HistoryItem = Drink &
 		'name' | 'producer' | 'vintage' | 'color' | 'grapes' | 'country' | 'has_photo' | 'photo_version'
 	>;
 
-export async function history(userId: string): Promise<HistoryItem[]> {
+/** How many drinks the history lists before "show older" */
+export const HISTORY_PAGE = 500;
+
+export async function history(userId: string, all = false): Promise<HistoryItem[]> {
 	return sql<HistoryItem[]>`
 		select d.id, d.wine_id, d.drunk_on, d.rating, d.note,
 			w.name, w.producer, w.vintage, w.color, w.grapes, w.country, w.has_photo,
@@ -300,7 +303,52 @@ export async function history(userId: string): Promise<HistoryItem[]> {
 		left join wine_photos p on p.wine_id = w.id
 		where d.user_id = ${userId}
 		order by d.drunk_on desc, d.created_at desc
-		limit 500
+		${all ? sql`` : sql`limit ${HISTORY_PAGE + 1}`}
+	`;
+}
+
+export interface YearStats {
+	year: number;
+	bottles: number;
+	avgRating: number | null;
+	topGrape: string | null;
+	topCountry: string | null;
+}
+
+/**
+ * Per year, over every drink (the history list itself is paged): bottles, average rating,
+ * and the most drunk grape and country, ties going to the most recently drunk.
+ */
+export async function yearStats(userId: string): Promise<YearStats[]> {
+	return sql<YearStats[]>`
+		with d as (
+			select extract(year from d.drunk_on)::int as year, d.drunk_on, d.created_at, d.rating,
+				w.grapes, w.country
+			from drinks d join wines w on w.id = d.wine_id
+			where d.user_id = ${userId}
+		),
+		totals as (
+			select year, count(*)::int as bottles, round(avg(rating), 1)::float8 as avg_rating
+			from d group by year
+		),
+		grapes as (
+			-- within one wine, the grape listed first (the main one) wins a tie
+			select year, grape, row_number() over (
+				partition by year order by count(*) desc, max(drunk_on) desc, max(created_at) desc, min(pos)
+			) as n
+			from d, unnest(grapes) with ordinality as g(grape, pos) group by year, grape
+		),
+		countries as (
+			select year, country, row_number() over (
+				partition by year order by count(*) desc, max(drunk_on) desc, max(created_at) desc
+			) as n
+			from d where country is not null group by year, country
+		)
+		select t.year, t.bottles, t.avg_rating as "avgRating", g.grape as "topGrape", c.country as "topCountry"
+		from totals t
+		left join grapes g on g.year = t.year and g.n = 1
+		left join countries c on c.year = t.year and c.n = 1
+		order by t.year desc
 	`;
 }
 

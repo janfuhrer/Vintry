@@ -1,9 +1,9 @@
 <script lang="ts">
+	import Icon from '#lib/components/Icon.svelte';
 	import Stars from '#lib/components/Stars.svelte';
 	import Thumb from '#lib/components/Thumb.svelte';
 	import { groupBy } from '#lib/group.ts';
 	import { useI18n } from '#lib/i18n.ts';
-	import { yearStats } from '#lib/stats.ts';
 	import { countryName, flag } from '#lib/wine.ts';
 	import type { PageProps } from './$types';
 
@@ -21,7 +21,16 @@
 			drinks
 		}));
 	});
-	const stats = $derived(yearStats(data.drinks, new Date().getFullYear()));
+	const thisYear = new Date().getFullYear();
+	// years with drinks, newest first; the stats card steps through them
+	const years = $derived([...new Set([thisYear, ...data.years.map((y) => y.year)])].sort((a, b) => b - a));
+	let year = $state(thisYear);
+	const empty = (y: number) => ({ year: y, bottles: 0, avgRating: null, topGrape: null, topCountry: null });
+	const stats = $derived(data.years.find((y) => y.year === year) ?? empty(year));
+	const step = (dir: 1 | -1) => {
+		const i = years.indexOf(year) - dir;
+		if (i >= 0 && i < years.length) year = years[i];
+	};
 
 	const day = (d: string) =>
 		new Date(`${d}T12:00:00`).toLocaleDateString(i18n.locale, { day: 'numeric', weekday: 'short' });
@@ -31,9 +40,26 @@
 
 <main class="page">
 	<h1 class="title">{t('history.title')}</h1>
-	{#if stats.bottles > 0 || data.value.value > 0}
-		<section class="card stats" aria-label={t('history.thisYear', { year: stats.year })}>
-			<h2 class="small muted">{t('history.thisYear', { year: stats.year })}</h2>
+	{#if data.years.length > 0 || data.value.value > 0}
+		{@const heading = year === thisYear ? t('history.thisYear', { year }) : String(year)}
+		<section class="card stats" aria-label={heading}>
+			<div class="stats-head">
+				<h2 class="small muted" aria-live="polite">{heading}</h2>
+				{#if years.length > 1}
+					<button
+						class="icon-btn"
+						aria-label={t('history.prevYear')}
+						disabled={year === years.at(-1)}
+						onclick={() => step(-1)}><Icon name="back" size={18} /></button
+					>
+					<button
+						class="icon-btn next"
+						aria-label={t('history.nextYear')}
+						disabled={year === years[0]}
+						onclick={() => step(1)}><Icon name="back" size={18} /></button
+					>
+				{/if}
+			</div>
 			<dl>
 				{#if stats.bottles > 0}
 					<div>
@@ -59,7 +85,14 @@
 						<dd class="text">{flag(stats.topCountry)} {countryName(stats.topCountry, i18n.locale)}</dd>
 					</div>
 				{/if}
-				{#if data.value.value > 0}
+				{#if stats.bottles === 0}
+					<div>
+						<dt>{t('history.bottles')}</dt>
+						<dd>0</dd>
+					</div>
+				{/if}
+				<!-- what the cellar is worth now, so only next to this year's numbers -->
+				{#if data.value.value > 0 && year === thisYear}
 					<div title={t('history.cellarValueHint', { n: data.value.bottles })}>
 						<dt>{t('history.cellarValue')}</dt>
 						<dd>{Math.round(data.value.value).toLocaleString(i18n.locale)}</dd>
@@ -103,14 +136,30 @@
 			</div>
 		</section>
 	{/each}
+	{#if data.more}
+		<a class="btn block older" href="/history?all" data-sveltekit-noscroll>{t('history.older')}</a>
+	{/if}
 </main>
 
 <style>
 	.title {
 		margin-bottom: 12px;
 	}
-	.stats h2 {
-		margin-bottom: 10px;
+	.stats-head {
+		display: flex;
+		align-items: center;
+		gap: 2px;
+		margin: -6px -6px 10px 0;
+	}
+	.stats-head h2 {
+		flex: 1;
+		margin: 0;
+	}
+	.stats-head .icon-btn:disabled {
+		opacity: 0.35;
+	}
+	.next :global(svg) {
+		transform: scaleX(-1);
 	}
 	.stats dl {
 		display: grid;
@@ -131,6 +180,9 @@
 	.stats dd.text {
 		font-size: 1rem;
 		font-weight: 650;
+	}
+	.older {
+		margin-top: 20px;
 	}
 	.empty {
 		text-align: center;
