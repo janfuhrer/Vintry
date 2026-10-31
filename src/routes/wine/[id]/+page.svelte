@@ -28,8 +28,10 @@
 	let editing = $state<(typeof data.drinks)[number] | null>(null);
 	let editRating = $state<number | null>(null);
 	let editOpen = $state(false);
+	let editError = $state(false);
 	function openEdit(d: (typeof data.drinks)[number]) {
 		editing = d;
+		editError = false;
 		editRating = d.rating;
 		editOpen = true;
 	}
@@ -261,9 +263,10 @@
 			action="?/editDrink"
 			class="stack"
 			use:enhance={() =>
-				async ({ update }) => {
-					await update();
-					editOpen = false;
+				async ({ result, update }) => {
+					await update({ reset: false });
+					editError = result.type !== 'success';
+					if (!editError) editOpen = false;
 				}}
 		>
 			<input type="hidden" name="id" value={editing.id} />
@@ -280,6 +283,7 @@
 				{t('drink.note')}
 				<textarea class="input" name="note" maxlength="2000">{editing.note ?? ''}</textarea>
 			</label>
+			{#if editError}<p class="error" role="alert">{t('common.error')}</p>{/if}
 			<button class="btn primary block">{t('common.save')}</button>
 		</form>
 		<form

@@ -123,3 +123,27 @@ describe('joinSplitCaps', () => {
 		expect(joinSplitCaps('M AB')).toBe('M AB');
 	});
 });
+
+describe('regressions found in review', () => {
+	test('a region + appellation title is the name, without the tag', () => {
+		const p = parseLabel(lines(['BAROLO DOCG', 80], ['Tenuta Rossi', 30], ['Prodotto in Italia', 20]), 2026);
+		expect(p.name).toBe('Barolo');
+		expect(p.producer).toBe('Tenuta Rossi');
+	});
+
+	test('a premier cru title survives', () => {
+		const p = parseLabel(lines(['CHABLIS PREMIER CRU', 70], ['Produit de France', 20]), 2026);
+		expect(p.name).toBe('Chablis Premier Cru');
+	});
+
+	test('names made of articles and colour words are kept', () => {
+		expect(parseLabel(lines(['La Rose', 80], ['Château X', 30]), 2026).name).toBe('La Rose');
+	});
+
+	test('Italian article and initials are not glued', async () => {
+		const { joinSplitCaps } = await import('./parse');
+		expect(joinSplitCaps('I SODI DI SAN NICCOLÒ')).toBe('I SODI DI SAN NICCOLÒ');
+		expect(joinSplitCaps('J P MOUEIX')).toBe('J P MOUEIX');
+		expect(joinSplitCaps('CHÂTEAU M ONTLAURENT')).toBe('CHÂTEAU MONTLAURENT');
+	});
+});

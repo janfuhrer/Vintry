@@ -36,6 +36,8 @@
 	let notice = $state(initial ? t('add.copied', { name: initial.name }) : '');
 	let formKey = $state(0);
 	let imageError = $state(false);
+	// bumped on cancel: a scan that finishes after the user went back is ignored
+	let scanRun = 0;
 
 	// show the photo while it's being read
 	let previewUrl = $state<string | null>(null);
@@ -82,6 +84,7 @@
 		const file = input.files?.[0];
 		input.value = '';
 		if (!file) return;
+		const run = ++scanRun;
 		step = 'scanning';
 		progress = 0;
 		stage = 'loading';
@@ -92,10 +95,12 @@
 		} catch (err) {
 			// the browser can't decode it (e.g. HEIC outside Safari): say so, don't pretend to scan
 			console.error(err);
+			if (run !== scanRun) return;
 			imageError = true;
 			step = 'choose';
 			return;
 		}
+		if (run !== scanRun) return;
 		photo = prepared.photo;
 		try {
 			const { readLabel } = await import('#lib/ocr.ts');
@@ -103,6 +108,7 @@
 				stage = s;
 				progress = p;
 			});
+			if (run !== scanRun) return; // cancelled while reading
 			const parsed = parseLabel(lines);
 			const v = emptyValues();
 			const found: string[] = [];
@@ -120,6 +126,7 @@
 		} catch (err) {
 			// keep the photo: the wine can still be entered by hand
 			console.error(err);
+			if (run !== scanRun) return;
 			values = emptyValues();
 			scanned = [];
 			notice = t('add.scanFailed');
@@ -142,8 +149,8 @@
 
 <main class="page" style="--form-bottom: calc(var(--nav-h) + var(--safe-b))">
 	<header class="head">
-		{#if step === 'form'}
-			<button class="icon-btn" aria-label={t('common.back')} onclick={() => (step = 'choose')}
+		{#if step === 'form' || step === 'scanning'}
+			<button class="icon-btn" aria-label={t('common.back')} onclick={() => (scanRun++, (step = 'choose'))}
 				><Icon name="back" /></button
 			>
 		{/if}

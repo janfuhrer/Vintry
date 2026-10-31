@@ -116,6 +116,28 @@ export const labels = {
 			producerHas: 'Hofmann'
 		}
 	},
+	chianti: {
+		// all-caps title starting with the Italian article "I", appellation with DOCG
+		svg: label([
+			['FATTORIA LE CORTI', 34, { spacing: 3, gap: 150 }],
+			['I SODI', 104, { bold: true, gap: 100 }],
+			['Chianti Classico DOCG', 40, { gap: 70 }],
+			['2019', 56, { gap: 110 }],
+			['Sangiovese', 32, { gap: 90 }],
+			['13,5% vol    750 ml', 26, { gap: 170 }]
+		]),
+		expect: {
+			vintage: 2019,
+			alcohol: 13.5,
+			size_ml: 750,
+			country: 'IT',
+			region: 'Chianti Classico',
+			grapes: ['Sangiovese'],
+			color: 'red',
+			name: 'I Sodi',
+			producerHas: 'Le Corti'
+		}
+	},
 	rioja: {
 		svg: label([
 			['BODEGAS RAMÍREZ', 38, { spacing: 2, gap: 150 }],

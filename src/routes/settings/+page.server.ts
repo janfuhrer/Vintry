@@ -66,6 +66,8 @@ export const actions: Actions = {
 		const deleted = await sql.begin(async (tx) => {
 			// someone has to be able to invite people: the last admin can't leave others behind
 			if (user.is_admin) {
+				// lock the admins so two of two can't each see "another admin remains" and both leave
+				await tx`select id from users where is_admin for update`;
 				const [{ admins, others }] = await tx<{ admins: number; others: number }[]>`
 					select count(*) filter (where is_admin)::int as admins,
 						count(*) filter (where id <> ${user.id})::int as others

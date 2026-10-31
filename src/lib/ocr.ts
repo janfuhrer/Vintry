@@ -1,4 +1,5 @@
 import type { Worker } from 'tesseract.js';
+import { encode } from './image';
 import { betterPass, extractLines, needsInvertedPass } from './ocr-lines';
 import type { OcrLine } from './parse';
 
@@ -58,9 +59,7 @@ async function invertedCopy(image: Blob): Promise<Blob> {
 		px[i] = px[i + 1] = px[i + 2] = v;
 	}
 	ctx.putImageData(img, 0, 0);
-	return new Promise((resolve, reject) =>
-		canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode failed'))), 'image/jpeg', 0.9)
-	);
+	return encode(canvas, 0.9);
 }
 
 export async function readLabel(

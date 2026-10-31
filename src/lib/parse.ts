@@ -115,6 +115,14 @@ const META_WORDS = new Set(
 		'rose rosato rosado du de di del della des d la le et and of from von aus'
 	).split(' ')
 );
+/** Words that make a line boilerplate on their own; articles and colours alone don't ("La Rose") */
+const STRONG_META = new Set(
+	(
+		'aoc aop doc docg dop do doca dac igt igp qba vdp vqa ava appellation controlee protegee denominazione ' +
+		'denominacion origine origen controllata garantita calificada vin vino vinho wein wine qualitatswein landwein tafelwein'
+	).split(' ')
+);
+const APPELLATION_TAG = /\s+\b(aoc|aop|doc|docg|dop|do|doca|dac|igt|igp)\b\.?$/i;
 
 /** Finds the longest known names in the text; each span is used once */
 function matchAll<T>(text: string, keys: Map<string, T>, minLength = 4): T[] {
@@ -154,7 +162,9 @@ function clean(line: string): string {
 export function joinSplitCaps(line: string): string {
 	const letters = line.replace(/[^\p{L}]/gu, '');
 	if (letters.length < 4 || letters !== letters.toUpperCase()) return line;
-	return line.replace(/(^|\s)([^\sAÀEÉOY\P{Lu}])\s(?=\p{Lu}{3,})/gu, '$1$2');
+	// only right after a word of 2+ letters (or at the start), so initials like "J P MOUEIX"
+	// stay apart; A, À, E, É, I, O, Y are words themselves ("I SODI", "ROSSO E BIANCO")
+	return line.replace(/(^|\p{L}{2,}\s)([^\sAÀEÉIOY\P{Lu}])\s(?=\p{Lu}{3,})/gu, '$1$2');
 }
 
 export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): Parsed {
@@ -221,12 +231,30 @@ export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): P
 	// a line that is only appellation, colour, origin words and place names ("du Valais AOC",
 	// "Vin blanc de Suisse") describes the wine but isn't its name. A grape alone ("Fendant")
 	// often is the name, so grapes don't count here.
+	// A region heading the line ("BAROLO DOCG", "Chablis Premier Cru") may well be the name;
+	// after a preposition or a wine word ("du Valais AOC", "Grand Vin de Bordeaux") it only
+	// says where the wine is from. Articles and colours alone don't make boilerplate ("La Rose").
+	const PREPOSITIONS = new Set(['du', 'de', 'des', 'd', 'di', 'del', 'della', 'von', 'aus', 'from', 'of']);
+	const WINE_WORDS = new Set(['vin', 'vino', 'vinho', 'wein', 'wine']);
 	const onlyDescribes = (n: string) => {
 		let rest = ` ${n} `;
-		for (const r of [...regionIndex.keys()].sort((a, b) => b.length - a.length))
-			rest = rest.replace(` ${r} `, ' ');
-		const words = rest.trim().split(' ').filter(Boolean);
-		return words.length > 0 && words.every((w) => META_WORDS.has(w) || countryNames.has(w));
+		let afterPreposition = false;
+		for (const r of [...regionIndex.keys()].sort((a, b) => b.length - a.length)) {
+			const at = rest.indexOf(` ${r} `);
+			if (at === -1) continue;
+			const before = rest.slice(0, at).trim().split(' ').pop() ?? '';
+			if (PREPOSITIONS.has(before)) afterPreposition = true;
+			rest = rest.slice(0, at) + ' _region_ ' + rest.slice(at + r.length + 2);
+		}
+		// normalized text is [a-z0-9 ], so the marker can't collide with label words
+		const hadRegion = rest.includes('_region_');
+		const words = rest
+			.replace(/_region_/g, ' ')
+			.split(' ')
+			.filter(Boolean);
+		if (!words.every((w) => META_WORDS.has(w) || countryNames.has(w))) return false;
+		if (hadRegion) return afterPreposition || words.some((w) => WINE_WORDS.has(w));
+		return words.length > 0 && words.some((w) => STRONG_META.has(w) || countryNames.has(w));
 	};
 	const isMeta = (s: string) => {
 		const n = normalize(s);
@@ -238,7 +266,7 @@ export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): P
 			SIZE.test(s) ||
 			countryNames.has(stripped) ||
 			onlyDescribes(stripped) ||
-			/^(appellation|denominazione|produce|product|contains|enthalt|mis en bouteille|imbottigliato|abgefullt)/.test(
+			/^(appellation|denominazione|produce|product|produit|prodotto|producto|contains|contient|contiene|enthalt|mis en bouteille|imbottigliato|abgefullt)/.test(
 				n
 			)
 		);
@@ -246,9 +274,13 @@ export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): P
 	const candidates = cleaned
 		.filter((l) => l !== producerLine && !isMeta(l.text))
 		.sort((a, b) => b.height - a.height);
-	const nameLine = candidates[0];
+	// on château/domaine labels the estate is the biggest text and is the wine's name
+	const nameLine =
+		producerLine && (!candidates[0] || producerLine.height >= candidates[0].height)
+			? producerLine
+			: candidates[0];
 	if (nameLine) {
-		out.name = titleCase(nameLine.text.replace(VINTAGE, '').trim());
+		out.name = titleCase(nameLine.text.replace(VINTAGE, '').trim().replace(APPELLATION_TAG, ''));
 	} else if (out.producer) {
 		out.name = out.producer;
 	} else if (region) {
@@ -256,7 +288,7 @@ export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): P
 	}
 	// a region line is a fine name ("Barolo"), but prefer a fancier one if it's as tall
 	if (out.name && findRegion(out.name) && candidates[1] && candidates[1].height >= nameLine!.height * 0.9) {
-		out.name = titleCase(candidates[1].text.replace(VINTAGE, '').trim());
+		out.name = titleCase(candidates[1].text.replace(VINTAGE, '').trim().replace(APPELLATION_TAG, ''));
 	}
 
 	return out;

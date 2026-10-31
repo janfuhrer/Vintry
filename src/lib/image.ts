@@ -10,8 +10,24 @@ export async function resizeImage(file: Blob, max: number, quality = 0.82): Prom
 	const ctx = canvas.getContext('2d')!;
 	ctx.drawImage(bitmap, 0, 0, w, h);
 	bitmap.close();
+	return encode(canvas, quality);
+}
+
+/**
+ * JPEG-encodes and then frees the canvas. iOS Safari counts canvas memory against a total cap
+ * until garbage collection, so a few scans in a row could make toBlob fail otherwise.
+ */
+export function encode(canvas: HTMLCanvasElement, quality: number): Promise<Blob> {
 	return new Promise((resolve, reject) =>
-		canvas.toBlob((b) => (b ? resolve(b) : reject(new Error('encode failed'))), 'image/jpeg', quality)
+		canvas.toBlob(
+			(b) => {
+				canvas.width = canvas.height = 0;
+				if (b) resolve(b);
+				else reject(new Error('encode failed'));
+			},
+			'image/jpeg',
+			quality
+		)
 	);
 }
 

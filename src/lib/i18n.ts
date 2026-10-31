@@ -5,6 +5,7 @@ export type Locale = (typeof LOCALES)[number];
 
 const en = {
 	'app.tagline': 'Your wine cellar, in your pocket.',
+	'nav.main': 'Main',
 	'nav.cellar': 'Cellar',
 	'nav.add': 'Add',
 	'nav.history': 'History',
@@ -212,6 +213,7 @@ export type Key = keyof typeof en;
 
 const de: Record<Key, string> = {
 	'app.tagline': 'Dein Weinkeller, immer dabei.',
+	'nav.main': 'Hauptnavigation',
 	'nav.cellar': 'Keller',
 	'nav.add': 'Neu',
 	'nav.history': 'Verlauf',

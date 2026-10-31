@@ -20,7 +20,7 @@
 {@render children()}
 
 {#if showNav}
-	<nav class="bottom-nav" aria-label="Main">
+	<nav class="bottom-nav" aria-label={t('nav.main')}>
 		<a
 			href="/"
 			class:active={path === '/' || path.startsWith('/wine')}
