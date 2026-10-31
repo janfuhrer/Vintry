@@ -37,8 +37,11 @@ await worker.setParameters({ tessedit_pageseg_mode: PSM.SPARSE_TEXT });
 let failures = 0;
 // small, typical and close-up label sizes in the photo
 const widths = (process.env.OCR_WIDTHS ?? '600,1000,2200').split(',').map(Number);
+// OCR_ONLY=napa,alsace runs just those labels while working on them
+const only = process.env.OCR_ONLY?.split(',');
+const picked = Object.entries(labels).filter(([name]) => !only || only.includes(name));
 const cases = widths.flatMap((width) =>
-	Object.entries(labels).map(([name, l]) => ({
+	picked.map(([name, l]) => ({
 		name: `${name} @${width}px`,
 		svg: l.svg,
 		expect: l.expect,
@@ -46,7 +49,7 @@ const cases = widths.flatMap((width) =>
 	}))
 );
 // and as photographed: tilted, on a table, label filling ~60% of the frame
-for (const [name, l] of Object.entries(labels))
+for (const [name, l] of picked)
 	cases.push({ name: `${name} photo`, svg: inPhoto(l.svg), expect: l.expect, width: 2200 });
 
 for (const { name, svg, expect, width } of cases) {

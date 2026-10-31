@@ -61,6 +61,9 @@ describe('parseLabel', () => {
 		expect(parseLabel(lines(['1,5 L', 10]), 2026).size_ml).toBe(1500);
 		expect(parseLabel(lines(['375 ml', 10]), 2026).size_ml).toBe(375);
 		expect(parseLabel(lines(['33 cl', 10]), 2026).size_ml).toBeUndefined();
+		// a misread digit close to a real size snaps to it; anything further off is dropped
+		expect(parseLabel(lines(['756ml', 10]), 2026).size_ml).toBe(750);
+		expect(parseLabel(lines(['780 ml', 10]), 2026).size_ml).toBeUndefined();
 	});
 
 	test('empty input gives an empty result', () => {

@@ -255,5 +255,98 @@ export const labels = {
 			name: 'Vina Alta',
 			producerHas: 'Ramírez'
 		}
+	},
+	napa: {
+		svg: label(
+			[
+				['STAG RIDGE', 84, { bold: true, spacing: 4, gap: 170, family: 'Helvetica, Arial, sans-serif' }],
+				['2019', 48, { gap: 80 }],
+				['Cabernet Sauvignon', 50, { gap: 70 }],
+				['NAPA VALLEY', 34, { spacing: 6, gap: 60 }],
+				['Produced and bottled by Stag Ridge Cellars, St. Helena, CA', 20, { gap: 260 }],
+				['Alc. 14.5% by vol.    750 ml', 24, { gap: 40, family: 'Helvetica, Arial, sans-serif' }]
+			],
+			{ bg: '#ffffff', ink: '#111111' }
+		),
+		expect: {
+			vintage: 2019,
+			alcohol: 14.5,
+			size_ml: 750,
+			country: 'US',
+			region: 'Napa Valley',
+			grapes: ['Cabernet Sauvignon'],
+			color: 'red',
+			name: 'Stag Ridge'
+		}
+	},
+	marlborough: {
+		svg: label(
+			[
+				['Kowhai Bay', 90, { bold: true, gap: 180, family: 'Helvetica, Arial, sans-serif' }],
+				['MARLBOROUGH', 32, { spacing: 8, gap: 80, family: 'Helvetica, Arial, sans-serif' }],
+				['Sauvignon Blanc', 54, { gap: 90 }],
+				['2024', 44, { gap: 70 }],
+				['Wine of New Zealand', 26, { gap: 300 }],
+				['13% vol    750ml', 24, { gap: 40, family: 'Helvetica, Arial, sans-serif' }]
+			],
+			{ bg: '#eef3ef', ink: '#1b3a2f' }
+		),
+		expect: {
+			vintage: 2024,
+			alcohol: 13,
+			size_ml: 750,
+			country: 'NZ',
+			region: 'Marlborough',
+			grapes: ['Sauvignon Blanc'],
+			color: 'white',
+			name: 'Kowhai Bay'
+		}
+	},
+	alsace: {
+		svg: label([
+			['DOMAINE WEINBACH-KLEIN', 30, { spacing: 3, gap: 150 }],
+			['Gewurztraminer', 76, { bold: true, gap: 100 }],
+			['ALSACE', 40, { spacing: 8, gap: 70 }],
+			['Appellation Alsace Contrôlée', 26, { gap: 40 }],
+			['2021', 54, { gap: 110 }],
+			['Mis en bouteille à la propriété', 24, { gap: 180 }],
+			['13,5% vol.    75 cl    Produit de France', 24, { gap: 50 }]
+		]),
+		expect: {
+			vintage: 2021,
+			alcohol: 13.5,
+			size_ml: 750,
+			country: 'FR',
+			region: 'Alsace',
+			grapes: ['Gewürztraminer'],
+			color: 'white',
+			name: 'Gewurztraminer',
+			producerHas: 'Weinbach'
+		}
+	},
+	mendoza: {
+		svg: label(
+			[
+				['FINCA LOS ANDES', 30, { spacing: 5, gap: 160, family: 'Helvetica, Arial, sans-serif' }],
+				['Cumbre Alta', 92, { bold: true, gap: 100 }],
+				['MALBEC', 46, { spacing: 10, gap: 80 }],
+				['2020', 52, { gap: 90 }],
+				['Valle de Uco · Mendoza', 30, { gap: 70 }],
+				['Hecho en Argentina', 24, { gap: 220 }],
+				['14,5% vol.    750 ml', 24, { gap: 40, family: 'Helvetica, Arial, sans-serif' }]
+			],
+			{ bg: '#1e1b2e', ink: '#d9c9a3' }
+		),
+		expect: {
+			vintage: 2020,
+			alcohol: 14.5,
+			size_ml: 750,
+			country: 'AR',
+			region: 'Mendoza',
+			grapes: ['Malbec'],
+			color: 'red',
+			name: 'Cumbre Alta',
+			producerHas: 'Andes'
+		}
 	}
 };

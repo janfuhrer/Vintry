@@ -52,8 +52,11 @@ for (const [k, grape] of grapeIndex) places.set(k, { kind: 'grape', grape });
 const PRODUCER_WORDS = [
 	'chateau',
 	'domaine',
+	'domaines',
 	'weingut',
 	'tenuta',
+	'tenute',
+	'finca',
 	'bodega',
 	'bodegas',
 	'cantina',
@@ -70,6 +73,7 @@ const PRODUCER_WORDS = [
 	'podere',
 	'winery',
 	'vineyards',
+	'cellars',
 	'estate',
 	'weinbau',
 	'kellerei',
@@ -215,7 +219,9 @@ export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): P
 		const n = Number(size[1].replace(',', '.'));
 		const unit = size[2].toLowerCase();
 		const ml = Math.round(unit === 'ml' ? n : unit === 'cl' || unit === 'el' ? n * 10 : n * 1000);
-		if ([187, 375, 500, 750, 1000, 1500, 3000, 6000].includes(ml)) out.size_ml = ml;
+		// within 1 % of a real bottle size: OCR reads "750ml" as "756ml" now and then
+		const bottle = [187, 375, 500, 750, 1000, 1500, 3000, 6000].find((s) => Math.abs(ml - s) <= s * 0.01);
+		if (bottle) out.size_ml = bottle;
 	}
 
 	// one longest-first pass, so "Müller-Thurgau" doesn't also count as the Thurgau region
