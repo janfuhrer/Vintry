@@ -22,8 +22,8 @@
 	const i18n = useI18n();
 	const { t } = i18n;
 
-	type Group = 'none' | 'country' | 'grape' | 'window';
-	const GROUPS: Group[] = ['none', 'country', 'grape', 'window'];
+	type Group = 'none' | 'country' | 'grape' | 'window' | 'location';
+	const GROUPS: Group[] = ['none', 'country', 'grape', 'window', 'location'];
 	type Sort = 'recent' | 'name' | 'vintage' | 'window' | 'rating';
 	const SORTS: Sort[] = ['recent', 'name', 'vintage', 'window', 'rating'];
 	const STATUS_ORDER: WindowStatus[] = ['soon', 'ready', 'wait', 'past', 'unknown'];
@@ -106,11 +106,13 @@
 		const grouped = groupBy(filtered, (w) => {
 			if (group === 'country') return w.country ?? '';
 			if (group === 'window') return windowStatus(w.drink_from, w.drink_to);
+			if (group === 'location') return w.location?.trim() ?? '';
 			return w.grapes.length ? w.grapes : '';
 		});
 		const label = (k: string) => {
 			if (group === 'country') return k ? `${flag(k)} ${countryName(k, i18n.locale)}` : t('cellar.unknown');
 			if (group === 'window') return t(`status.${k}` as Key);
+			if (group === 'location') return k || t('cellar.noLocation');
 			return k || t('cellar.unknown');
 		};
 		const entries = grouped.map(([key, wines]) => ({ key, label: label(key), wines }));
@@ -118,7 +120,10 @@
 			entries.sort(
 				(a, b) => STATUS_ORDER.indexOf(a.key as WindowStatus) - STATUS_ORDER.indexOf(b.key as WindowStatus)
 			);
-		else entries.sort((a, b) => (!a.key ? 1 : !b.key ? -1 : a.label.localeCompare(b.label)));
+		else
+			entries.sort((a, b) =>
+				!a.key ? 1 : !b.key ? -1 : a.label.localeCompare(b.label, i18n.locale, { numeric: true })
+			);
 		return entries;
 	});
 </script>
