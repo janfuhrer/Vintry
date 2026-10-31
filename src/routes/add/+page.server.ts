@@ -1,4 +1,5 @@
 import { fail, redirect } from '@sveltejs/kit';
+import { allowance, readerOf } from '#lib/server/claude.ts';
 import { parsePhoto, parseWineForm } from '#lib/server/wine-form.ts';
 import { createWine, findDuplicate, getWine, ownedWines, suggestions } from '#lib/server/wines.ts';
 import type { Actions, PageServerLoad } from './$types';
@@ -6,8 +7,14 @@ import type { Actions, PageServerLoad } from './$types';
 export const load: PageServerLoad = async ({ locals, url }) => {
 	const from = url.searchParams.get('from');
 	const copy = from ? await getWine(locals.user!.id, from) : null;
-	const [list, owned] = await Promise.all([suggestions(locals.user!.id), ownedWines(locals.user!.id)]);
-	return { suggestions: list, owned, copy };
+	const [list, owned, reader] = await Promise.all([
+		suggestions(locals.user!.id),
+		ownedWines(locals.user!.id),
+		readerOf(locals.user!.id)
+	]);
+	// labels go to Claude while the month's allowance lasts, then are read on the phone again
+	const claude = reader === 'claude' ? { scansLeft: (await allowance(locals.user!.id)).scansLeft } : null;
+	return { suggestions: list, owned, copy, claude };
 };
 
 export const actions: Actions = {

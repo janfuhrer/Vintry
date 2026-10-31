@@ -6,6 +6,7 @@ import {
 	destroySession,
 	SESSION_COOKIE
 } from '#lib/server/auth.ts';
+import { allowance, claudeEnabled, readerOf, setReader } from '#lib/server/claude.ts';
 import { deviceLabel } from '#lib/server/device.ts';
 import { parseWineForm, withSuggestions } from '#lib/server/wine-form.ts';
 import { importWines } from '#lib/server/wines.ts';
@@ -42,7 +43,10 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		where user_id = ${user.id} and location is not null
 		group by location order by location
 	`;
-	if (!user.is_admin) return { passkeys, sessions, locations, admin: null };
+	const claude = claudeEnabled
+		? { reader: await readerOf(user.id), allowance: await allowance(user.id) }
+		: null;
+	if (!user.is_admin) return { passkeys, sessions, locations, claude, admin: null };
 
 	const users = await sql<{ id: string; name: string; is_admin: boolean; created_at: Date; wines: number }[]>`
 		select u.id, u.name, u.is_admin, u.created_at,
@@ -55,7 +59,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		order by created_at desc
 	`;
 	// the id is a token hash: fine to use as a handle, it can't be turned back into a link
-	return { passkeys, sessions, locations, admin: { users, invites, me: user.id } };
+	return { passkeys, sessions, locations, claude, admin: { users, invites, me: user.id } };
 };
 
 export const actions: Actions = {
@@ -63,6 +67,14 @@ export const actions: Actions = {
 		const locale = String((await request.formData()).get('locale'));
 		if (!isLocale(locale)) return fail(400);
 		await sql`update users set locale = ${locale} where id = ${locals.user!.id}`;
+	},
+	reader: async ({ request, locals }) => {
+		const fd = await request.formData();
+		const reader = fd.get('reader');
+		if (!claudeEnabled || (reader !== 'local' && reader !== 'claude')) return fail(400);
+		// photos leave the phone only with an explicit yes
+		if (reader === 'claude' && fd.get('consent') !== 'on') return fail(400, { readerError: 'consent' });
+		await setReader(locals.user!.id, reader);
 	},
 	deletePasskey: async ({ request, locals }) => {
 		const id = String((await request.formData()).get('id'));

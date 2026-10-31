@@ -113,5 +113,19 @@ export const migrations: string[] = [
 	/* sql */ `
 	-- wines you want, not own yet
 	alter table wines add column wishlist boolean not null default false;
+	`,
+	/* sql */ `
+	-- label reading by Claude: each user opts in, and spends from a monthly allowance
+	alter table users add column label_reader text not null default 'local'
+		check (label_reader in ('local', 'claude'));
+	alter table users add column claude_consent_at timestamptz;
+	create table claude_usage (
+		user_id uuid not null references users on delete cascade,
+		month date not null,
+		requests int not null default 0,
+		input_tokens bigint not null default 0,
+		output_tokens bigint not null default 0,
+		primary key (user_id, month)
+	);
 	`
 ];

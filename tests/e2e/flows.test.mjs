@@ -433,6 +433,103 @@ describe('cellar', () => {
 	});
 });
 
+describe('label reading with Claude', () => {
+	const claudeCalls = async () => (await fetch(`${process.env.E2E_CLAUDE}/calls`)).json();
+	const photo = (marker = '') =>
+		new Blob([Buffer.concat([Buffer.from([0xff, 0xd8, 0xff, 0xe0]), Buffer.from(marker), randomBytes(100)])]);
+	const read = async (front, back) => {
+		const fd = new FormData();
+		fd.append('front', front, 'front.jpg');
+		if (back) fd.append('back', back, 'back.jpg');
+		const r = await alice.req('/api/label', { method: 'POST', form: fd });
+		return { status: r.status, body: await r.json() };
+	};
+	const addData = async () => {
+		const json = await (await alice.req('/add/__data.json')).json();
+		return devalue.unflatten(json.nodes.at(-1).data);
+	};
+
+	test('photos stay on the phone until the user agrees', async () => {
+		assert.equal((await addData()).claude, null);
+		assert.deepEqual(await read(photo()), { status: 403, body: { error: 'off' } });
+		const r = await alice.action('/settings?/reader', { reader: 'claude' });
+		assert.equal(r.type, 'failure');
+		assert.equal((await addData()).claude, null);
+		assert.equal((await claudeCalls()).length, 0);
+	});
+
+	test('with consent, a label is read and the answer checked like user input', async () => {
+		assert.equal(
+			(await alice.action('/settings?/reader', { reader: 'claude', consent: 'on' })).type,
+			'success'
+		);
+		assert.ok((await addData()).claude.scansLeft > 0);
+		const { status, body } = await read(photo());
+		assert.equal(status, 200);
+		assert.equal(body.label, true);
+		assert.deepEqual(body.fields, {
+			name: 'Chianti Classico Riserva',
+			producer: 'Tenuta Poggio ai Mandorli',
+			vintage: '2017',
+			color: 'red',
+			country: 'IT',
+			region: 'Chianti Classico',
+			grapes: ['Sangiovese', 'Merlot'],
+			drink_from: '2021',
+			drink_to: '2032',
+			// 9 is out of range: replaced by the grapes' typical acidity
+			body: 4,
+			acidity: body.fields.acidity,
+			tannin: body.fields.tannin,
+			sweetness: body.fields.sweetness
+		});
+		assert.ok(body.fields.acidity >= 1 && body.fields.acidity <= 5);
+		const [call] = await claudeCalls();
+		assert.equal(call.key, 'Bearer test-key');
+		assert.match(call.beta, /server-side-fallback-2026-07-01/);
+		assert.equal(call.body.model, 'claude-opus-5-5');
+		assert.match(call.body.system, /wine labels/);
+		assert.equal(call.body.messages[0].content.filter((c) => c.type === 'image').length, 1);
+		assert.equal(call.body.output_config.format.type, 'json_schema');
+	});
+
+	test('front and back go together', async () => {
+		const { body } = await read(photo(), photo());
+		assert.equal(body.fields.alcohol, '14');
+		assert.equal(body.fields.size_ml, '750');
+		const calls = await claudeCalls();
+		assert.equal(calls.at(-1).body.messages[0].content.filter((c) => c.type === 'image').length, 2);
+	});
+
+	test('something that is not a JPEG never reaches Claude', async () => {
+		const before = (await claudeCalls()).length;
+		const fd = new FormData();
+		fd.append('front', new Blob(['<svg/>']), 'x.svg');
+		const r = await alice.req('/api/label', { method: 'POST', form: fd });
+		assert.equal(r.status, 400);
+		assert.equal((await claudeCalls()).length, before);
+	});
+
+	test('a photo without a wine label fills nothing', async () => {
+		assert.deepEqual(await read(photo('NOTLABEL')), { status: 200, body: { fields: {}, label: false } });
+	});
+
+	test('a refusal is reported, and the monthly allowance runs out', async () => {
+		assert.deepEqual(await read(photo('REFUSE')), { status: 502, body: { error: 'refused' } });
+		// four scans of 3,400 tokens spent 13,600 of 15,000
+		assert.equal((await addData()).claude.scansLeft, 0);
+		assert.deepEqual(await read(photo()), { status: 429, body: { error: 'budget' } });
+		const html = await (await alice.req('/settings', { page: true })).text();
+		assert.ok(html.includes('91 %'), 'settings show what was used');
+	});
+
+	test('back to reading on the phone', async () => {
+		assert.equal((await alice.action('/settings?/reader', { reader: 'local' })).type, 'success');
+		assert.equal((await addData()).claude, null);
+		assert.equal((await read(photo())).status, 403);
+	});
+});
+
 describe('people', () => {
 	let bobKey;
 

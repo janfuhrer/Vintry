@@ -98,6 +98,10 @@ const en = {
 	'add.loading': 'Loading text recognition…',
 	'add.scanned': 'Filled in from the label. Check the marked fields.',
 	'add.scanFailed': 'Could not read the label. Fill in what you know.',
+	'add.claudeReading': 'Claude is reading the label…',
+	'add.claudeFallback': 'Claude was not available, so the phone read the label. Check the marked fields.',
+	'add.noLabel': 'Claude found no wine label on the photo.',
+	'add.withClaude': 'Read by Claude · about {n} scans left this month',
 	'add.badImage': 'This image format can’t be opened here. Try a JPEG or take a photo.',
 	'add.retake': 'Retake',
 	'add.copied': 'Copied from {name}. Check the vintage and bottles.',
@@ -224,6 +228,16 @@ const en = {
 
 	'settings.title': 'Settings',
 	'settings.language': 'Language',
+	'settings.reader': 'Reading labels',
+	'settings.readerLocal': 'On this phone',
+	'settings.readerLocalHint': 'Private and free. Small or curved print is often misread.',
+	'settings.readerClaude': 'With Claude',
+	'settings.readerClaudeHint':
+		'More accurate. Recognises the wine and adds grapes, drinking window and taste. The photos are sent to Anthropic.',
+	'settings.readerConsent':
+		'I agree that the label photos I scan are sent to Anthropic, the company behind Claude, to be read. Only the photos go along, nothing else from my cellar.',
+	'settings.readerConsentMissing': 'Please agree first.',
+	'settings.readerUsage': 'This month: {pct} % of your allowance used, about {n} scans left.',
 	'settings.passkeys': 'Passkeys',
 	'settings.passkeyUnnamed': 'Passkey',
 	'settings.lastUsed': 'Last used {date}',
@@ -392,6 +406,11 @@ const de: Record<Key, string> = {
 	'add.loading': 'Texterkennung wird geladen…',
 	'add.scanned': 'Von der Etikette übernommen. Prüfe die markierten Felder.',
 	'add.scanFailed': 'Etikette nicht lesbar. Fülle aus, was du weisst.',
+	'add.claudeReading': 'Claude liest die Etikette…',
+	'add.claudeFallback':
+		'Claude war nicht erreichbar, darum hat das Handy die Etikette gelesen. Prüfe die markierten Felder.',
+	'add.noLabel': 'Claude hat auf dem Foto keine Weinetikette gefunden.',
+	'add.withClaude': 'Liest Claude · noch etwa {n} Scans diesen Monat',
 	'add.badImage': 'Dieses Bildformat lässt sich hier nicht öffnen. Versuche ein JPEG oder mach ein Foto.',
 	'add.retake': 'Neues Foto',
 	'add.copied': 'Von {name} übernommen. Prüfe Jahrgang und Flaschen.',
@@ -518,6 +537,16 @@ const de: Record<Key, string> = {
 
 	'settings.title': 'Einstellungen',
 	'settings.language': 'Sprache',
+	'settings.reader': 'Etiketten lesen',
+	'settings.readerLocal': 'Auf diesem Handy',
+	'settings.readerLocalHint': 'Privat und gratis. Kleine oder gewölbte Schrift wird oft falsch gelesen.',
+	'settings.readerClaude': 'Mit Claude',
+	'settings.readerClaudeHint':
+		'Genauer. Erkennt den Wein und ergänzt Trauben, Trinkfenster und Geschmack. Die Fotos werden an Anthropic gesendet.',
+	'settings.readerConsent':
+		'Ich bin einverstanden, dass die gescannten Etiketten-Fotos zum Lesen an Anthropic gesendet werden, die Firma hinter Claude. Nur die Fotos, nichts sonst aus meinem Keller.',
+	'settings.readerConsentMissing': 'Bitte zuerst zustimmen.',
+	'settings.readerUsage': 'Diesen Monat: {pct} % deines Kontingents verbraucht, noch etwa {n} Scans.',
 	'settings.passkeys': 'Passkeys',
 	'settings.passkeyUnnamed': 'Passkey',
 	'settings.lastUsed': 'Zuletzt benutzt {date}',

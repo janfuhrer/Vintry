@@ -16,6 +16,8 @@
 		new Date(d).toLocaleDateString(i18n.locale, { day: 'numeric', month: 'short', year: 'numeric' });
 
 	let renaming = $state<string | null>(null);
+	// the choice before saving; consent is asked only when switching to Claude
+	let reader = $derived(data.claude?.reader ?? 'local');
 	// in UTC, so the server's rendering and the browser's agree
 	const build = /^\d+$/.test(version)
 		? `${new Date(Number(version)).toISOString().slice(0, 16).replace('T', ' ')} UTC`
@@ -81,6 +83,50 @@
 			{/each}
 		</form>
 	</section>
+
+	{#if data.claude}
+		{@const claude = data.claude}
+		<section class="card stack">
+			<h2>{t('settings.reader')}</h2>
+			<form method="POST" action="?/reader" use:enhance class="stack">
+				<label class="option">
+					<input type="radio" name="reader" value="local" bind:group={reader} />
+					<span
+						><strong>{t('settings.readerLocal')}</strong><br /><span class="muted small"
+							>{t('settings.readerLocalHint')}</span
+						></span
+					>
+				</label>
+				<label class="option">
+					<input type="radio" name="reader" value="claude" bind:group={reader} />
+					<span
+						><strong>{t('settings.readerClaude')}</strong><br /><span class="muted small"
+							>{t('settings.readerClaudeHint')}</span
+						></span
+					>
+				</label>
+				{#if reader === 'claude' && claude.reader !== 'claude'}
+					<label class="option consent small">
+						<input type="checkbox" name="consent" required />
+						<span>{t('settings.readerConsent')}</span>
+					</label>
+				{/if}
+				{#if form?.readerError}<p class="error" role="alert">{t('settings.readerConsentMissing')}</p>{/if}
+				{#if reader !== claude.reader}<button class="btn primary">{t('common.save')}</button>{/if}
+			</form>
+			{#if claude.reader === 'claude'}
+				<p class="muted small">
+					{t('settings.readerUsage', {
+						pct: Math.min(
+							100,
+							Math.round((100 * claude.allowance.used) / Math.max(1, claude.allowance.limit))
+						),
+						n: claude.allowance.scansLeft
+					})}
+				</p>
+			{/if}
+		</section>
+	{/if}
 
 	<section class="card stack">
 		<h2>{t('settings.passkeys')}</h2>
@@ -507,5 +553,20 @@
 	}
 	.danger-zone form {
 		margin-top: 12px;
+	}
+	.option {
+		display: flex;
+		align-items: flex-start;
+		gap: 10px;
+		cursor: pointer;
+	}
+	.option input {
+		margin-top: 3px;
+		accent-color: var(--accent);
+	}
+	.consent {
+		padding: 10px 12px;
+		border-radius: var(--radius-s);
+		background: var(--surface-2);
 	}
 </style>

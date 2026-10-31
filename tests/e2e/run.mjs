@@ -4,6 +4,7 @@
 //
 // The database is wiped first, so it must be local and used for nothing else.
 import { spawn } from 'node:child_process';
+import { createServer } from 'node:http';
 import { run } from 'node:test';
 import { spec } from 'node:test/reporters';
 import postgres from 'postgres';
@@ -24,6 +25,67 @@ await sql`drop schema if exists public cascade`;
 await sql`create schema public`;
 await sql.end();
 
+// A stand-in for the Claude API: answers like the real one, keeps what it was sent
+const claudeCalls = [];
+const fakeClaude = createServer(async (req, res) => {
+	if (req.method === 'GET' && req.url === '/calls') {
+		res.setHeader('content-type', 'application/json');
+		return res.end(JSON.stringify(claudeCalls));
+	}
+	let raw = '';
+	for await (const chunk of req) raw += chunk;
+	const body = JSON.parse(raw);
+	claudeCalls.push({
+		path: req.url,
+		key: req.headers.authorization,
+		beta: req.headers['anthropic-beta'],
+		body
+	});
+	const images = body.messages[0].content.filter((c) => c.type === 'image');
+	const marker = Buffer.from(images[0].source.data, 'base64').toString('latin1');
+	const reading = marker.includes('NOTLABEL')
+		? { ...EMPTY, is_wine_label: false }
+		: {
+				...EMPTY,
+				is_wine_label: true,
+				name: 'Chianti Classico Riserva',
+				producer: 'Tenuta Poggio ai Mandorli',
+				vintage: 2017,
+				color: 'red',
+				country: 'it',
+				region: 'chianti classico',
+				grapes: ['sangiovese', 'Merlot', 'sangiovese'],
+				// nonsense the server must drop rather than store
+				alcohol: images.length > 1 ? 14 : 140,
+				size_ml: images.length > 1 ? 750 : null,
+				drink_from: 2021,
+				drink_to: 2032,
+				body: 4,
+				acidity: 9
+			};
+	res.setHeader('content-type', 'application/json');
+	res.end(
+		JSON.stringify({
+			id: 'msg_test',
+			type: 'message',
+			role: 'assistant',
+			model: body.model,
+			content: marker.includes('REFUSE') ? [] : [{ type: 'text', text: JSON.stringify(reading) }],
+			stop_reason: marker.includes('REFUSE') ? 'refusal' : 'end_turn',
+			stop_sequence: null,
+			usage: { input_tokens: 3000, output_tokens: 400 }
+		})
+	);
+});
+const EMPTY = Object.fromEntries(
+	['name', 'producer', 'vintage', 'color', 'country', 'region', 'alcohol', 'size_ml']
+		.concat(['drink_from', 'drink_to', 'body', 'acidity', 'tannin', 'sweetness'])
+		.map((k) => [k, null])
+);
+EMPTY.grapes = [];
+await new Promise((resolve) => fakeClaude.listen(0, '127.0.0.1', resolve));
+const claudeBase = `http://127.0.0.1:${fakeClaude.address().port}`;
+
 const port = 3100 + Math.floor(Math.random() * 500);
 const base = `http://localhost:${port}`;
 const server = spawn('node', ['build'], {
@@ -32,7 +94,11 @@ const server = spawn('node', ['build'], {
 		DATABASE_URL: url,
 		APP_URL: base,
 		PORT: String(port),
-		PROTOCOL_HEADER: 'x-forwarded-proto'
+		PROTOCOL_HEADER: 'x-forwarded-proto',
+		ANTHROPIC_API_KEY: 'test-key',
+		ANTHROPIC_BASE_URL: claudeBase,
+		// 3,400 tokens a scan: four scans, then the allowance is spent
+		CLAUDE_MONTHLY_TOKENS: '15000'
 	},
 	stdio: ['ignore', 'pipe', 'pipe']
 });
@@ -58,6 +124,7 @@ try {
 	const invite = await ready;
 	process.env.E2E_BASE = base;
 	process.env.E2E_INVITE = invite;
+	process.env.E2E_CLAUDE = claudeBase;
 	const stream = run({ files: [new URL('./flows.test.mjs', import.meta.url).pathname], concurrency: 1 });
 	stream.on('test:fail', () => (failed = true));
 	// process.stdout never finishes, so drain the reporter instead of piping into it
@@ -66,6 +133,7 @@ try {
 	console.error(e.message);
 	failed = true;
 } finally {
+	fakeClaude.close();
 	server.kill();
 	// a server that ignores SIGTERM would linger after the run; the suite checks it doesn't
 	const exited = await new Promise((resolve) => {

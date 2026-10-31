@@ -6,7 +6,7 @@
 	import WineForm, { emptyValues, toValues, type WineFormValues } from '#lib/components/WineForm.svelte';
 	import { useI18n } from '#lib/i18n.ts';
 	import CropBox from '#lib/components/CropBox.svelte';
-	import { prepareCropForScan, preparePhotoForScan, type Crop } from '#lib/image.ts';
+	import { prepareCropForScan, preparePhotoForScan, resizeImage, type Crop } from '#lib/image.ts';
 	import { findSameWine, type Owned } from '#lib/match.ts';
 	import { parseLabel } from '#lib/parse.ts';
 	import type { PageProps } from './$types';
@@ -33,7 +33,7 @@
 	// initialised from data so the server already renders the copied form
 	const initial = untrack(() => data.copy);
 	let step = $state<Step>(initial ? 'form' : 'choose');
-	let stage = $state<'loading' | 'reading'>('loading');
+	let stage = $state<'loading' | 'reading' | 'claude'>('loading');
 	let progress = $state(0);
 	let values = $state<WineFormValues>(initial ? fromCopy(initial) : emptyValues());
 	let scanned = $state<string[]>([]);
@@ -142,6 +142,35 @@
 		return out as Partial<WineFormValues>;
 	}
 
+	// users who chose Claude in settings; off for the rest of the visit once the allowance is gone
+	let claudeSpent = $state(false);
+	const useClaude = $derived(!!data.claude && data.claude.scansLeft > 0 && !claudeSpent);
+	type Found = Partial<WineFormValues>;
+
+	/** The label photos to Claude, front first. Null when it can't answer: the phone reads instead. */
+	async function askClaude(photos: Blob[]): Promise<{ fields: Found; label: boolean } | null> {
+		const body = new FormData();
+		photos.forEach((p, i) =>
+			body.set(i ? 'back' : 'front', new File([p], 'label.jpg', { type: 'image/jpeg' }))
+		);
+		try {
+			const res = await fetch('/api/label', { method: 'POST', body });
+			const answer = await res.json();
+			if (res.ok) return answer;
+			if (answer.error === 'budget' || answer.error === 'off') claudeSpent = true;
+		} catch (err) {
+			console.error(err);
+		}
+		return null;
+	}
+
+	/** Local reading: tesseract on the phone, then the label parser */
+	async function readHere(ocr: Blob, onProgress: (s: 'loading' | 'reading', p: number) => void) {
+		const { readLabel } = await import('#lib/ocr.ts');
+		const { lines, text } = await readLabel(ocr, onProgress);
+		return { fields: toFields(parseLabel(lines)) as Found, text };
+	}
+
 	/** Brings a notice into view: Save is at the bottom of a long form */
 	function reveal(node: HTMLElement) {
 		node.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -160,11 +189,14 @@
 		const key = formKey;
 		backBusy = true;
 		try {
-			const { ocr } = await preparePhotoForScan(file);
-			const { readLabel } = await import('#lib/ocr.ts');
-			const { lines, text } = await readLabel(ocr, () => {});
+			// Claude reads both sides together, so each can explain the other
+			const answer =
+				useClaude && photo ? await askClaude([photo.image, await resizeImage(file, 1280)]) : null;
+			const { fields, text } = answer
+				? { fields: answer.fields, text: '' }
+				: await readHere((await preparePhotoForScan(file)).ocr, () => {});
 			if (run !== scanRun || key !== formKey || !wineForm) return;
-			const filled = wineForm.fillEmpty({ ...toFields(parseLabel(lines)), ocr_text: text });
+			const filled = wineForm.fillEmpty({ ...fields, ocr_text: text });
 			scanned = [...scanned, ...filled];
 			notice = filled.length ? t('add.backFilled', { n: filled.length }) : t('add.backNothing');
 		} catch (err) {
@@ -199,20 +231,37 @@
 		if (run !== scanRun) return;
 		photo = prepared.photo;
 		try {
-			const { readLabel } = await import('#lib/ocr.ts');
-			const { lines, text } = await readLabel(prepared.ocr, (s, p) => {
-				stage = s;
-				progress = p;
-			});
+			let answer = null;
+			const tried = useClaude;
+			if (tried) {
+				stage = 'claude';
+				answer = await askClaude([prepared.photo.image]);
+				if (run !== scanRun) return;
+			}
+			const { fields, text } = answer
+				? { fields: answer.fields, text: '' }
+				: await readHere(prepared.ocr, (s, p) => {
+						stage = s;
+						progress = p;
+					});
 			if (run !== scanRun) return; // cancelled while reading
-			const parsed = parseLabel(lines);
-			const v = { ...emptyValues(), ...keep, ...toFields(parsed) };
-			const found = Object.keys(toFields(parsed));
+			const v = { ...emptyValues(), ...keep, ...fields };
+			const found = Object.keys(fields);
 			v.ocr_text = text.slice(0, 5000);
-			same = findSameWine(parsed, data.owned);
+			same = findSameWine(
+				{ name: fields.name, producer: fields.producer, vintage: Number(fields.vintage) || null },
+				data.owned
+			);
 			values = v;
 			scanned = found;
-			notice = found.length ? t('add.scanned') : t('add.scanFailed');
+			notice =
+				answer && !answer.label
+					? t('add.noLabel')
+					: !found.length
+						? t('add.scanFailed')
+						: tried && !answer
+							? t('add.claudeFallback')
+							: t('add.scanned');
 		} catch (err) {
 			// keep the photo: the wine can still be entered by hand
 			console.error(err);
@@ -261,6 +310,9 @@
 				<span class="scan-icon"><Icon name="camera" size={40} /></span>
 				<span class="scan-title">{t('add.scan')}</span>
 				<span class="muted small">{t('add.scanHint')}</span>
+				{#if useClaude}<span class="small claude-hint"
+						>{t('add.withClaude', { n: data.claude!.scansLeft })}</span
+					>{/if}
 				<input class="visually-hidden" type="file" accept="image/*" capture="environment" onchange={scan} />
 			</label>
 			<!-- no capture attribute: the phone offers its photo library -->
@@ -279,8 +331,19 @@
 			{:else}
 				<div class="spinner" aria-hidden="true"></div>
 			{/if}
-			<p>{stage === 'loading' ? t('add.loading') : t('add.reading')}</p>
-			<progress max="1" value={progress}></progress>
+			<p>
+				{stage === 'claude'
+					? t('add.claudeReading')
+					: stage === 'loading'
+						? t('add.loading')
+						: t('add.reading')}
+			</p>
+			{#if stage === 'claude'}
+				<!-- Claude reports no progress: the bar runs without a value -->
+				<progress max="1"></progress>
+			{:else}
+				<progress max="1" value={progress}></progress>
+			{/if}
 		</div>
 	{:else}
 		{#if step === 'crop'}
@@ -444,6 +507,12 @@
 		cursor: pointer;
 		box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 35%, transparent);
 	}
+	.claude-hint {
+		margin-top: 4px;
+		padding: 2px 10px;
+		border-radius: 999px;
+		background: rgb(255 255 255 / 0.16);
+	}
 	.scan-btn .muted {
 		color: inherit;
 	}
@@ -484,6 +553,25 @@
 	}
 	progress::-moz-progress-bar {
 		background: var(--accent);
+	}
+	progress:not([value]) {
+		background: linear-gradient(90deg, var(--surface-2) 30%, var(--accent) 50%, var(--surface-2) 70%) 0 0 /
+			300% 100%;
+		animation: indeterminate 1.4s linear infinite;
+	}
+	progress:not([value])::-webkit-progress-bar {
+		background: transparent;
+	}
+	progress:not([value])::-moz-progress-bar {
+		background: transparent;
+	}
+	@keyframes indeterminate {
+		from {
+			background-position: 100% 0;
+		}
+		to {
+			background-position: 0 0;
+		}
 	}
 	.spinner {
 		width: 40px;
