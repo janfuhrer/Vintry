@@ -170,11 +170,11 @@ export async function parseBackPhoto(fd: FormData, errors: FieldErrors): Promise
 export function withSuggestions(input: WineInput): WineInput {
 	const out = { ...input };
 	if (out.drink_from === null && out.drink_to === null) {
-		const w = suggestWindow(out);
+		const w = suggestWindow({ ...out, text: out.ocr_text });
 		if (w) [out.drink_from, out.drink_to] = [w.from, w.to];
 	}
 	if ([out.body, out.acidity, out.tannin, out.sweetness].every((v) => v === null)) {
-		const t = suggestTaste(out);
+		const t = suggestTaste({ ...out, text: out.ocr_text });
 		[out.body, out.acidity, out.tannin, out.sweetness] = [t.body, t.acidity, t.tannin, t.sweetness];
 	}
 	return out;

@@ -2,6 +2,7 @@ import { countries } from './data/countries';
 import { grapes } from './data/grapes';
 import { regions } from './data/regions';
 import type { Aging, Color, Country, Grape, Level, Region } from './data/types';
+import { readTerms, windowForTier } from './terms.ts';
 
 export { COLORS, type Color } from './data/types';
 
@@ -74,28 +75,33 @@ const COLOR_AGING: Record<Color, Aging> = {
 
 const avg = (xs: number[]) => xs.reduce((a, b) => a + b, 0) / xs.length;
 
-// aged longer before release, and made to keep: the terms are regulated in Italy and Spain
-const LONGER_LIVED: [RegExp, Aging][] = [
-	[/\bgran\s+(?:reserva|selezione)\b/i, [3, 8]],
-	[/\br[ie]serva\b/i, [2, 5]]
-];
-
-/**
- * region.age ?? avg(grape.age) ?? color default, in years after the vintage; a Riserva
- * or Gran Reserva in the name adds to it
- */
-export function aging(input: {
+/** What a suggestion is based on: the wine's details and the words on its label */
+export interface Basis {
+	vintage?: number | null;
 	color: Color;
 	name?: string | null;
+	/** text read from the label, which may say "Riserva" where the name doesn't */
+	text?: string | null;
+	country?: string | null;
 	region?: string | null;
 	grapes?: string[];
-}): Aging {
-	const [from, to] = baseAging(input);
-	const longer =
-		(input.color === 'red' || input.color === 'white') && input.name
-			? LONGER_LIVED.find(([re]) => re.test(input.name!))?.[1]
-			: undefined;
-	return longer ? [from + longer[0], to + longer[1]] : [from, to];
+	price?: number | null;
+}
+
+const termsOf = (input: Basis) =>
+	readTerms({
+		text: [input.name, input.text].filter(Boolean).join(' '),
+		color: input.color,
+		country: input.country || findRegion(input.region ?? '')?.country,
+		price: input.price
+	});
+
+/**
+ * region.age ?? avg(grape.age) ?? color default, in years after the vintage, then adjusted for
+ * the wine's tier: shorter for an everyday bottle, longer for a Riserva or a Grand Cru
+ */
+export function aging(input: Basis): Aging {
+	return windowForTier(baseAging(input), termsOf(input).tier, input.color);
 }
 
 function baseAging(input: { color: Color; region?: string | null; grapes?: string[] }): Aging {
@@ -111,13 +117,7 @@ function baseAging(input: { color: Color; region?: string | null; grapes?: strin
 	return COLOR_AGING[input.color];
 }
 
-export function suggestWindow(input: {
-	vintage?: number | null;
-	color: Color;
-	name?: string | null;
-	region?: string | null;
-	grapes?: string[];
-}): { from: number; to: number } | null {
+export function suggestWindow(input: Basis): { from: number; to: number } | null {
 	if (!input.vintage) return null;
 	const [a, b] = aging(input);
 	return { from: input.vintage + a, to: input.vintage + b };
@@ -132,12 +132,12 @@ export interface Taste {
 
 const clampLevel = (n: number) => Math.min(5, Math.max(1, Math.round(n))) as Level;
 
-/** Average of the known grapes, falling back to the region's typical grapes */
-export function suggestTaste(input: {
-	color: Color;
-	region?: string | null;
-	grapes?: string[];
-}): Taste & { aroma: { en: string[]; de: string[] } } {
+/**
+ * Average of the known grapes, falling back to the region's typical grapes; sweetness as the
+ * label says ("feinherb", "demi-sec") where it does
+ */
+export function suggestTaste(input: Basis): Taste & { aroma: { en: string[]; de: string[] } } {
+	const labelSweetness = termsOf(input).sweetness ?? null;
 	let known = (input.grapes ?? []).map(findGrape).filter((g): g is Grape => !!g);
 	if (!known.length && input.region) {
 		const region = findRegion(input.region);
@@ -147,7 +147,7 @@ export function suggestTaste(input: {
 			.slice(0, 2);
 	}
 	const aroma = { en: [] as string[], de: [] as string[] };
-	if (!known.length) return { body: null, acidity: null, tannin: null, sweetness: null, aroma };
+	if (!known.length) return { body: null, acidity: null, tannin: null, sweetness: labelSweetness, aroma };
 	for (const g of known) {
 		aroma.en.push(...g.aroma.en);
 		aroma.de.push(...g.aroma.de);
@@ -157,7 +157,7 @@ export function suggestTaste(input: {
 		body: clampLevel(avg(known.map((g) => g.body))),
 		acidity: clampLevel(avg(known.map((g) => g.acidity))),
 		tannin: input.color === 'red' ? clampLevel(avg(known.map((g) => g.tannin))) : clampLevel(1),
-		sweetness: sweet ? clampLevel(sweet) : clampLevel(avg(known.map((g) => g.sweetness))),
+		sweetness: labelSweetness ?? (sweet ? clampLevel(sweet) : clampLevel(avg(known.map((g) => g.sweetness)))),
 		aroma: { en: [...new Set(aroma.en)].slice(0, 5), de: [...new Set(aroma.de)].slice(0, 5) }
 	};
 }

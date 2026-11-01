@@ -113,6 +113,8 @@ const COLOR_WORDS: [Color, string[]][] = [
 			'ice wine',
 			'tokaji',
 			'passito',
+			'recioto',
+			'selection de grains nobles',
 			'vendange tardive',
 			'liquoreux',
 			'moelleux'

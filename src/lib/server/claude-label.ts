@@ -113,12 +113,25 @@ export function toLabelFields(r: LabelReading, year = new Date().getFullYear()):
 	const to = within(r.drink_to, from ?? vintage ?? 1900, (vintage ?? year) + 100);
 	if (from && to) [out.drink_from, out.drink_to] = [String(from), String(to)];
 	else if (vintage) {
-		const w = suggestWindow({ vintage, color: out.color ?? 'red', name, region: out.region, grapes });
+		const w = suggestWindow({
+			vintage,
+			color: out.color ?? 'red',
+			name,
+			country: out.country,
+			region: out.region,
+			grapes
+		});
 		if (w) [out.drink_from, out.drink_to] = [String(w.from), String(w.to)];
 	}
 
 	const taste = { body: r.body, acidity: r.acidity, tannin: r.tannin, sweetness: r.sweetness };
-	const suggested = suggestTaste({ color: out.color ?? 'red', region: out.region, grapes });
+	const suggested = suggestTaste({
+		color: out.color ?? 'red',
+		name,
+		country: out.country,
+		region: out.region,
+		grapes
+	});
 	for (const k of ['body', 'acidity', 'tannin', 'sweetness'] as const) {
 		const v = within(taste[k], 1, 5) ?? suggested[k];
 		if (v) out[k] = v;

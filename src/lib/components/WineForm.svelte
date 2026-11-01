@@ -93,6 +93,7 @@
 		grapes as grapeTable,
 		regions,
 		suggestTaste,
+		type Basis,
 		suggestWindow
 	} from '#lib/wine.ts';
 	import Suggest, { type SuggestOption } from './Suggest.svelte';
@@ -213,13 +214,16 @@
 	// details as they were is replaced by the one for the details as they are now, also when
 	// editing a saved wine (adding the vintage later). A window from elsewhere, e.g. Claude or
 	// typed in an earlier edit, moves with a corrected vintage. Changes by hand stay.
-	type Basis = Parameters<typeof suggestWindow>[0];
 	const basis = (): Basis => ({
 		vintage: Number(v.vintage) || null,
 		color: v.color,
 		name: v.name,
+		// the label's own words count: "Riserva" is often printed there but not in the name
+		text: v.ocr_text,
+		country: v.country,
 		region: v.region,
-		grapes: [...v.grapes]
+		grapes: [...v.grapes],
+		price: Number(String(v.price).replace(',', '.')) || null
 	});
 	const windowText = (w: { from: number; to: number } | null) =>
 		w ? [String(w.from), String(w.to)] : ['', ''];
