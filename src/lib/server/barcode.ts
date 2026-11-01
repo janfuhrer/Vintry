@@ -47,7 +47,7 @@ export async function lookupBarcode(code: string): Promise<BarcodeFields | null>
 	const fields = product ? offToFields(product) : null;
 	await sql`
 		insert into barcode_cache (code, found, data)
-		values (${code}, ${!!fields}, ${fields ? JSON.stringify(product) : null}::jsonb)
+		values (${code}, ${!!fields}, ${fields ? sql.json(product as Parameters<typeof sql.json>[0]) : null})
 		on conflict (code) do update set found = excluded.found, data = excluded.data, fetched_at = now()
 	`;
 	return fields;

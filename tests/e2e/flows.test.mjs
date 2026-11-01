@@ -639,9 +639,10 @@ describe('barcodes', () => {
 			size_ml: '750'
 		});
 		assert.equal(body.fields.vintage, undefined, 'one code serves several vintages');
-		await look('3179071003917');
+		const again = await look('3179071003917');
 		const calls = await offCalls();
 		assert.equal(calls.length, 1, 'the second answer came from the cache');
+		assert.deepEqual(again.body, body, 'and is the same answer');
 		assert.match(calls[0].agent, /Vintry/);
 	});
 

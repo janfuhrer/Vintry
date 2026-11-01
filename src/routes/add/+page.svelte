@@ -4,7 +4,7 @@
 	import { goto } from '$app/navigation';
 	import Icon from '#lib/components/Icon.svelte';
 	import WineForm, { emptyValues, toValues, type WineFormValues } from '#lib/components/WineForm.svelte';
-	import { useI18n } from '#lib/i18n.ts';
+	import { useI18n, type Key } from '#lib/i18n.ts';
 	import CropBox from '#lib/components/CropBox.svelte';
 	import { prepareCropForScan, preparePhotoForScan, resizeImage, type Crop } from '#lib/image.ts';
 	import { findSameWine, type Owned } from '#lib/match.ts';
@@ -97,6 +97,7 @@
 			scanned = [];
 			photo = null;
 			back = null;
+			resetSources();
 			notice = t('add.copied', { name: copy.name });
 			formKey++;
 			step = 'form';
@@ -187,6 +188,70 @@
 		return { fields: toFields(parseLabel(lines)) as Found, text };
 	}
 
+	// Where each filled field came from, shown under the notice; each source can be undone.
+	type Source = 'label' | 'claude' | 'back' | 'list' | 'off';
+	const SOURCES: Source[] = ['label', 'claude', 'back', 'list', 'off'];
+	let sources = $state<Record<string, Source>>({});
+	// what a source put in, so undoing it leaves a field the user changed since alone
+	let filledWith: Record<string, string> = {};
+	let listWine = $state('');
+	// the barcode: on which photo it was found, and what Open Food Facts said about it
+	type Lookup = 'off' | 'pending' | 'found' | 'known' | 'missing' | 'failed';
+	let code = $state<{ value: string; where: 'front' | 'back'; lookup: Lookup } | null>(null);
+	let codeTried = $state<('front' | 'back')[]>([]);
+
+	function mark(keys: string[], source: Source, values: Partial<WineFormValues>) {
+		const add: Record<string, Source> = {};
+		for (const k of keys) {
+			add[k] = source;
+			filledWith[k] = JSON.stringify(values[k as keyof WineFormValues]);
+		}
+		sources = { ...sources, ...add };
+	}
+	function resetSources() {
+		sources = {};
+		filledWith = {};
+		listWine = '';
+		code = null;
+		codeTried = [];
+	}
+	function undo(source: Source) {
+		if (!wineForm) return;
+		const now = wineForm.snapshot() as unknown as Record<string, unknown>;
+		const blank = emptyValues() as unknown as Record<string, unknown>;
+		const keys = Object.keys(sources).filter((k) => sources[k] === source);
+		const untouched = keys.filter((k) => JSON.stringify(now[k]) === filledWith[k]);
+		wineForm.setFields(Object.fromEntries(untouched.map((k) => [k, blank[k]])));
+		scanned = scanned.filter((k) => !keys.includes(k));
+		sources = Object.fromEntries(Object.entries(sources).filter(([, s]) => s !== source));
+	}
+	const FIELD_LABEL: Record<string, Key> = {
+		name: 'form.name',
+		producer: 'form.producer',
+		vintage: 'form.vintage',
+		color: 'form.color',
+		country: 'form.country',
+		region: 'form.region',
+		grapes: 'form.grapes',
+		alcohol: 'form.alcohol',
+		size_ml: 'form.size',
+		barcode: 'form.barcode',
+		drink_from: 'form.drinkFrom',
+		drink_to: 'form.drinkTo',
+		body: 'taste.body',
+		acidity: 'taste.acidity',
+		tannin: 'taste.tannin',
+		sweetness: 'taste.sweetness'
+	};
+	const groups = $derived(
+		SOURCES.map((source) => ({
+			source,
+			fields: Object.keys(FIELD_LABEL)
+				.filter((k) => sources[k] === source)
+				.map((k) => t(FIELD_LABEL[k]))
+		})).filter((g) => g.fields.length)
+	);
+
 	/** The barcode on a label photo, read on the phone; null when there is none or it fails */
 	const findBarcode = (image: Blob) =>
 		import('#lib/barcode.ts').then((m) => m.readBarcode(image)).catch(() => null);
@@ -195,23 +260,31 @@
 	 * Open Food Facts, for users who turned it on: fills what is still empty in the form that
 	 * scanned the code, never a field already read or typed
 	 */
-	async function lookUp(code: string, run: number, key: number) {
+	async function lookUp(found: string, run: number, key: number) {
 		if (!data.barcodeLookup) return;
+		const settle = (lookup: Lookup) => {
+			if (run === scanRun && key === formKey && code?.value === value) code = { ...code, lookup };
+		};
+		const value = found;
+		settle('pending');
 		try {
 			const res = await fetch('/api/barcode', {
 				method: 'POST',
 				headers: { 'content-type': 'application/json' },
-				body: JSON.stringify({ code })
+				body: JSON.stringify({ code: value })
 			});
-			if (!res.ok) return;
+			if (!res.ok) return settle('failed');
 			const answer = (await res.json()) as { found: boolean; fields: Partial<WineFormValues> };
-			if (!answer.found || run !== scanRun || key !== formKey || !wineForm) return;
+			if (run !== scanRun || key !== formKey || !wineForm) return;
+			if (!answer.found) return settle('missing');
 			const filled = wineForm.fillEmpty(answer.fields);
-			if (!filled.length) return;
 			scanned = [...scanned, ...filled];
-			notice = `${notice} ${t('add.offFilled', { n: filled.length })}`.trim();
+			mark(filled, 'off', answer.fields);
+			// it may know only what the label already said
+			settle(filled.length ? 'found' : 'known');
 		} catch (err) {
 			console.error(err);
+			settle('failed');
 		}
 	}
 
@@ -244,8 +317,8 @@
 			const filled = wineForm.fillEmpty(answer.fields);
 			if (!filled.length) return;
 			scanned = [...scanned, ...filled];
-			notice =
-				`${notice} ${t('add.refFilled', { n: filled.length, wine: `${answer.wine!.name} (${answer.wine!.producer})` })}`.trim();
+			listWine = `${answer.wine!.name} (${answer.wine!.producer})`;
+			mark(filled, 'list', answer.fields);
 		} catch (err) {
 			console.error(err);
 		}
@@ -281,14 +354,18 @@
 				? { fields: answer.fields, text: '' }
 				: await readHere((await preparePhotoForScan(file)).ocr, () => {});
 			if (run !== scanRun || key !== formKey || !wineForm) return;
-			const code = await barcode;
+			const found = await barcode;
 			if (run !== scanRun || key !== formKey || !wineForm) return;
-			const filled = wineForm.fillEmpty({ ...fields, ...(code ? { barcode: code } : {}), ocr_text: text });
+			const backFields = { ...fields, ...(found ? { barcode: found } : {}) };
+			const filled = wineForm.fillEmpty({ ...backFields, ocr_text: text });
 			scanned = [...scanned, ...filled];
+			mark(filled, 'back', backFields);
+			codeTried = [...new Set([...codeTried, 'back' as const])];
+			if (found && !code) code = { value: found, where: 'back', lookup: 'off' };
 			notice = filled.length ? t('add.backFilled', { n: filled.length }) : t('add.backNothing');
 			// the back often names the producer the front didn't
 			if (filled.includes('producer') || filled.includes('name')) await fromReference(run, key);
-			if (code) {
+			if (found) {
 				// a bottle the cellar has already, known by its code
 				const typed = wineForm.snapshot();
 				same ??= findSameWine(
@@ -296,11 +373,11 @@
 						name: typed.name,
 						producer: typed.producer,
 						vintage: Number(typed.vintage) || null,
-						barcode: code
+						barcode: found
 					},
 					data.owned
 				);
-				await lookUp(code, run, key);
+				if (code?.value === found && code.lookup === 'off') await lookUp(found, run, key);
 			}
 		} catch (err) {
 			console.error(err);
@@ -336,7 +413,8 @@
 		photo = prepared.photo;
 		// the barcode is read alongside the label's text
 		const barcode = findBarcode(prepared.ocr);
-		let code: string | null = null;
+		let onFront: string | null = null;
+		resetSources();
 		try {
 			let answer = null;
 			const tried = useClaude;
@@ -355,20 +433,24 @@
 			const v = { ...emptyValues(), ...keep, ...fields };
 			const found = Object.keys(fields);
 			v.ocr_text = text.slice(0, 5000);
-			code = await barcode;
+			onFront = await barcode;
 			if (run !== scanRun) return;
-			if (code) v.barcode = code;
+			if (onFront) v.barcode = onFront;
 			same = findSameWine(
 				{
 					name: fields.name,
 					producer: fields.producer,
 					vintage: Number(fields.vintage) || null,
-					barcode: code
+					barcode: onFront
 				},
 				data.owned
 			);
 			values = v;
-			scanned = found;
+			scanned = onFront ? [...found, 'barcode'] : found;
+			mark(found, answer ? 'claude' : 'label', fields);
+			if (onFront) mark(['barcode'], 'label', { barcode: onFront });
+			codeTried = ['front'];
+			code = onFront ? { value: onFront, where: 'front', lookup: 'off' } : null;
 			notice =
 				answer && !answer.label
 					? t('add.noLabel')
@@ -391,12 +473,13 @@
 		const key = formKey;
 		await tick();
 		await fromReference(run, key);
-		if (code) await lookUp(code, run, key);
+		if (onFront) await lookUp(onFront, run, key);
 	}
 
 	function manual() {
 		scanRun++;
 		stopClaude();
+		resetSources();
 		back = null;
 		source = null;
 		same = null;
@@ -559,6 +642,35 @@
 			{#if notice}
 				<div class="notice small">
 					<p>{notice}</p>
+					{#if groups.length || codeTried.length}
+						<!-- where each value came from; anything but the front label can be undone -->
+						<ul class="sources">
+							{#each groups as g (g.source)}
+								<li>
+									<span class="src"
+										>{g.source === 'list'
+											? t('add.from.list', { wine: listWine })
+											: t(`add.from.${g.source}`)}:</span
+									>
+									{g.fields.join(', ')}
+									{#if g.source !== 'label'}
+										<button type="button" class="undo" onclick={() => undo(g.source)}
+											>{t('common.undo')}</button
+										>
+									{/if}
+								</li>
+							{/each}
+							<li>
+								<span class="src">{t('form.barcode')}:</span>
+								{#if code}
+									{t(code.where === 'front' ? 'add.code.onFront' : 'add.code.onBack', { code: code.value })}
+									{t(`add.lookup.${code.lookup}`)}
+								{:else}
+									{codeTried.includes('back') ? t('add.code.none') : t('add.code.noneFront')}
+								{/if}
+							</li>
+						</ul>
+					{/if}
 					{#if source}
 						<div class="notice-actions">
 							<button class="btn small" disabled={backBusy} onclick={() => (step = 'crop')}
@@ -585,6 +697,11 @@
 					{scanned}
 					bind:photo
 					bind:back
+					onphotochange={(file, image) => {
+						// cropping and reading again work on the photo the form has now, not the first one
+						source = file && image ? { file, preview: image } : null;
+						crop = { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
+					}}
 					suggestions={data.suggestions}
 					errors={form?.errors ?? {}}
 					submitLabel={t('common.save')}
@@ -736,6 +853,26 @@
 	}
 	.notice p {
 		margin: 0;
+	}
+	.sources {
+		list-style: none;
+		margin: 8px 0 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 3px;
+	}
+	.src {
+		font-weight: 600;
+	}
+	.undo {
+		border: 0;
+		background: none;
+		padding: 0 4px;
+		color: var(--accent);
+		font: inherit;
+		text-decoration: underline;
+		cursor: pointer;
 	}
 	.notice-actions {
 		display: flex;

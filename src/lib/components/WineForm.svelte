@@ -114,7 +114,8 @@
 		submitLabel,
 		action = '',
 		bottles = 0,
-		afterSave = 'replace'
+		afterSave = 'replace',
+		onphotochange
 	}: {
 		initial: WineFormValues;
 		/** Fields filled in from the label, marked for review */
@@ -136,6 +137,8 @@
 		 * back: return to the page the form was opened from, the wine (editing)
 		 */
 		afterSave?: 'replace' | 'back';
+		/** The front photo was replaced (the file as picked) or removed (null) */
+		onphotochange?: (file: Blob | null, image: Blob | null) => void;
 	} = $props();
 
 	const i18n = useI18n();
@@ -151,6 +154,12 @@
 	/** The form as it is now, typed changes included */
 	export function snapshot(): WineFormValues {
 		return $state.snapshot(v) as WineFormValues;
+	}
+
+	/** Puts values back, e.g. empties the fields a source filled when the user undoes it */
+	export function setFields(values: Partial<WineFormValues>) {
+		const target = v as unknown as Record<string, unknown>;
+		for (const [key, x] of Object.entries(values)) target[key] = Array.isArray(x) ? [...x] : x;
 	}
 
 	export function fillEmpty(found: Partial<WineFormValues>): string[] {
@@ -317,6 +326,7 @@
 		if (!file) return;
 		photo = await preparePhoto(file);
 		removePhoto = false;
+		onphotochange?.(file, photo.image);
 	}
 	async function pickBack(e: Event) {
 		const input = e.currentTarget as HTMLInputElement;
@@ -374,7 +384,11 @@
 	<section class="card stack">
 		<!-- one picker each: on a phone it offers the camera and the photo library -->
 		<div class="photos">
-			{@render slot(t('form.front'), shownPhoto, pickPhoto, () => ((photo = null), (removePhoto = true)))}
+			{@render slot(t('form.front'), shownPhoto, pickPhoto, () => {
+				photo = null;
+				removePhoto = true;
+				onphotochange?.(null, null);
+			})}
 			{@render slot(t('form.back'), shownBack, pickBack, () => ((back = null), (removeBack = true)))}
 		</div>
 		{#if errors.photo}<p class="error">{t('form.invalid')}</p>{/if}
