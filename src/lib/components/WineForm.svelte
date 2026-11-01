@@ -88,11 +88,12 @@
 		countryName,
 		findRegion,
 		flag,
-		grapeNames,
-		regionNames,
+		grapes as grapeTable,
+		regions,
 		suggestTaste,
 		suggestWindow
 	} from '#lib/wine.ts';
+	import Suggest, { type SuggestOption } from './Suggest.svelte';
 
 	type Photo = { image: Blob; thumb: Blob };
 
@@ -187,7 +188,23 @@
 			.map((c) => ({ code: c.code, label: countryName(c.code, i18n.locale) }))
 			.sort((a, b) => a.label.localeCompare(b.label, i18n.locale))
 	);
-	const regionOptions = $derived(regionNames(v.country || null));
+	// the regions of the chosen country, or all of them with their flag
+	const regionOptions = $derived<SuggestOption[]>(
+		regions
+			.filter((r) => !v.country || r.country === v.country)
+			.map((r) => ({ value: r.name, also: r.synonyms, hint: v.country ? undefined : flag(r.country) }))
+			.sort((a, b) => a.value.localeCompare(b.value, i18n.locale))
+	);
+	const grapeOptions = $derived<SuggestOption[]>(
+		grapeTable
+			.filter((g) => !v.grapes.includes(g.name))
+			.map((g) => ({ value: g.name, also: g.synonyms }))
+			.sort((a, b) => a.value.localeCompare(b.value, i18n.locale))
+	);
+	// before anything is typed: what the region usually grows
+	const typicalGrapes = $derived<SuggestOption[]>(
+		(findRegion(v.region)?.grapes ?? []).filter((g) => !v.grapes.includes(g)).map((g) => ({ value: g }))
+	);
 
 	// auto-suggest taste and window until the user changes one of them
 	$effect(() => {
@@ -386,18 +403,16 @@
 		</label>
 		<label class="field">
 			{t('form.region')}
-			<input
+			<Suggest
 				class={cls('region')}
 				name="region"
 				bind:value={v.region}
-				list="regions"
-				maxlength="100"
-				autocomplete="off"
+				options={regionOptions}
+				empty={regionOptions}
+				maxlength={100}
+				onpick={onRegion}
 				onchange={onRegion}
 			/>
-			<datalist id="regions">
-				{#each regionOptions as r (r)}<option value={r}></option>{/each}
-			</datalist>
 		</label>
 
 		<div class="field">
@@ -412,19 +427,17 @@
 						<input type="hidden" name="grapes" value={g} />
 					</span>
 				{/each}
-				<input
+				<Suggest
 					class="grape-input"
-					list="grape-list"
 					bind:value={grapeDraft}
+					options={grapeOptions}
+					empty={typicalGrapes}
+					onpick={addGrape}
 					onkeydown={grapeKey}
 					onchange={addGrape}
 					placeholder={v.grapes.length ? '' : t('form.grapesAdd')}
 					aria-labelledby="grapes-label"
-					autocomplete="off"
 				/>
-				<datalist id="grape-list">
-					{#each grapeNames as g (g)}<option value={g}></option>{/each}
-				</datalist>
 			</div>
 		</div>
 	</section>
@@ -650,7 +663,8 @@
 		background: none;
 		color: var(--muted);
 	}
-	.grape-input {
+	/* the input lives inside Suggest, out of reach of this component's scoped styles */
+	.grapes :global(.grape-input) {
 		flex: 1;
 		min-width: 120px;
 		border: 0;

@@ -31,8 +31,6 @@ export const findRegion = (name: string): Region | undefined => regionIndex.get(
 export const findCountry = (code: string): Country | undefined =>
 	countries.find((c) => c.code === code.toUpperCase());
 
-export const grapeNames = grapes.map((g) => g.name).sort((a, b) => a.localeCompare(b));
-
 /** URL-safe name: "Müller-Thurgau" → "muller-thurgau" */
 export const grapeSlug = (name: string) => normalize(name).replace(/ /g, '-');
 const grapeBySlug = new Map(grapes.map((g) => [grapeSlug(g.name), g]));
@@ -45,14 +43,7 @@ export const regionSlug = grapeSlug;
 const regionBySlug = new Map(regions.map((r) => [regionSlug(r.name), r]));
 export const findRegionBySlug = (slug: string): Region | undefined => regionBySlug.get(slug);
 
-export { grapes };
-
-export function regionNames(country?: string | null): string[] {
-	return regions
-		.filter((r) => !country || r.country === country)
-		.map((r) => r.name)
-		.sort((a, b) => a.localeCompare(b));
-}
+export { grapes, regions };
 
 /** Regional-indicator flag from an ISO code */
 export function flag(code: string | null | undefined): string {
