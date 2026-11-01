@@ -44,7 +44,12 @@ const wineSchema = {
 		acidity: { type: 'integer', minimum: 1, maximum: 5 },
 		tannin: { type: 'integer', minimum: 1, maximum: 5 },
 		sweetness: { type: 'integer', minimum: 1, maximum: 5, description: '1 dry … 5 very sweet' },
-		rating: { type: 'integer', minimum: 1, maximum: 5, description: "The user's own rating, if they gave one" },
+		rating: {
+			type: 'integer',
+			minimum: 1,
+			maximum: 5,
+			description: "The user's own rating, if they gave one"
+		},
 		notes: { type: 'string' },
 		wishlist: { type: 'boolean', description: 'Wanted, not bought yet' }
 	},
