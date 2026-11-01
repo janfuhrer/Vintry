@@ -585,6 +585,150 @@ describe('label reading with Claude', () => {
 	});
 });
 
+describe('MCP for Claude', () => {
+	let token;
+	const rpc = (body, { auth = token, headers = {} } = {}) =>
+		fetch(`${base}/api/mcp`, {
+			method: 'POST',
+			headers: {
+				'content-type': 'application/json',
+				accept: 'application/json, text/event-stream',
+				...(auth ? { authorization: `Bearer ${auth}` } : {}),
+				...headers
+			},
+			body: JSON.stringify(body)
+		});
+	const call = async (name, args, id = 1) => {
+		const r = await rpc({ jsonrpc: '2.0', id, method: 'tools/call', params: { name, arguments: args } });
+		return (await r.json()).result;
+	};
+
+	test('a token is created in settings and shown once', async () => {
+		const r = await alice.action('/settings?/createToken', { label: 'Claude Code' });
+		assert.equal(r.type, 'success');
+		token = devalue.unflatten(JSON.parse(r.data)).token;
+		assert.match(token, /^vintry_[A-Za-z0-9_-]{40,}$/);
+		const html = await (await alice.req('/settings', { page: true })).text();
+		assert.ok(html.includes('Claude Code'));
+		assert.ok(!html.includes(token), 'not shown again');
+	});
+
+	test('only the token gets in: not the browser session, not a foreign page', async () => {
+		const init = { jsonrpc: '2.0', id: 1, method: 'ping' };
+		assert.equal((await rpc(init, { auth: null })).status, 401);
+		assert.equal((await rpc(init, { auth: 'vintry_wrong' })).status, 401);
+		const cookie = await alice.req('/api/mcp', { method: 'POST', json: init });
+		assert.equal(cookie.status, 401, 'the session cookie is not enough');
+		assert.equal((await rpc(init, { headers: { origin: 'https://evil.example' } })).status, 403);
+		assert.equal(
+			(await fetch(`${base}/api/mcp`, { headers: { authorization: `Bearer ${token}` } })).status,
+			405
+		);
+	});
+
+	test('initialize, notifications and the tool list', async () => {
+		const r = await rpc({
+			jsonrpc: '2.0',
+			id: 1,
+			method: 'initialize',
+			params: { protocolVersion: '2025-06-18', capabilities: {}, clientInfo: { name: 'test', version: '1' } }
+		});
+		const init = (await r.json()).result;
+		assert.equal(init.protocolVersion, '2025-06-18');
+		assert.ok(init.capabilities.tools);
+		assert.match(init.instructions, /wine cellar/);
+		assert.equal((await rpc({ jsonrpc: '2.0', method: 'notifications/initialized' })).status, 202);
+		const tools = (await (await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/list' })).json()).result.tools;
+		assert.deepEqual(tools.map((t) => t.name).sort(), ['add_wines', 'search_wines']);
+		const unknown = await (await rpc({ jsonrpc: '2.0', id: 3, method: 'nope' })).json();
+		assert.equal(unknown.error.code, -32601);
+	});
+
+	test('add_wines: many at once, checked like the form, bottles added to wines already there', async () => {
+		const out = await call('add_wines', {
+			wines: [
+				{
+					name: 'Barolo Bussia',
+					producer: 'Prunotto',
+					vintage: 2018,
+					color: 'red',
+					country: 'IT',
+					region: 'Barolo',
+					grapes: ['nebbiolo'],
+					quantity: 2,
+					price: 58
+				},
+				{
+					name: 'Riesling Smaragd',
+					producer: 'Hirtzberger',
+					vintage: 2022,
+					color: 'white',
+					country: 'AT',
+					region: 'Wachau'
+				},
+				{ name: 'Barolo Bussia', producer: 'Prunotto', vintage: 2018, quantity: 1 },
+				{ name: 'Bad Year', vintage: 1700 },
+				{ name: 'Wanted', wishlist: true }
+			]
+		});
+		assert.equal(out.isError, undefined);
+		const r = out.structuredContent;
+		assert.deepEqual([r.added, r.bottles_added_to_existing, r.rejected], [3, 1, 1]);
+		assert.equal(r.results[3].status, 'rejected');
+		assert.match(r.results[3].reason, /vintage/);
+		assert.match(r.results[0].url, /\/wine\/[0-9a-f-]{36}$/);
+		const found = (await call('search_wines', { query: 'nebbiolo prunotto' })).structuredContent;
+		assert.equal(found.total, 1);
+		assert.equal(found.wines[0].bottles, 3, 'two, then one more');
+		assert.equal(found.wines[0].grapes[0], 'Nebbiolo');
+		assert.ok(found.wines[0].drink_from, 'the window is suggested like in the form');
+		const wishes = (await call('search_wines', { query: 'wanted' })).structuredContent;
+		assert.equal(wishes.total, 0, 'the wishlist only when asked for');
+		assert.equal(
+			(await call('search_wines', { query: 'wanted', include_wishlist: true })).structuredContent.total,
+			1
+		);
+		const skip = (
+			await call('add_wines', {
+				wines: [{ name: 'Riesling Smaragd', producer: 'Hirtzberger', vintage: 2022 }],
+				if_exists: 'skip'
+			})
+		).structuredContent;
+		assert.equal(skip.skipped, 1);
+		const bad = await call('add_wines', { wines: [] });
+		assert.equal(bad.isError, true);
+	});
+
+	test('the Desktop bridge passes messages through', async () => {
+		const { spawn } = await import('node:child_process');
+		const bridge = spawn('node', [new URL('../../static/vintry-mcp.mjs', import.meta.url).pathname], {
+			env: { ...process.env, VINTRY_URL: base, VINTRY_TOKEN: token },
+			stdio: ['pipe', 'pipe', 'inherit']
+		});
+		const lines = [];
+		bridge.stdout.on('data', (d) => lines.push(...String(d).split('\n').filter(Boolean)));
+		bridge.stdin.write(JSON.stringify({ jsonrpc: '2.0', method: 'notifications/initialized' }) + '\n');
+		bridge.stdin.write(JSON.stringify({ jsonrpc: '2.0', id: 7, method: 'tools/list' }) + '\n');
+		for (let i = 0; i < 50 && !lines.length; i++) await new Promise((r) => setTimeout(r, 50));
+		bridge.kill();
+		assert.equal(lines.length, 1, 'no answer to the notification');
+		const answer = JSON.parse(lines[0]);
+		assert.equal(answer.id, 7);
+		assert.equal(answer.result.tools.length, 2);
+	});
+
+	test('a revoked token stops working; the wines stay private to their owner', async () => {
+		const list = devalue.unflatten(
+			(await (await alice.req('/settings/__data.json')).json()).nodes.at(-1).data
+		);
+		const [tk] = list.tokens;
+		assert.equal(tk.label, 'Claude Code');
+		assert.ok(tk.last_used_at, 'last use is shown');
+		assert.equal((await alice.action('/settings?/revokeToken', { id: tk.id })).type, 'success');
+		assert.equal((await rpc({ jsonrpc: '2.0', id: 1, method: 'ping' })).status, 401);
+	});
+});
+
 describe('people', () => {
 	let bobKey;
 

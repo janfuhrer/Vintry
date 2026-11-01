@@ -135,5 +135,16 @@ export const migrations: string[] = [
 		image bytea not null,
 		updated_at timestamptz not null default now()
 	);
+	`,
+	/* sql */ `
+	-- personal access tokens, for apps such as Claude reaching the cellar over MCP
+	create table api_tokens (
+		id text primary key,
+		user_id uuid not null references users on delete cascade,
+		label text not null check (length(label) between 1 and 60),
+		created_at timestamptz not null default now(),
+		last_used_at timestamptz
+	);
+	create index api_tokens_user on api_tokens (user_id);
 	`
 ];

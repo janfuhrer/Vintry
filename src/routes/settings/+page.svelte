@@ -1,6 +1,7 @@
 <script lang="ts">
 	import { enhance } from '$app/forms';
 	import { version } from '$app/env';
+	import { page } from '$app/state';
 	import Icon from '#lib/components/Icon.svelte';
 	import { decodeText, parseCsvRecords } from '#lib/csv.ts';
 	import { LOCALES, useI18n } from '#lib/i18n.ts';
@@ -82,6 +83,65 @@
 				<button class="chip" class:active={i18n.locale === l} name="locale" value={l}>{names[l]}</button>
 			{/each}
 		</form>
+	</section>
+
+	<section class="card stack">
+		<h2>{t('settings.mcp')}</h2>
+		<p class="muted small">{t('settings.mcpHint')}</p>
+		{#if form?.token}
+			{@const endpoint = `${page.url.origin}/api/mcp`}
+			<p class="small"><strong>{t('settings.mcpOnce')}</strong></p>
+			<h3 class="small">Claude Code</h3>
+			{@render linkBox(
+				`claude mcp add --transport http vintry ${endpoint} --header "Authorization: Bearer ${form.token}"`,
+				t('settings.mcpCode')
+			)}
+			<h3 class="small">Claude Desktop</h3>
+			<p class="small">
+				{t('settings.mcpDesktop')} <a href="/vintry-mcp.mjs" download>vintry-mcp.mjs</a>
+			</p>
+			{@render linkBox(
+				JSON.stringify({
+					vintry: {
+						command: 'node',
+						args: ['/path/to/vintry-mcp.mjs'],
+						env: { VINTRY_URL: page.url.origin, VINTRY_TOKEN: form.token }
+					}
+				}),
+				t('settings.mcpDesktopHint')
+			)}
+		{/if}
+		{#if form?.tokenError}<p class="error" role="alert">{t('settings.mcpTooMany')}</p>{/if}
+		<form method="POST" action="?/createToken" use:enhance class="row">
+			<input
+				class="input grow"
+				name="label"
+				maxlength="60"
+				placeholder={t('settings.mcpLabel')}
+				aria-label={t('settings.mcpLabel')}
+			/>
+			<button class="btn small primary">{t('settings.mcpCreate')}</button>
+		</form>
+		{#if data.tokens.length}
+			<ul class="list">
+				{#each data.tokens as tk (tk.id)}
+					<li class="row">
+						<div class="grow">
+							<div>{tk.label}</div>
+							<div class="muted small">
+								{fmt(tk.created_at)} · {tk.last_used_at
+									? t('settings.mcpUsed', { date: fmt(tk.last_used_at) })
+									: t('settings.mcpNever')}
+							</div>
+						</div>
+						<form method="POST" action="?/revokeToken" use:enhance>
+							<input type="hidden" name="id" value={tk.id} />
+							<button class="btn small ghost">{t('settings.mcpRevoke')}</button>
+						</form>
+					</li>
+				{/each}
+			</ul>
+		{/if}
 	</section>
 
 	{#if data.claude}

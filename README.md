@@ -29,6 +29,7 @@
 - **Scan a label.** Text recognition runs on your device (tesseract.js), so no photo leaves your phone. Scan the back label too, or crop a cluttered photo to the label and read it again. Scan a wine you already have and it offers to add a bottle to it.
 - **Or let Claude read it (optional).** If the server has a Claude API key, each person can choose in settings to have label photos read by Claude instead. It recognises the wine and fills in grapes, drinking window and taste too. Only the photos are sent, only after the person agrees, and each person has a monthly allowance.
 - **Smart defaults.** A built-in table of about 80 grapes and 110 regions suggests the drinking window, taste profile, serving temperature and food pairings. You can override everything.
+- **Add wines with Claude.** Vintry is an MCP server: connect Claude Code or Claude Desktop with a personal token from settings, and Claude can look up your wines and add many at once, from photos of labels, a receipt or a wine list, on your own Claude account.
 - **Maps.** Every wine shows where it comes from: its region marked on an outline of the country. A regions page lets you explore the important regions of each country and shows which ones your cellar covers.
 - **Find what to open.** Search the cellar by name, grape, region, place or note, or by a dish: "raclette" finds the Chasselas.
 - **Drinking window at a glance.** Wait, ready, drink soon or past peak, with a bar that shows where this year sits.
@@ -75,6 +76,20 @@ Passkeys work on `localhost` over plain HTTP. Any other host needs HTTPS.
 | `CLAUDE_MONTHLY_TOKENS` | no                | Tokens each person may spend on Claude per calendar month (UTC); after that, labels are read on the phone again. A scan takes about 5,000. Default: `250000`.                       |
 
 The production server is the SvelteKit Node adapter. Behind a reverse proxy it uses the `Host` header and assumes HTTPS. See the [adapter-node docs](https://svelte.dev/docs/kit/adapter-node) for `PROTOCOL_HEADER`, `HOST_HEADER` and `ADDRESS_HEADER`.
+
+## Claude and other MCP apps
+
+Vintry answers the [Model Context Protocol](https://modelcontextprotocol.io) at `/api/mcp`
+(Streamable HTTP). It offers two tools, `search_wines` and `add_wines` (up to 200 wines per call,
+checked like the form; a wine already in the cellar gets the bottles added). Each user creates a
+personal access token under **Settings → Connect Claude**; it acts for that user only and can be
+revoked there.
+
+- **Claude Code:** settings shows the command, e.g.
+  `claude mcp add --transport http vintry https://vintry.example.com/api/mcp --header "Authorization: Bearer vintry_…"`.
+- **Claude Desktop** starts MCP servers as local programs: download `vintry-mcp.mjs` from settings
+  (Node.js 18+, no dependencies) and add the shown snippet under `mcpServers` in its config. The
+  script passes the messages on to your server with the token.
 
 ## Lost passkeys
 

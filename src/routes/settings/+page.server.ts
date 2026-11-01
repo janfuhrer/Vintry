@@ -8,6 +8,7 @@ import {
 } from '#lib/server/auth.ts';
 import { allowance, claudeEnabled, readerOf, setReader } from '#lib/server/claude.ts';
 import { deviceLabel } from '#lib/server/device.ts';
+import { createToken, listTokens, revokeToken } from '#lib/server/tokens.ts';
 import { parseWineForm, withSuggestions } from '#lib/server/wine-form.ts';
 import { importWines } from '#lib/server/wines.ts';
 import { sql } from '#lib/server/db.ts';
@@ -46,7 +47,8 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 	const claude = claudeEnabled
 		? { reader: await readerOf(user.id), allowance: await allowance(user.id) }
 		: null;
-	if (!user.is_admin) return { passkeys, sessions, locations, claude, admin: null };
+	const tokens = await listTokens(user.id);
+	if (!user.is_admin) return { passkeys, sessions, locations, claude, tokens, admin: null };
 
 	const users = await sql<{ id: string; name: string; is_admin: boolean; created_at: Date; wines: number }[]>`
 		select u.id, u.name, u.is_admin, u.created_at,
@@ -59,7 +61,7 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		order by created_at desc
 	`;
 	// the id is a token hash: fine to use as a handle, it can't be turned back into a link
-	return { passkeys, sessions, locations, claude, admin: { users, invites, me: user.id } };
+	return { passkeys, sessions, locations, claude, tokens, admin: { users, invites, me: user.id } };
 };
 
 export const actions: Actions = {
@@ -67,6 +69,18 @@ export const actions: Actions = {
 		const locale = String((await request.formData()).get('locale'));
 		if (!isLocale(locale)) return fail(400);
 		await sql`update users set locale = ${locale} where id = ${locals.user!.id}`;
+	},
+	createToken: async ({ request, locals }) => {
+		const label = String((await request.formData()).get('label') ?? '')
+			.trim()
+			.slice(0, 60);
+		const token = await createToken(locals.user!.id, label || 'Claude');
+		if (!token) return fail(400, { tokenError: 'tooMany' });
+		// shown this once; only a hash is kept
+		return { token };
+	},
+	revokeToken: async ({ request, locals }) => {
+		await revokeToken(locals.user!.id, String((await request.formData()).get('id') ?? ''));
 	},
 	reader: async ({ request, locals }) => {
 		const fd = await request.formData();

@@ -242,6 +242,20 @@ const en = {
 
 	'settings.title': 'Settings',
 	'settings.language': 'Language',
+	'settings.mcp': 'Connect Claude',
+	'settings.mcpHint':
+		'Let Claude look up wines and add many at once, for example from photos of labels, a receipt or a wine list. It runs on your own Claude account. Create one token per app: it can do in your cellar what you can.',
+	'settings.mcpLabel': 'Name, e.g. "Claude Desktop"',
+	'settings.mcpCreate': 'Create token',
+	'settings.mcpOnce': 'Copy it now: the token is shown only this once.',
+	'settings.mcpCode': 'Run this in a terminal to add Vintry to Claude Code.',
+	'settings.mcpDesktop': 'Download',
+	'settings.mcpDesktopHint':
+		'In Claude Desktop, open Settings → Developer → Edit Config and add this inside "mcpServers", with the path of the downloaded file. Needs Node.js. Then restart Claude.',
+	'settings.mcpTooMany': 'At most 10 tokens. Revoke one first.',
+	'settings.mcpUsed': 'last used {date}',
+	'settings.mcpNever': 'not used yet',
+	'settings.mcpRevoke': 'Revoke',
 	'settings.reader': 'Reading labels',
 	'settings.readerLocal': 'On this phone',
 	'settings.readerLocalHint': 'Private and free. Small or curved print is often misread.',
@@ -565,6 +579,20 @@ const de: Record<Key, string> = {
 
 	'settings.title': 'Einstellungen',
 	'settings.language': 'Sprache',
+	'settings.mcp': 'Claude verbinden',
+	'settings.mcpHint':
+		'Lass Claude Weine nachschlagen und viele auf einmal hinzufügen, etwa von Etiketten-Fotos, einer Quittung oder einer Weinkarte. Dafür wird dein eigenes Claude-Konto genutzt. Erstelle pro App einen Token: Er kann in deinem Keller, was du kannst.',
+	'settings.mcpLabel': 'Name, z. B. «Claude Desktop»',
+	'settings.mcpCreate': 'Token erstellen',
+	'settings.mcpOnce': 'Jetzt kopieren: Der Token wird nur dieses eine Mal angezeigt.',
+	'settings.mcpCode': 'Im Terminal ausführen, um Vintry zu Claude Code hinzuzufügen.',
+	'settings.mcpDesktop': 'Herunterladen',
+	'settings.mcpDesktopHint':
+		'In Claude Desktop unter Einstellungen → Entwickler → Konfiguration bearbeiten dies innerhalb von "mcpServers" einfügen, mit dem Pfad der heruntergeladenen Datei. Braucht Node.js. Danach Claude neu starten.',
+	'settings.mcpTooMany': 'Höchstens 10 Tokens. Widerrufe zuerst einen.',
+	'settings.mcpUsed': 'zuletzt genutzt {date}',
+	'settings.mcpNever': 'noch nicht genutzt',
+	'settings.mcpRevoke': 'Widerrufen',
 	'settings.reader': 'Etiketten lesen',
 	'settings.readerLocal': 'Auf diesem Handy',
 	'settings.readerLocalHint': 'Privat und gratis. Kleine oder gewölbte Schrift wird oft falsch gelesen.',

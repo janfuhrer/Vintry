@@ -46,7 +46,9 @@ src/
       claude-label.ts     what Claude is asked (prompt, schema) and how its answer is checked
       wine-form.ts        validation of the wine form (also used per row by the import)
       device.ts           user agent → "iPhone · Safari"
-      ratelimit.ts        in-memory limiter for /api/auth/*
+      ratelimit.ts        in-memory limiter for /api/auth/* and /api/mcp
+      tokens.ts           personal access tokens for MCP apps (stored as sha256)
+      mcp.ts              the MCP server: protocol messages, search_wines, add_wines
   routes/
     /                     cellar (search, colour filter, grouping run client-side)
     /add                  scan or enter manually
@@ -58,6 +60,7 @@ src/
     /regions              explore the regions of a country on its map; a region opens in place
     /export/[file]        wines.csv, drinks.csv, vintry.json (own data only)
     /api/label            label photos → Claude → form fields (opted-in users only)
+    /api/mcp              MCP over Streamable HTTP, bearer token only (never the session cookie)
     /login, /invite/[token], /api/auth/*
     /photo/[id]           owner-only JPEG, immutable caching via a version parameter
     /healthz, /readyz     liveness (process) and readiness (database) probes
@@ -72,6 +75,8 @@ at once.
 - `users`: name, WebAuthn user handle, admin flag, locale, label reader (`local` or `claude`) and
   when the user agreed to Claude
 - `claude_usage`: requests and tokens per user and calendar month (UTC)
+- `wine_back_photos`: the back label's JPEG, one per wine
+- `api_tokens`: `id = sha256(token)`, label, last use; personal access tokens for MCP apps
 - `credentials`: passkeys (public key, counter, transports, device label)
 - `sessions`: `id = sha256(token)`; the token itself lives only in the cookie. 30-day sliding expiry,
   user agent and last activity for the device list in settings.
