@@ -64,7 +64,7 @@ export function countryName(code: string | null | undefined, locale: string): st
 	}
 }
 
-const COLOR_AGING: Record<Color, Aging> = {
+export const COLOR_AGING: Record<Color, Aging> = {
 	red: [2, 8],
 	white: [1, 4],
 	rose: [0, 2],
@@ -222,7 +222,6 @@ export function servingTemp(color: Color, body: number | null | undefined): [num
 	}
 }
 
-/** What goes with the wine: its grapes' pairings, else those of the region's typical grapes */
 /**
  * What the style asks for, whatever the grape: a Port made from Touriga Nacional wants
  * chocolate rather than the roast lamb its dry wines suit.
@@ -239,6 +238,7 @@ const STYLE_PAIRING: Partial<Record<Color, { en: string[]; de: string[] }>> = {
 	sparkling: { en: ['aperitif', 'oysters', 'fried food'], de: ['Apéro', 'Austern', 'Frittiertes'] }
 };
 
+/** What goes with the wine: its style's dishes, then its grapes' pairings, else the region's grapes' */
 export function pairings(
 	input: { grapes: string[]; region?: string | null; color: Color },
 	locale: 'en' | 'de'

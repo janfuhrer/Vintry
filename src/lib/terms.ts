@@ -15,8 +15,15 @@ interface Term {
 	colors?: Color[];
 }
 
+/** Without a quality word on the label: up to `entry` an everyday bottle, from `keep` one made to keep */
+export const PRICE = { entry: 12, keep: 60 };
+/** Years added to the start and the end of the window */
+export const TIER_SHIFT = { premium: [2, 5], top: [3, 8] } as const;
+/** An everyday bottle is ready within a year and best within this many years */
+export const ENTRY_YEARS = { red: 4, other: 2 };
+
 // most specific first: "gran reserva" before "reserva", "grand cru classe" before "grand cru"
-const TIERS: [Tier, Term][] = [
+export const TIERS: [Tier, Term][] = [
 	['top', { words: ['grand cru classe', 'premier grand cru classe', 'cru classe', 'grand cru'] }],
 	['top', { words: ['gran reserva'], countries: ['ES'], colors: ['red', 'white'] }],
 	['top', { words: ['gran selezione'], countries: ['IT'] }],
@@ -44,7 +51,7 @@ const TIERS: [Tier, Term][] = [
 
 // Sparkling wine's dosage scale: "extra dry" is sweeter than "brut", "sec" sweeter still.
 // Longer phrases first, so "extra brut" isn't read as "brut" nor "demi sec" as "sec".
-const SPARKLING_SWEETNESS: [Level, string[]][] = [
+export const SPARKLING_SWEETNESS: [Level, string[]][] = [
 	[1, ['brut nature', 'pas dose', 'dosage zero', 'zero dosage', 'extra brut']],
 	[4, ['demi sec', 'semi seco', 'abboccato']],
 	[2, ['extra dry', 'extra sec', 'extra seco']],
@@ -52,7 +59,7 @@ const SPARKLING_SWEETNESS: [Level, string[]][] = [
 	[5, ['doux', 'dolce']],
 	[3, ['sec', 'dry', 'trocken', 'secco', 'seco']]
 ];
-const STILL_SWEETNESS: [Level, string[]][] = [
+export const STILL_SWEETNESS: [Level, string[]][] = [
 	[
 		5,
 		[
@@ -74,7 +81,7 @@ const STILL_SWEETNESS: [Level, string[]][] = [
 	[1, ['trocken', 'sec', 'secco', 'seco', 'dry']]
 ];
 // "Spätlese trocken" is dry: an explicit dryness word beats a ripeness level
-const DRY_WORDS = ['trocken', 'sec', 'secco', 'seco', 'dry'];
+export const DRY_WORDS = ['trocken', 'sec', 'secco', 'seco', 'dry'];
 
 const has = (text: string, word: string) => ` ${text} `.includes(` ${word} `);
 
@@ -113,8 +120,8 @@ export function readTerms(input: {
 	}
 	// no word on the label: a cheap bottle is made to be drunk young, a costly one to keep
 	if (!tierFound && input.price) {
-		if (input.price <= 12) tier = 'entry';
-		else if (input.price >= 60) tier = 'premium';
+		if (input.price <= PRICE.entry) tier = 'entry';
+		else if (input.price >= PRICE.keep) tier = 'premium';
 	}
 
 	let sweetness: Level | undefined;
@@ -143,12 +150,11 @@ export function windowForTier([from, to]: [number, number], tier: Tier, color: C
 		case 'entry': {
 			// ready on release, best within a few years
 			const start = Math.min(from, 1);
-			return [start, Math.min(to, start + (color === 'red' ? 4 : 2))];
+			return [start, Math.min(to, start + (color === 'red' ? ENTRY_YEARS.red : ENTRY_YEARS.other))];
 		}
 		case 'premium':
-			return [from + 2, to + 5];
 		case 'top':
-			return [from + 3, to + 8];
+			return [from + TIER_SHIFT[tier][0], to + TIER_SHIFT[tier][1]];
 		default:
 			return [from, to];
 	}

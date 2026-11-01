@@ -43,6 +43,9 @@ exactly; on small, photographed and tilted ones a field may be missing but never
 - Add user-facing text to **both** dictionaries in `src/lib/i18n.ts` (English and German).
 - Database changes are new entries at the end of `src/lib/server/migrations.ts`. Never edit an applied migration.
 - Grape and region data live in `src/lib/data/`. Corrections are very welcome.
+- [`docs/wine-rules.md`](docs/wine-rules.md) explains how drinking windows, taste, serving
+  temperature and pairings are suggested. Change it in the same commit as the rules or tables;
+  `src/lib/rules-doc.test.ts` fails when a label word, threshold or table value is missing there.
 - Write commit messages in the imperative ("Add region filter"), and say _why_ in the body.
 
 ## Licence of contributions

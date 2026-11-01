@@ -101,6 +101,8 @@ at once.
 
 ## Wine logic
 
+The rules in full, with all words and numbers: [wine-rules.md](wine-rules.md).
+
 - Drinking window = vintage + (`region.age` ?? average of the grapes' ages ?? a colour default),
   adjusted for the wine's tier (`terms.ts`): words on the label (Grand Cru, Gran Reserva, Riserva,
   Smaragd, Spätlese, Steinfeder, Vin de France, …, some only in their own country) and, without

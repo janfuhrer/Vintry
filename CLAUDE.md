@@ -34,6 +34,10 @@ Work on Vintry and nothing else. Concretely:
   [CONTRIBUTING.md](CONTRIBUTING.md).
 - SvelteKit 3: config in `vite.config.ts`, imports via `#lib/….ts`, env via `src/env.ts`.
 - UI text goes in both `en` and `de` in `src/lib/i18n.ts`.
+- `docs/wine-rules.md` is the public reference for how window, taste, status, serving
+  temperature and pairings are suggested. Whenever those rules or tables change
+  (`src/lib/wine.ts`, `src/lib/terms.ts`, `src/lib/data/`, the form's suggestion logic), update it
+  in the same commit. `src/lib/rules-doc.test.ts` checks the main values.
 - Schema changes are new entries at the end of `src/lib/server/migrations.ts`.
 - To check the UI, run the dev server against a throwaway local database, never production.
 

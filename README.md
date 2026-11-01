@@ -28,7 +28,7 @@
 
 - **Scan a label.** Text recognition runs on your device (tesseract.js), so no photo leaves your phone. Scan the back label too, or crop a cluttered photo to the label and read it again. Scan a wine you already have and it offers to add a bottle to it.
 - **Or let Claude read it (optional).** If the server has a Claude API key, each person can choose in settings to have label photos read by Claude instead. It recognises the wine and fills in grapes, drinking window and taste too. Only the photos are sent, only after the person agrees, and each person has a monthly allowance.
-- **Smart defaults.** A built-in table of about 80 grapes and 110 regions suggests the drinking window, taste profile, serving temperature and food pairings. You can override everything.
+- **Smart defaults.** A built-in table of about 80 grapes and 110 regions, plus the quality and sweetness words on the label and the price, suggests the drinking window, taste profile, serving temperature and food pairings. You can override everything. [How the suggestions are worked out](docs/wine-rules.md).
 - **Add wines with Claude.** Vintry is an MCP server: connect Claude Code or Claude Desktop with a personal token from settings, and Claude can look up your wines and add many at once, from photos of labels, a receipt or a wine list, on your own Claude account.
 - **Maps.** Every wine shows where it comes from: its region marked on an outline of the country. A regions page lets you explore the important regions of each country and shows which ones your cellar covers.
 - **Find what to open.** Search the cellar by name, grape, region, place or note, or by a dish: "raclette" finds the Chasselas.
