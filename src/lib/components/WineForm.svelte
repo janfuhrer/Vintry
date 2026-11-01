@@ -281,6 +281,57 @@
 		);
 	});
 
+	// Suggestions from Vintry's reference list of wines while typing producer or name. Asked
+	// after a pause in typing; offline there are simply none.
+	let producerOptions = $state<SuggestOption[]>([]);
+	let wineOptions = $state<SuggestOption[]>([]);
+	let asking: ReturnType<typeof setTimeout> | undefined;
+	let askCall: AbortController | undefined;
+	function ask(field: 'producer' | 'name', q: string) {
+		clearTimeout(asking);
+		asking = setTimeout(async () => {
+			askCall?.abort();
+			const call = (askCall = new AbortController());
+			try {
+				const res = await fetch('/api/reference/suggest', {
+					method: 'POST',
+					headers: { 'content-type': 'application/json' },
+					body: JSON.stringify({ field, q, producer: field === 'name' ? v.producer : undefined }),
+					signal: call.signal
+				});
+				if (!res.ok) return;
+				const answer = await res.json();
+				if (field === 'producer')
+					producerOptions = (
+						answer.producers as { producer: string; country: string | null; wines: number }[]
+					).map((p) => ({
+						value: p.producer,
+						hint: `${flag(p.country)} ${t('form.wines', { n: p.wines })}`.trim()
+					}));
+				else
+					wineOptions = (
+						answer.wines as { producer: string; name: string; fields: Partial<WineFormValues> }[]
+					).map((w) => ({
+						value: w.name,
+						hint: v.producer ? (w.fields.region ?? '') : w.producer,
+						data: w
+					}));
+			} catch {
+				// aborted by the next keystroke, or offline
+			}
+		}, 250);
+	}
+	/** A wine from the list: its producer if none is typed, and what the form still lacks */
+	function pickWine(_value: string, option: SuggestOption) {
+		const w = option.data as { producer: string; fields: Partial<WineFormValues> } | undefined;
+		if (!w) return;
+		if (!v.producer) v.producer = w.producer;
+		const blank = emptyValues() as unknown as Record<string, unknown>;
+		const target = v as unknown as Record<string, unknown>;
+		for (const [k, x] of Object.entries(w.fields))
+			if (JSON.stringify(target[k]) === JSON.stringify(blank[k])) target[k] = Array.isArray(x) ? [...x] : x;
+	}
+
 	// a known region implies its country
 	function onRegion() {
 		const r = findRegion(v.region);
@@ -396,24 +447,29 @@
 		<h2>{t('form.wine')}</h2>
 		<label class="field">
 			{t('form.name')}
-			<input
+			<Suggest
 				class={cls('name')}
 				name="name"
 				bind:value={v.name}
+				options={wineOptions}
+				remote
+				ontype={(q) => ask('name', q)}
+				onpick={pickWine}
 				required
-				maxlength="200"
-				autocomplete="off"
+				maxlength={200}
 			/>
 			{#if errors.name}<span class="error">{t('form.required')}</span>{/if}
 		</label>
 		<label class="field">
 			{t('form.producer')}
-			<input
+			<Suggest
 				class={cls('producer')}
 				name="producer"
 				bind:value={v.producer}
-				maxlength="200"
-				autocomplete="off"
+				options={producerOptions}
+				remote
+				ontype={(q) => ask('producer', q)}
+				maxlength={200}
 			/>
 		</label>
 		<div class="grid2">

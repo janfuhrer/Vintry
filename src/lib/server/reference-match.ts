@@ -1,6 +1,8 @@
 // Matching a scanned or typed wine against the reference list. Kept free of the database so it
 // can be unit-tested.
-import { canonicalGrape, findRegion, normalize, type Color } from '#lib/wine.ts';
+import { regions } from '#lib/data/regions.ts';
+import { TIERS } from '#lib/terms.ts';
+import { canonicalGrape, findRegion, grapes, normalize, type Color } from '#lib/wine.ts';
 
 // words that say what kind of business, not which one
 const PRODUCER_WORDS = new Set(
@@ -119,4 +121,82 @@ export function refFields(r: Ref) {
 		...(r.country ? { country: r.country } : {}),
 		...(r.region ? { region: findRegion(r.region)?.name ?? r.region } : {})
 	};
+}
+
+// the small print every label has, which says nothing about which wine it is
+const LABEL_NOISE = new Set(
+	(
+		'vol alc contains sulfites sulphites sulfiti solfiti enthalt sulfite produit product prodotto ' +
+		'producto produkt imbottigliato mis bouteille bottled abgefullt bottle propriete estate grown ' +
+		'origin origine appellation controlee protegee denominazione controllata garantita qualitatswein'
+	).split(' ')
+);
+
+/** Words worth looking for in the text read from a label */
+export function labelWords(text: string): string[] {
+	return [
+		...new Set(
+			tokens(text).filter(
+				(w) =>
+					w.length >= 3 &&
+					!/^\d+$/.test(w) &&
+					!NAME_WORDS.has(w) &&
+					!PRODUCER_WORDS.has(w) &&
+					!LABEL_NOISE.has(w)
+			)
+		)
+	].slice(0, 40);
+}
+
+// words that thousands of wines share: appellations, grapes, quality terms ("Chianti Classico
+// Riserva"). On their own they say nothing about which wine it is.
+const GENERIC = new Set(
+	[
+		...regions.flatMap((r) => [r.name, ...r.synonyms]),
+		...grapes.flatMap((g) => [g.name, ...g.synonyms]),
+		...TIERS.flatMap(([, t]) => t.words),
+		'classico superiore riserva reserva reserve cru grand selection selezione collezione famiglia'
+	].flatMap((s) => normalize(s).split(' '))
+);
+
+export interface Candidate extends Ref {
+	/** the wine's distinctive words (producer and name) found on the label, of how many */
+	matched: number;
+	total: number;
+}
+
+/**
+ * The reference wines the label's text most likely shows, best first: a producer whose words
+ * are all on the label counts most, then the share of the wine's own name found there. At most
+ * `max`, and only those with the whole producer or most of a longer name.
+ */
+export function rankCandidates(words: string[], refs: Ref[], max = 3): Candidate[] {
+	const seen = new Set(words);
+	const out: (Candidate & { score: number })[] = [];
+	for (const r of refs) {
+		const producer = producerKey(r.producer).split(' ').filter(Boolean);
+		const name = nameTokens(r.name, r.producer);
+		const pHits = producer.filter((w) => seen.has(w)).length;
+		const nHits = name.filter((w) => seen.has(w)).length;
+		// "Cellier du Rhône" is all region: a producer counts by a word of its own
+		const wholeProducer =
+			producer.length > 0 && pHits === producer.length && producer.some((w) => !GENERIC.has(w));
+		// without the producer, the name must match on a word of its own, not just "Chianti Classico"
+		const mostOfName =
+			name.length >= 2 && nHits / name.length >= 0.67 && name.some((w) => seen.has(w) && !GENERIC.has(w));
+		if (!wholeProducer && !mostOfName) continue;
+		// a producer alone fits all its wines: then the name decides between them
+		const score =
+			(wholeProducer ? 1 : 0) +
+			(name.length ? nHits / name.length : 0.5) +
+			Math.min(producer.length, 3) * 0.05;
+		out.push({ ...r, matched: pHits + nHits, total: producer.length + name.length, score });
+	}
+	// on a tie, the name with fewer words not on the label ("… Rosé" when the label says nothing)
+	const ranked = out.sort((a, b) => b.score - a.score || a.name.length - b.name.length);
+	// the same wine listed twice (a red and a rosé, say) is one suggestion each, never more
+	const unique = ranked.filter(
+		(c, i) => ranked.findIndex((d) => d.producer === c.producer && d.name === c.name) === i
+	);
+	return unique.slice(0, max).map(({ score: _score, ...c }) => c);
 }

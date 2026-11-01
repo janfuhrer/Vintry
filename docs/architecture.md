@@ -69,6 +69,8 @@ src/
     /api/mcp              MCP over Streamable HTTP, bearer token only (never the session cookie)
     /api/barcode          barcode → Open Food Facts → form fields (POST; opted-in users only)
     /api/reference        producer + name → the reference list → form fields
+    /api/reference/candidates   label text → up to three wines it may be ("Is it one of these?")
+    /api/reference/suggest      typed producer or wine name → suggestions from the list
     /login, /invite/[token], /api/auth/*
     /photo/[id]           owner-only JPEG, immutable caching via a version parameter
     /healthz, /readyz     liveness (process) and readiness (database) probes

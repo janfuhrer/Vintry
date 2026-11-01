@@ -4,9 +4,19 @@ import { createHash } from 'node:crypto';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { gunzipSync } from 'node:zlib';
-import type { Color } from '#lib/wine.ts';
+import { normalize, type Color } from '#lib/wine.ts';
 import { sql } from './db.ts';
-import { nameKey, pickMatch, producerKey, refFields, type Label, type Ref } from './reference-match.ts';
+import {
+	labelWords,
+	nameKey,
+	pickMatch,
+	producerKey,
+	rankCandidates,
+	refFields,
+	type Candidate,
+	type Label,
+	type Ref
+} from './reference-match.ts';
 import type { WineInput } from './wines.ts';
 
 // next to build/ in the image, the repository root in development and tests
@@ -106,4 +116,56 @@ export async function enrich(input: WineInput): Promise<WineInput> {
 		country: input.country ?? f.country ?? null,
 		region: input.region ?? f.region ?? null
 	};
+}
+
+// functions, not constants: a fragment made at import would connect during the build
+const WORDS = () => sql`to_tsvector('simple', producer_key || ' ' || name_key)`;
+const COLUMNS = () => sql`producer, name, color, country, region, grapes, alcohol::float8 as alcohol, body`;
+
+/**
+ * The wines the text read from a label may be, best first: any of its words found among the
+ * list's producers and names, then ranked by how much of a producer and a name is there
+ */
+export async function candidatesFor(text: string, country?: string | null): Promise<Candidate[]> {
+	const words = labelWords(text);
+	if (!words.length) return [];
+	const refs = await sql<Ref[]>`
+		select ${COLUMNS()} from ref_wines, to_tsquery('simple', ${words.join(' | ')}) q
+		where ${WORDS()} @@ q ${country ? sql`and (country = ${country} or country is null)` : sql``}
+		order by ts_rank_cd(${WORDS()}, q) desc
+		limit 400
+	`;
+	return rankCandidates(words, refs);
+}
+
+/** Producers starting like what was typed, for the form's suggestions */
+export async function suggestProducers(
+	typed: string
+): Promise<{ producer: string; country: string | null; wines: number }[]> {
+	const key = producerKey(typed).replace(/[%_\\]/g, '');
+	if (key.length < 2) return [];
+	const rows = await sql<{ producer: string; country: string | null; wines: number }[]>`
+		select producer, min(country) as country, count(*)::int as wines from ref_wines
+		where producer_key like ${key + '%'}
+		group by producer order by count(*) desc, producer limit 3000
+	`;
+	// "Château Mar" means Château Margaux before Marchesi di Barolo
+	const typedText = normalize(typed);
+	const starts = (p: string) => normalize(p).startsWith(typedText);
+	// stable sort: within each group the producers with more wines stay first
+	return rows.sort((a, b) => Number(starts(b.producer)) - Number(starts(a.producer))).slice(0, 8);
+}
+
+/** Wines whose names start like what was typed; a producer narrows them to its own */
+export async function suggestWines(typed: string, producer?: string | null): Promise<Ref[]> {
+	const words = labelWords(typed).map((w) => `${w}:*`);
+	const key = producer ? producerKey(producer) : '';
+	if (!words.length && !key) return [];
+	return sql<Ref[]>`
+		select ${COLUMNS()} from ref_wines
+		where true
+			${key ? sql`and producer_key = ${key}` : sql``}
+			${words.length ? sql`and ${WORDS()} @@ to_tsquery('simple', ${words.join(' & ')})` : sql``}
+		order by length(name), name limit 8
+	`;
 }

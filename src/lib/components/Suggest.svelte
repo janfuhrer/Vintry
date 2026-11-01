@@ -5,6 +5,8 @@
 		hint?: string;
 		/** Other names that find it */
 		also?: string[];
+		/** whatever the caller wants back when it is picked */
+		data?: unknown;
 	}
 </script>
 
@@ -20,6 +22,8 @@
 		empty = [],
 		onpick,
 		onkeydown,
+		ontype,
+		remote = false,
 		max = 8,
 		...rest
 	}: {
@@ -27,8 +31,12 @@
 		options: SuggestOption[];
 		/** What to offer while the field is still empty */
 		empty?: SuggestOption[];
-		onpick?: (value: string) => void;
+		onpick?: (value: string, option: SuggestOption) => void;
 		onkeydown?: (e: KeyboardEvent) => void;
+		/** called as the user types, e.g. to fetch options */
+		ontype?: (value: string) => void;
+		/** the options are already what fits the typed text (from the server): no filtering here */
+		remote?: boolean;
 		max?: number;
 	} & Omit<HTMLInputAttributes, 'value' | 'onkeydown'> = $props();
 
@@ -40,6 +48,7 @@
 	const shown = $derived.by(() => {
 		const q = normalize(value);
 		if (!q) return empty.slice(0, max);
+		if (remote) return options.filter((o) => normalize(o.value) !== q || o.hint).slice(0, max);
 		const starts: SuggestOption[] = [];
 		const contains: SuggestOption[] = [];
 		for (const o of options) {
@@ -57,7 +66,7 @@
 		value = o.value;
 		open = false;
 		active = -1;
-		onpick?.(o.value);
+		onpick?.(o.value, o);
 	}
 
 	function key(e: KeyboardEvent) {
@@ -93,7 +102,11 @@
 		aria-activedescendant={expanded && active >= 0 ? `${id}-${active}` : undefined}
 		onfocus={() => (open = true)}
 		onblur={() => setTimeout(() => ((open = false), (active = -1)), 150)}
-		oninput={() => ((open = true), (active = -1))}
+		oninput={() => {
+			open = true;
+			active = -1;
+			ontype?.(value);
+		}}
 		onkeydown={key}
 	/>
 	{#if expanded}

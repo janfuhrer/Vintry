@@ -186,5 +186,10 @@ export const migrations: string[] = [
 	/* sql */ `
 	-- answers cached before fa9afe0 were stored as a JSON string: unwrap them
 	update barcode_cache set data = (data #>> '{}')::jsonb where jsonb_typeof(data) = 'string';
+	`,
+	/* sql */ `
+	-- the reference list searched by any word read from a label, producer or wine
+	create index ref_wines_words on ref_wines
+		using gin (to_tsvector('simple', producer_key || ' ' || name_key));
 	`
 ];

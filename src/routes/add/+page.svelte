@@ -209,6 +209,7 @@
 		sources = { ...sources, ...add };
 	}
 	function resetSources() {
+		candidates = [];
 		sources = {};
 		filledWith = {};
 		listWine = '';
@@ -324,6 +325,54 @@
 		}
 	}
 
+	// "Is it one of these?": wines from the list the label's text may be, when none matched clearly
+	type Candidate = {
+		producer: string;
+		name: string;
+		matched: number;
+		total: number;
+		fields: Partial<WineFormValues>;
+	};
+	let candidates = $state<Candidate[]>([]);
+	async function findCandidates(run: number, key: number) {
+		const typed = wineForm?.snapshot();
+		if (!typed || listWine) return;
+		try {
+			const res = await fetch('/api/reference/candidates', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({
+					text: [typed.producer, typed.name, typed.ocr_text].filter(Boolean).join('\n'),
+					country: scanned.includes('country') ? typed.country : null
+				})
+			});
+			if (!res.ok) return;
+			const answer = (await res.json()) as { candidates: Candidate[] };
+			if (run !== scanRun || key !== formKey || listWine) return;
+			// already what the form says: nothing to ask
+			candidates = answer.candidates.filter((c) => !(c.name === typed.name && c.producer === typed.producer));
+		} catch (err) {
+			console.error(err);
+		}
+	}
+	/** The user's pick: its name and producer, and what the scan only guessed or left empty */
+	function choose(c: Candidate) {
+		if (!wineForm) return;
+		const now = wineForm.snapshot() as unknown as Record<string, unknown>;
+		const blank = emptyValues() as unknown as Record<string, unknown>;
+		const values: Record<string, unknown> = { name: c.name, producer: c.producer };
+		for (const [k, x] of Object.entries(c.fields)) {
+			const guessed = sources[k] === 'label' || sources[k] === 'back';
+			if (guessed || JSON.stringify(now[k]) === JSON.stringify(blank[k])) values[k] = x;
+		}
+		wineForm.setFields(values as Partial<WineFormValues>);
+		const keys = Object.keys(values);
+		scanned = [...new Set([...scanned, ...keys])];
+		listWine = `${c.name} (${c.producer})`;
+		mark(keys, 'list', values as Partial<WineFormValues>);
+		candidates = [];
+	}
+
 	/** Brings a notice into view: Save is at the bottom of a long form */
 	function reveal(node: HTMLElement) {
 		node.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -365,6 +414,8 @@
 			notice = filled.length ? t('add.backFilled', { n: filled.length }) : t('add.backNothing');
 			// the back often names the producer the front didn't
 			if (filled.includes('producer') || filled.includes('name')) await fromReference(run, key);
+			// more text to go on: ask again if nothing matched clearly yet
+			await findCandidates(run, key);
 			if (found) {
 				// a bottle the cellar has already, known by its code
 				const typed = wineForm.snapshot();
@@ -473,6 +524,7 @@
 		const key = formKey;
 		await tick();
 		await fromReference(run, key);
+		await findCandidates(run, key);
 		if (onFront) await lookUp(onFront, run, key);
 	}
 
@@ -637,6 +689,25 @@
 						<button class="btn primary small">{same.wishlist ? t('wine.bought') : t('add.addBottle')}</button>
 						<a class="btn small" href="/wine/{id}">{t('add.openWine')}</a>
 					</form>
+				</div>
+			{/if}
+			{#if candidates.length}
+				<div class="notice candidates small" role="status">
+					<p class="ask">{t('add.candidates')}</p>
+					<ul>
+						{#each candidates as c (c.producer + c.name)}
+							<li>
+								<span class="cand">
+									<strong>{c.name}</strong>
+									<span class="muted">{c.producer} · {t('add.matched', { n: c.matched, of: c.total })}</span>
+								</span>
+								<button type="button" class="btn small primary" onclick={() => choose(c)}
+									>{t('add.thisOne')}</button
+								>
+							</li>
+						{/each}
+					</ul>
+					<button type="button" class="undo" onclick={() => (candidates = [])}>{t('add.noneOfThese')}</button>
 				</div>
 			{/if}
 			{#if notice}
@@ -853,6 +924,29 @@
 	}
 	.notice p {
 		margin: 0;
+	}
+	.candidates ul {
+		list-style: none;
+		margin: 6px 0;
+		padding: 0;
+		display: flex;
+		flex-direction: column;
+		gap: 8px;
+	}
+	.candidates li {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+	.cand {
+		flex: 1;
+		min-width: 0;
+		display: flex;
+		flex-direction: column;
+		overflow-wrap: anywhere;
+	}
+	.ask {
+		font-weight: 600;
 	}
 	.sources {
 		list-style: none;

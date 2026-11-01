@@ -196,6 +196,14 @@ region's typical grapes; at most five. A sweet wine gets only its style's.
   shares at least half its distinctive words with one wine of that producer, well ahead of the
   next; a red and a rosé of the same name are told apart by the label's colour; without a producer
   only an unmistakable name counts, and a label from another country never matches.
+- **When nothing matches clearly**, the whole text read from the label is searched in the list and
+  up to three wines are offered ("Is it one of these?", with how many of each wine's words were
+  on the label). A producer counts only when all its distinctive words are there and one of them
+  isn't a region, grape or quality word; without the producer, the name must match on a word of
+  its own, so "Chianti Classico Riserva" alone suggests nothing. Choosing one takes its name and
+  producer, and the rest where the form was empty or held only the scan's guess.
+- **While typing** producer or wine name in the form, matching producers and wines from the list
+  are suggested; picking a wine fills what the form still lacks.
 - **Claude reading a label** may give its own window and taste for the wine it recognises. They
   are used when plausible (within 100 years of the vintage, taste between 1 and 5); otherwise the
   rules above fill in.

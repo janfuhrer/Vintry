@@ -691,6 +691,32 @@ describe('reference list of wines', () => {
 		);
 	});
 
+	test('"is it one of these?": candidates from the text read on a label', async () => {
+		const post = async (path, body) => (await alice.req(path, { method: 'POST', json: body })).json();
+		const { candidates } = await post('/api/reference/candidates', {
+			text: 'CELLIER DES DAUPHINS\nPrestige\nCôtes du Rhône\n2021\n13,5% vol'
+		});
+		assert.equal(candidates[0].name, 'Prestige Côtes-du-Rhône');
+		assert.equal(candidates[0].producer, 'Cellier des Dauphins');
+		assert.ok(candidates[0].matched >= 3 && candidates[0].matched <= candidates[0].total);
+		assert.ok(candidates.length <= 3);
+		assert.deepEqual(candidates[0].fields.grapes, ['Mourvèdre', 'Grenache', 'Syrah']);
+		// appellation and quality words alone suggest nothing
+		const none = await post('/api/reference/candidates', { text: 'CHIANTI CLASSICO\nRISERVA\n2017' });
+		assert.deepEqual(none.candidates, []);
+	});
+
+	test('suggestions while typing producer and name', async () => {
+		const post = async (body) =>
+			(await alice.req('/api/reference/suggest', { method: 'POST', json: body })).json();
+		const { producers } = await post({ field: 'producer', q: 'chateau marg' });
+		assert.equal(producers[0].producer, 'Château Margaux');
+		const { wines } = await post({ field: 'name', q: 'tign', producer: 'Antinori' });
+		assert.equal(wines[0].name, 'Tignanello');
+		assert.deepEqual(wines[0].fields.grapes, ['Cabernet Sauvignon', 'Sangiovese']);
+		assert.deepEqual((await post({ field: 'producer', q: 'x' })).producers, [], 'too short to ask');
+	});
+
 	test('a CSV import with only producer and name gets the grapes, and the window from them', async () => {
 		const rows = [{ name: 'Tignanello', producer: 'Antinori', vintage: '2019', color: 'red', quantity: '1' }];
 		const r = await alice.action('/settings?/import', { rows: JSON.stringify(rows), include_owned: 'on' });

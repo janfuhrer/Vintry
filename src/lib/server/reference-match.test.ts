@@ -1,5 +1,13 @@
 import { describe, expect, test } from 'vitest';
-import { nameKey, pickMatch, producerKey, refFields, type Ref } from './reference-match.ts';
+import {
+	labelWords,
+	nameKey,
+	pickMatch,
+	producerKey,
+	rankCandidates,
+	refFields,
+	type Ref
+} from './reference-match.ts';
 
 const ref = (producer: string, name: string, over: Partial<Ref> = {}): Ref => ({
 	producer,
@@ -102,4 +110,59 @@ test('refFields: canonical grapes and regions, plausible values', () => {
 		region: 'Châteauneuf-du-Pape'
 	});
 	expect(refFields(ref('A', 'B', { alcohol: 0 })).alcohol).toBeUndefined();
+});
+
+describe('candidates from the text read on a label', () => {
+	const list = [
+		...dauphins,
+		ref('Les Fils de Charles Favre', 'Dame de Sion Fendant du Valais', {
+			country: 'CH',
+			grapes: ['Chasselas']
+		}),
+		ref('Maison Gilliard', 'Sion Fendant Les Murettes', { country: 'CH', grapes: ['Chasselas'] }),
+		ref('Antinori', 'Tignanello', { country: 'IT' })
+	];
+	const ocr = (text: string) => rankCandidates(labelWords(text), list);
+
+	test('a garbled read still finds the wine by the words that came through', () => {
+		const [first] = ocr('CELLIER DES DAUPHINS\nPRESTIGE\nC0TES DU RH0NE\n2019 13,5% vol');
+		expect(first.name).toBe('Prestige Côtes-du-Rhône');
+		expect(first.matched).toBeGreaterThanOrEqual(2);
+	});
+
+	test('a name alone counts when most of it is there', () => {
+		const [first] = ocr('Dame de Sion\nFendant du Valais AOC\n2023');
+		expect(first.producer).toBe('Les Fils de Charles Favre');
+	});
+
+	test('a tie goes to the name with fewer extra words; a producer named after a region is no match', () => {
+		const pair = [
+			ref('Cellier des Dauphins', 'Prestige Côtes-du-Rhône Rosé', { color: 'rose' }),
+			ref('Cellier des Dauphins', 'Prestige Côtes-du-Rhône'),
+			ref('Cellier du Rhône', 'Côtes du Rhône')
+		];
+		const found = rankCandidates(labelWords('CELLIER DES DAUPHINS\nPrestige\nCôtes du Rhône\n2021'), pair);
+		expect(found.map((c) => c.name)).toEqual(['Prestige Côtes-du-Rhône', 'Prestige Côtes-du-Rhône Rosé']);
+	});
+
+	test('appellation and quality words alone suggest nothing', () => {
+		const chianti = [ref('Il Molino di Grace', 'Chianti Classico Riserva', { country: 'IT' })];
+		const words = labelWords(
+			'TA Pox 06610 AI MANDORL\nCOLLEZIONE DI FAMIGLIA\nCHIANTI CLASSICO\nRISERVA 2017'
+		);
+		expect(rankCandidates(words, chianti)).toEqual([]);
+	});
+
+	test('at most three, the same wine once, nothing for unrelated text', () => {
+		expect(ocr('Cellier des Dauphins').length).toBeLessThanOrEqual(3);
+		expect(ocr('Grüner Veltliner Federspiel Wachau')).toEqual([]);
+	});
+
+	test('label words leave out numbers, filler and short words', () => {
+		expect(labelWords('Château Montlaurent 2016 Grand Vin de Bordeaux 13,5% vol')).toEqual([
+			'montlaurent',
+			'grand',
+			'bordeaux'
+		]);
+	});
 });
