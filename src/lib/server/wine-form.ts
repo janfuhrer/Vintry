@@ -1,5 +1,6 @@
 // Validation of the wine form. Kept free of database imports so it can be unit-tested.
 import { isISODate } from '#lib/dates.ts';
+import { normalizeGtin } from '#lib/gtin.ts';
 import { COLORS, canonicalGrape, suggestTaste, suggestWindow, type Color } from '#lib/wine.ts';
 import type { WineInput } from './wines';
 
@@ -109,6 +110,8 @@ export function parseWineForm(fd: FormData): { input: WineInput; errors: FieldEr
 		gifted_by: str(fd, 'gifted_by'),
 		location: str(fd, 'location', 100),
 		wishlist: fd.get('wishlist') === 'on',
+		// a misread or mistyped code is dropped rather than refused: the wine is still worth saving
+		barcode: normalizeGtin(str(fd, 'barcode', 20)),
 		ocr_text: str(fd, 'ocr_text', 5000)
 	};
 	if (input.drink_from && input.drink_to && input.drink_from > input.drink_to) errors.drink_to = 'invalid';

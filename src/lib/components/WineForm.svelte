@@ -26,6 +26,7 @@
 		notes: string;
 		ocr_text: string;
 		wishlist: boolean;
+		barcode: string;
 	}
 
 	export function emptyValues(): WineFormValues {
@@ -53,6 +54,7 @@
 			gifted_by: '',
 			notes: '',
 			ocr_text: '',
+			barcode: '',
 			wishlist: false
 		};
 	}
@@ -628,6 +630,17 @@
 			<label class="field">
 				{t('form.notes')}
 				<textarea class="input" name="notes" bind:value={v.notes} maxlength="5000"></textarea>
+			</label>
+			<label class="field">
+				{t('form.barcode')}
+				<input
+					class={cls('barcode')}
+					name="barcode"
+					bind:value={v.barcode}
+					inputmode="numeric"
+					autocomplete="off"
+					maxlength="20"
+				/>
 			</label>
 		</div>
 	</details>

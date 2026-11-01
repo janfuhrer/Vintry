@@ -30,6 +30,8 @@ export interface Wine {
 	location: string | null;
 	/** wanted, not owned yet (quantity stays 0) */
 	wishlist: boolean;
+	/** the bottle's EAN/UPC, as normalizeGtin writes it */
+	barcode: string | null;
 	has_photo: boolean;
 	photo_version: number | null;
 	/** Set when there is a photo of the back label; changes with it, for the image URL */
@@ -122,6 +124,7 @@ const columns = [
 	'gifted_by',
 	'location',
 	'wishlist',
+	'barcode',
 	'ocr_text'
 ] as const;
 
@@ -434,7 +437,7 @@ export async function findDuplicate(userId: string, w: Pick<WineInput, 'name' | 
 /** Just enough to recognise a scanned label as a wine the user already has */
 export async function ownedWines(userId: string): Promise<Owned[]> {
 	return sql<Owned[]>`
-		select id, name, producer, vintage, quantity, wishlist, has_photo from wines where user_id = ${userId}
+		select id, name, producer, vintage, quantity, wishlist, has_photo, barcode from wines where user_id = ${userId}
 	`;
 }
 
@@ -478,7 +481,7 @@ export async function exportData(userId: string) {
 	const wines = await sql<(Omit<Wine, 'photo_version'> & { id: string })[]>`
 		select id, name, producer, vintage, color, country, region, grapes, alcohol, size_ml, quantity,
 			location, drink_from, drink_to, body, acidity, tannin, sweetness, rating, purchased_on,
-			purchased_at, price, gifted_by, notes, wishlist, has_photo, created_at, updated_at
+			purchased_at, price, gifted_by, notes, wishlist, barcode, has_photo, created_at, updated_at
 		from wines where user_id = ${userId} order by name, vintage
 	`;
 	const drinks = await sql<

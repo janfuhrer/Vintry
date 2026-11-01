@@ -585,6 +585,79 @@ describe('label reading with Claude', () => {
 	});
 });
 
+describe('barcodes', () => {
+	const offCalls = async () => (await fetch(`${process.env.E2E_CLAUDE}/off-calls`)).json();
+	const look = async (code) => {
+		const r = await alice.req('/api/barcode', { method: 'POST', json: { code } });
+		return { status: r.status, body: await r.json() };
+	};
+
+	test('a wine keeps its barcode; a misread one is dropped', async () => {
+		const ok = await alice.action('/add', {
+			name: 'Coded',
+			color: 'red',
+			quantity: '1',
+			barcode: '3179071003917'
+		});
+		const id = ok.location.split('/').pop();
+		const json = await (await alice.req(`/wine/${id}/__data.json`)).json();
+		assert.equal(devalue.unflatten(json.nodes.at(-1).data).wine.barcode, '3179071003917');
+		const add = devalue.unflatten((await (await alice.req('/add/__data.json')).json()).nodes.at(-1).data);
+		assert.ok(
+			add.owned.some((w) => w.barcode === '3179071003917'),
+			'scans can recognise it by its code'
+		);
+		const bad = await alice.action('/add', {
+			name: 'Misread',
+			color: 'red',
+			quantity: '1',
+			barcode: '3179071003918'
+		});
+		const badId = bad.location.split('/').pop();
+		const badJson = await (await alice.req(`/wine/${badId}/__data.json`)).json();
+		assert.equal(devalue.unflatten(badJson.nodes.at(-1).data).wine.barcode, null);
+		await alice.action(`/wine/${id}?/delete`, {});
+		await alice.action(`/wine/${badId}?/delete`, {});
+	});
+
+	test('online lookup is off until the user turns it on', async () => {
+		assert.deepEqual(await look('3179071003917'), { status: 403, body: { error: 'off' } });
+		assert.equal((await offCalls()).length, 0, 'nothing left the server');
+	});
+
+	test('turned on: a wine is found, checked, and asked for only once', async () => {
+		assert.equal((await alice.action('/settings?/barcodeLookup', { on: '1' })).type, 'success');
+		const { status, body } = await look('3179071003917');
+		assert.equal(status, 200);
+		assert.equal(body.found, true);
+		assert.deepEqual(body.fields, {
+			name: 'Côtes du Rhône Cuvée',
+			producer: 'Cellier des Dauphins',
+			color: 'red',
+			country: 'FR',
+			region: 'Rhône',
+			size_ml: '750'
+		});
+		assert.equal(body.fields.vintage, undefined, 'one code serves several vintages');
+		await look('3179071003917');
+		const calls = await offCalls();
+		assert.equal(calls.length, 1, 'the second answer came from the cache');
+		assert.match(calls[0].agent, /Vintry/);
+	});
+
+	test('not a wine, unknown, or not a barcode', async () => {
+		assert.equal((await look('4006381333931')).body.found, false);
+		assert.equal((await look('8009825001041')).body.found, false);
+		assert.equal((await look('12345')).status, 400);
+		assert.equal((await look('8009825001042')).status, 400, 'a wrong check digit');
+	});
+
+	test('turned off again', async () => {
+		assert.equal((await alice.action('/settings?/barcodeLookup', { on: '0' })).type, 'success');
+		assert.equal((await look('3179071003917')).status, 403);
+	});
+});
+
 describe('MCP for Claude', () => {
 	let token;
 	const rpc = (body, { auth = token, headers = {} } = {}) =>

@@ -1,5 +1,5 @@
-// Copies the tesseract.js worker, wasm core and language data to static/ocr,
-// so label scanning never talks to a CDN.
+// Copies the tesseract.js worker, wasm core and language data, and the barcode reader's wasm,
+// to static/ocr, so label scanning never talks to a CDN.
 import { cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { createRequire } from 'node:module';
@@ -22,10 +22,14 @@ for (const lang of ['eng', 'fra', 'deu']) {
 	const dest = join(out, 'lang', `${lang}.traineddata.gz`);
 	if (!existsSync(dest)) cpSync(src, dest);
 }
+// zxing-wasm exports no package.json: find its root from the reader entry (dist/cjs/reader/)
+const zxing = join(dirname(require.resolve('zxing-wasm/reader')), '../../..');
+cpSync(join(zxing, 'dist/reader/zxing_reader.wasm'), join(out, 'zxing_reader.wasm'));
+
 // The file names carry no version, so the service worker keys its OCR cache on this marker:
 // a tesseract upgrade changes the name and installed apps fetch the new engine.
-const version = (name) => JSON.parse(readFileSync(join(pkgDir(name), 'package.json'), 'utf8')).version;
-const marker = `version-${version('tesseract.js')}-${version('tesseract.js-core')}.txt`;
+const version = (dir) => JSON.parse(readFileSync(join(dir, 'package.json'), 'utf8')).version;
+const marker = `version-${version(pkgDir('tesseract.js'))}-${version(pkgDir('tesseract.js-core'))}-${version(zxing)}.txt`;
 for (const file of readdirSync(out))
 	if (file.startsWith('version-') && file !== marker) rmSync(join(out, file));
 writeFileSync(join(out, marker), '');

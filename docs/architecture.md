@@ -30,6 +30,8 @@ src/
     parse.ts              OCR lines → wine fields
     ocr-lines.ts          OCR result → lines; when to run the inverted second pass
     ocr.ts, image.ts      browser-only: tesseract worker, photo resizing
+    barcode.ts            browser-only: EAN/UPC from a label photo (zxing-wasm, self-hosted)
+    gtin.ts               barcode normalisation and check digit
     csv.ts, import.ts     CSV writing/parsing, spreadsheet → wine fields
     dates.ts              local calendar dates
     match.ts              a scanned label → a wine the user already has
@@ -43,6 +45,7 @@ src/
       wines.ts            all wine/drink queries (always scoped by user_id)
       zip.ts              streamed ZIP writer for the photo export (stored entries, no ZIP64)
       map.ts              a country outline with its regions as points (only the shown one goes to the page)
+      barcode.ts, off.ts  Open Food Facts lookups (opt-in), shared cache; product → form fields
       claude.ts           label reading by Claude: who may use it, the call, the monthly allowance
       claude-label.ts     what Claude is asked (prompt, schema) and how its answer is checked
       wine-form.ts        validation of the wine form (also used per row by the import)
@@ -62,6 +65,7 @@ src/
     /export/[file]        wines.csv, drinks.csv, vintry.json (own data only)
     /api/label            label photos → Claude → form fields (opted-in users only)
     /api/mcp              MCP over Streamable HTTP, bearer token only (never the session cookie)
+    /api/barcode          barcode → Open Food Facts → form fields (POST; opted-in users only)
     /login, /invite/[token], /api/auth/*
     /photo/[id]           owner-only JPEG, immutable caching via a version parameter
     /healthz, /readyz     liveness (process) and readiness (database) probes
@@ -78,6 +82,9 @@ at once.
 - `claude_usage`: requests and tokens per user and calendar month (UTC)
 - `wine_back_photos`: the back label's JPEG, one per wine
 - `api_tokens`: `id = sha256(token)`, label, last use; personal access tokens for MCP apps
+- `wines.barcode`: the bottle's EAN/UPC; a scan of the same code finds the wine again
+- `barcode_cache`: Open Food Facts answers per barcode (60 days, 7 when not found), shared and
+  without any user reference; only wines are kept
 - `credentials`: passkeys (public key, counter, transports, device label)
 - `sessions`: `id = sha256(token)`; the token itself lives only in the cookie. 30-day sliding expiry,
   user agent and last activity for the device list in settings.
@@ -120,6 +127,12 @@ The rules in full, with all words and numbers: [wine-rules.md](wine-rules.md).
   month. The answer is checked like user input (`claude-label.ts`): canonical region, country and
   grape names, implausible values dropped, missing window and taste suggested as for a typed wine.
   When Claude can't answer or the allowance is spent, the phone reads the label as before.
+- Barcodes: the scan reads the EAN/UPC from the front and back photos on the phone (zxing-wasm,
+  its engine self-hosted under `/ocr/`), keeps it with the wine and matches the cellar by it
+  first, unless the label shows a different vintage, since one code often serves several years.
+  Users who turned it on get a lookup through `/api/barcode`: the server asks Open Food Facts,
+  so the service sees neither the user's address nor their identity, keeps only wines, never
+  takes the vintage, and the form fills only empty fields.
 - Parsing (`parse.ts`): accent-stripped matching against grape, region and country names
   (longest match first, in one pass), regexes for vintage, alcohol and bottle size (with common OCR
   misreadings), estate words for the producer, and the tallest line that isn't appellation or origin

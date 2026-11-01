@@ -25,12 +25,37 @@ await sql`drop schema if exists public cascade`;
 await sql`create schema public`;
 await sql.end();
 
-// A stand-in for the Claude API: answers like the real one, keeps what it was sent
+// A stand-in for the Claude API and Open Food Facts: answers like the real ones, keeps what it was sent
 const claudeCalls = [];
+const offCalls = [];
+const PRODUCTS = {
+	3179071003917: {
+		product_name: 'Côtes du Rhône Cuvée 2015',
+		brands: 'Cellier des Dauphins',
+		categories_tags: ['en:wines', 'en:wines-from-france', 'en:red-wines', 'fr:cotes-du-rhone'],
+		quantity: '750 ml'
+	},
+	4006381333931: { product_name: 'Apple juice', categories_tags: ['en:beverages', 'en:juices'] }
+};
 const fakeClaude = createServer(async (req, res) => {
 	if (req.method === 'GET' && req.url === '/calls') {
 		res.setHeader('content-type', 'application/json');
 		return res.end(JSON.stringify(claudeCalls));
+	}
+	// …and for Open Food Facts
+	if (req.method === 'GET' && req.url === '/off-calls') {
+		res.setHeader('content-type', 'application/json');
+		return res.end(JSON.stringify(offCalls));
+	}
+	const off = req.url.match(/^\/api\/v2\/product\/(\d+)\.json/);
+	if (off) {
+		offCalls.push({ code: off[1], agent: req.headers['user-agent'] });
+		const product = PRODUCTS[off[1]];
+		res.statusCode = product ? 200 : 404;
+		res.setHeader('content-type', 'application/json');
+		return res.end(
+			JSON.stringify(product ? { status: 1, product } : { status: 0, status_verbose: 'product not found' })
+		);
 	}
 	let raw = '';
 	for await (const chunk of req) raw += chunk;
@@ -111,7 +136,8 @@ const server = spawn('node', ['build'], {
 		ANTHROPIC_API_KEY: 'test-key',
 		ANTHROPIC_BASE_URL: claudeBase,
 		// 3,400 tokens a scan: six scans, then the allowance is spent
-		CLAUDE_MONTHLY_TOKENS: '21000'
+		CLAUDE_MONTHLY_TOKENS: '21000',
+		OPEN_FOOD_FACTS_URL: claudeBase
 	},
 	stdio: ['ignore', 'pipe', 'pipe']
 });

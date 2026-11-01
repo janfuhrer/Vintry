@@ -27,6 +27,7 @@
 ## Features
 
 - **Scan a label.** Text recognition runs on your device (tesseract.js), so no photo leaves your phone. Scan the back label too, or crop a cluttered photo to the label and read it again. Scan a wine you already have and it offers to add a bottle to it.
+- **Barcodes.** A scan also reads the bottle's barcode on the phone and keeps it, so the same bottle is recognised next time. Optionally, per person, Vintry's server looks the barcode up on [Open Food Facts](https://world.openfoodfacts.org) to fill in what the label didn't show (mostly supermarket wines).
 - **Or let Claude read it (optional).** If the server has a Claude API key, each person can choose in settings to have label photos read by Claude instead. It recognises the wine and fills in grapes, drinking window and taste too. Only the photos are sent, only after the person agrees, and each person has a monthly allowance.
 - **Smart defaults.** A built-in table of about 80 grapes and 110 regions, plus the quality and sweetness words on the label and the price, suggests the drinking window, taste profile, serving temperature and food pairings. You can override everything. [How the suggestions are worked out](docs/wine-rules.md).
 - **Add wines with Claude.** Vintry is an MCP server: connect Claude Code or Claude Desktop with a personal token from settings, and Claude can look up your wines and add many at once, from photos of labels, a receipt or a wine list, on your own Claude account.
@@ -38,7 +39,7 @@
 - **Private by design.** Every person has their own cellar. Sign-in is by passkey only, and new accounts come from invite links.
 - **Your data stays yours.** Export the cellar and history as CSV or JSON and the photos as a ZIP, import an existing spreadsheet or a Vivino export, delete your account any time.
 - **Installable PWA.** Works like an app on iOS and Android, in English and German. The cellar stays readable without signal, from a copy kept on your phone.
-- **Self-contained.** No external requests from the browser: no CDN, no web fonts, no analytics. The server calls the Claude API only for people who opted in to it.
+- **Self-contained.** No external requests from the browser: no CDN, no web fonts, no analytics. The server calls the Claude API and Open Food Facts only for people who opted in to them.
 
 ## Quick start (development)
 
@@ -73,6 +74,7 @@ Passkeys work on `localhost` over plain HTTP. Any other host needs HTTPS.
 | `PORT`                  | no                | Listening port of the production server. Default: `3000`.                                                                                                                           |
 | `ANTHROPIC_API_KEY`     | no                | Turns on label reading by Claude. Each person still chooses it in settings and agrees to the photos being sent.                                                                     |
 | `CLAUDE_MODEL`          | no                | Model for reading labels. Default: `claude-opus-5-5`.                                                                                                                               |
+| `OPEN_FOOD_FACTS_URL`   | no                | Where barcodes are looked up for people who turned it on. Default: `https://world.openfoodfacts.org`; the e2e tests point it at a stand-in.                                         |
 | `CLAUDE_MONTHLY_TOKENS` | no                | Tokens each person may spend on Claude per calendar month (UTC); after that, labels are read on the phone again. A scan takes about 5,000. Default: `250000`.                       |
 
 The production server is the SvelteKit Node adapter. Behind a reverse proxy it uses the `Host` header and assumes HTTPS. See the [adapter-node docs](https://svelte.dev/docs/kit/adapter-node) for `PROTOCOL_HEADER`, `HOST_HEADER` and `ADDRESS_HEADER`.

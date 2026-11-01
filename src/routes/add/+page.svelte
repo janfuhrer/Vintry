@@ -1,5 +1,5 @@
 <script lang="ts">
-	import { untrack } from 'svelte';
+	import { tick, untrack } from 'svelte';
 	import { applyAction, enhance } from '$app/forms';
 	import { goto } from '$app/navigation';
 	import Icon from '#lib/components/Icon.svelte';
@@ -187,6 +187,34 @@
 		return { fields: toFields(parseLabel(lines)) as Found, text };
 	}
 
+	/** The barcode on a label photo, read on the phone; null when there is none or it fails */
+	const findBarcode = (image: Blob) =>
+		import('#lib/barcode.ts').then((m) => m.readBarcode(image)).catch(() => null);
+
+	/**
+	 * Open Food Facts, for users who turned it on: fills what is still empty in the form that
+	 * scanned the code, never a field already read or typed
+	 */
+	async function lookUp(code: string, run: number, key: number) {
+		if (!data.barcodeLookup) return;
+		try {
+			const res = await fetch('/api/barcode', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({ code })
+			});
+			if (!res.ok) return;
+			const answer = (await res.json()) as { found: boolean; fields: Partial<WineFormValues> };
+			if (!answer.found || run !== scanRun || key !== formKey || !wineForm) return;
+			const filled = wineForm.fillEmpty(answer.fields);
+			if (!filled.length) return;
+			scanned = [...scanned, ...filled];
+			notice = `${notice} ${t('add.offFilled', { n: filled.length })}`.trim();
+		} catch (err) {
+			console.error(err);
+		}
+	}
+
 	/** Brings a notice into view: Save is at the bottom of a long form */
 	function reveal(node: HTMLElement) {
 		node.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -208,6 +236,8 @@
 			const image = await resizeImage(file, 1280);
 			if (run !== scanRun || key !== formKey) return;
 			back = image;
+			// barcodes are usually on the back
+			const barcode = findBarcode(image);
 			// Claude reads both sides together, so each can explain the other
 			const answer = useClaude && photo ? await askClaude([photo.image, image]) : null;
 			if (run !== scanRun || key !== formKey) return;
@@ -215,9 +245,25 @@
 				? { fields: answer.fields, text: '' }
 				: await readHere((await preparePhotoForScan(file)).ocr, () => {});
 			if (run !== scanRun || key !== formKey || !wineForm) return;
-			const filled = wineForm.fillEmpty({ ...fields, ocr_text: text });
+			const code = await barcode;
+			if (run !== scanRun || key !== formKey || !wineForm) return;
+			const filled = wineForm.fillEmpty({ ...fields, ...(code ? { barcode: code } : {}), ocr_text: text });
 			scanned = [...scanned, ...filled];
 			notice = filled.length ? t('add.backFilled', { n: filled.length }) : t('add.backNothing');
+			if (code) {
+				// a bottle the cellar has already, known by its code
+				const typed = wineForm.snapshot();
+				same ??= findSameWine(
+					{
+						name: typed.name,
+						producer: typed.producer,
+						vintage: Number(typed.vintage) || null,
+						barcode: code
+					},
+					data.owned
+				);
+				await lookUp(code, run, key);
+			}
 		} catch (err) {
 			console.error(err);
 			if (run === scanRun && key === formKey) notice = t('add.backNothing');
@@ -250,6 +296,9 @@
 		}
 		if (run !== scanRun) return;
 		photo = prepared.photo;
+		// the barcode is read alongside the label's text
+		const barcode = findBarcode(prepared.ocr);
+		let code: string | null = null;
 		try {
 			let answer = null;
 			const tried = useClaude;
@@ -268,8 +317,16 @@
 			const v = { ...emptyValues(), ...keep, ...fields };
 			const found = Object.keys(fields);
 			v.ocr_text = text.slice(0, 5000);
+			code = await barcode;
+			if (run !== scanRun) return;
+			if (code) v.barcode = code;
 			same = findSameWine(
-				{ name: fields.name, producer: fields.producer, vintage: Number(fields.vintage) || null },
+				{
+					name: fields.name,
+					producer: fields.producer,
+					vintage: Number(fields.vintage) || null,
+					barcode: code
+				},
 				data.owned
 			);
 			values = v;
@@ -292,6 +349,12 @@
 		}
 		formKey++;
 		step = 'form';
+		// once the form is there: what Open Food Facts knows fills the rest
+		if (code) {
+			const key = formKey;
+			await tick();
+			await lookUp(code, run, key);
+		}
 	}
 
 	function manual() {

@@ -120,6 +120,7 @@ const en = {
 	'add.scanBack': 'Scan the back label too',
 	'add.backFilled': 'From the back label: {n} more field(s), marked.',
 	'add.backNothing': 'The back label added nothing new.',
+	'add.offFilled': 'From Open Food Facts: {n} more field(s).',
 
 	'form.wine': 'Wine',
 	'form.name': 'Name',
@@ -147,6 +148,7 @@ const en = {
 	'form.purchasedAt': 'Bought at',
 	'form.price': 'Price',
 	'form.giftedBy': 'Gift from',
+	'form.barcode': 'Barcode (EAN)',
 	'form.notes': 'Notes',
 	'form.photo': 'Photo',
 	'form.front': 'Front',
@@ -243,6 +245,13 @@ const en = {
 
 	'settings.title': 'Settings',
 	'settings.language': 'Language',
+	'settings.barcodes': 'Barcodes',
+	'settings.barcodesHint':
+		"A scan reads the bottle's barcode on your phone and keeps it with the wine, so the same bottle is recognised next time. Looking it up online fills in what the label didn't show, from Open Food Facts, a free database that knows mostly supermarket wines. Only the barcode is sent, by Vintry's server, not by your phone.",
+	'settings.barcodesOn': 'Online lookup is on.',
+	'settings.barcodesOff': 'Online lookup is off.',
+	'settings.turnOn': 'Turn on',
+	'settings.turnOff': 'Turn off',
 	'settings.mcp': 'Connect Claude',
 	'settings.mcpHint':
 		'Let Claude look up wines and add many at once, for example from photos of labels, a receipt or a wine list. It runs on your own Claude account. Create one token per app: it can do in your cellar what you can.',
@@ -458,6 +467,7 @@ const de: Record<Key, string> = {
 	'add.scanBack': 'Auch die Rückseite scannen',
 	'add.backFilled': 'Von der Rückseite: {n} weitere(s) Feld(er), markiert.',
 	'add.backNothing': 'Die Rückseite brachte nichts Neues.',
+	'add.offFilled': 'Von Open Food Facts: {n} weitere(s) Feld(er).',
 
 	'form.wine': 'Wein',
 	'form.name': 'Name',
@@ -485,6 +495,7 @@ const de: Record<Key, string> = {
 	'form.purchasedAt': 'Gekauft bei',
 	'form.price': 'Preis',
 	'form.giftedBy': 'Geschenk von',
+	'form.barcode': 'Strichcode (EAN)',
 	'form.notes': 'Notizen',
 	'form.photo': 'Foto',
 	'form.front': 'Vorderseite',
@@ -581,6 +592,13 @@ const de: Record<Key, string> = {
 
 	'settings.title': 'Einstellungen',
 	'settings.language': 'Sprache',
+	'settings.barcodes': 'Strichcodes',
+	'settings.barcodesHint':
+		'Ein Scan liest den Strichcode der Flasche auf deinem Handy und speichert ihn beim Wein, damit dieselbe Flasche nächstes Mal erkannt wird. Online nachschlagen ergänzt, was die Etikette nicht zeigte, aus Open Food Facts, einer freien Datenbank, die vor allem Weine aus dem Supermarkt kennt. Gesendet wird nur der Strichcode, vom Vintry-Server, nicht von deinem Handy.',
+	'settings.barcodesOn': 'Online nachschlagen ist eingeschaltet.',
+	'settings.barcodesOff': 'Online nachschlagen ist ausgeschaltet.',
+	'settings.turnOn': 'Einschalten',
+	'settings.turnOff': 'Ausschalten',
 	'settings.mcp': 'Claude verbinden',
 	'settings.mcpHint':
 		'Lass Claude Weine nachschlagen und viele auf einmal hinzufügen, etwa von Etiketten-Fotos, einer Quittung oder einer Weinkarte. Dafür wird dein eigenes Claude-Konto genutzt. Erstelle pro App einen Token: Er kann in deinem Keller, was du kannst.',

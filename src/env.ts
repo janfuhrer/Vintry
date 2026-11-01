@@ -35,5 +35,9 @@ export const variables = defineEnvVars({
 			if (!Number.isInteger(n) || n < 0) throw new Error('CLAUDE_MONTHLY_TOKENS must be a whole number');
 			return n;
 		}
+	},
+	OPEN_FOOD_FACTS_URL: {
+		description: 'Where barcodes are looked up, for users who turned it on. Only changed for tests.',
+		schema: (value) => (value?.trim() || 'https://world.openfoodfacts.org').replace(/\/+$/, '')
 	}
 });

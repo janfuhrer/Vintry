@@ -87,6 +87,20 @@
 	</section>
 
 	<section class="card stack">
+		<h2>{t('settings.barcodes')}</h2>
+		<p class="muted small">{t('settings.barcodesHint')}</p>
+		<form method="POST" action="?/barcodeLookup" use:enhance class="row">
+			<span class="grow small">
+				{data.barcodeLookup ? t('settings.barcodesOn') : t('settings.barcodesOff')}
+			</span>
+			<input type="hidden" name="on" value={data.barcodeLookup ? '0' : '1'} />
+			<button class="btn small {data.barcodeLookup ? 'ghost' : 'primary'}">
+				{data.barcodeLookup ? t('settings.turnOff') : t('settings.turnOn')}
+			</button>
+		</form>
+	</section>
+
+	<section class="card stack">
 		<h2>{t('settings.mcp')}</h2>
 		<p class="muted small">{t('settings.mcpHint')}</p>
 		{#if form?.token}

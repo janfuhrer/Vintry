@@ -30,6 +30,7 @@ const WINE_COLUMNS = [
 	'price',
 	'gifted_by',
 	'notes',
+	'barcode',
 	'created_at'
 ] as const;
 const DRINK_COLUMNS = ['drunk_on', 'name', 'producer', 'vintage', 'rating', 'note'] as const;

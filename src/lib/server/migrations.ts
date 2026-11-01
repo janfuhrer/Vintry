@@ -146,5 +146,18 @@ export const migrations: string[] = [
 		last_used_at timestamptz
 	);
 	create index api_tokens_user on api_tokens (user_id);
+	`,
+	/* sql */ `
+	-- the bottle's retail barcode, to know it again; looking barcodes up online is opt-in
+	alter table wines add column barcode text check (barcode ~ '^[0-9]{8,14}$');
+	create index wines_barcode on wines (user_id, barcode) where barcode is not null;
+	alter table users add column barcode_lookup boolean not null default false;
+	-- answers from Open Food Facts, shared: a barcode and its product, nothing about who asked
+	create table barcode_cache (
+		code text primary key,
+		found boolean not null,
+		data jsonb,
+		fetched_at timestamptz not null default now()
+	);
 	`
 ];

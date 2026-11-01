@@ -50,3 +50,26 @@ describe('findSameWine', () => {
 		expect(findSameWine({ name: 'Barolo', vintage: 2019 }, cellar)?.id).toBe('e');
 	});
 });
+
+describe('by barcode', () => {
+	const owned = (over: Partial<Owned>): Owned => ({
+		id: 'x',
+		name: 'Something Else',
+		producer: null,
+		vintage: 2020,
+		quantity: 2,
+		wishlist: false,
+		has_photo: false,
+		barcode: '8009825001041',
+		...over
+	});
+
+	test('the barcode finds the wine even when the name was misread', () => {
+		expect(findSameWine({ name: 'TA Pox 06610', barcode: '8009825001041' }, [owned({})])?.id).toBe('x');
+	});
+
+	test('one code over several vintages: a different year on the label is another wine', () => {
+		expect(findSameWine({ name: 'x', vintage: 2021, barcode: '8009825001041' }, [owned({})])).toBeNull();
+		expect(findSameWine({ name: 'x', vintage: 2020, barcode: '8009825001041' }, [owned({})])?.id).toBe('x');
+	});
+});

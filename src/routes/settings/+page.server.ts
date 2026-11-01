@@ -9,6 +9,7 @@ import {
 import { allowance, claudeEnabled, readerOf, setReader } from '#lib/server/claude.ts';
 import { deviceLabel } from '#lib/server/device.ts';
 import { createToken, listTokens, revokeToken } from '#lib/server/tokens.ts';
+import { lookupEnabled, setLookup } from '#lib/server/barcode.ts';
 import { parseWineForm, withSuggestions } from '#lib/server/wine-form.ts';
 import { importWines } from '#lib/server/wines.ts';
 import { sql } from '#lib/server/db.ts';
@@ -48,7 +49,8 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		? { reader: await readerOf(user.id), allowance: await allowance(user.id) }
 		: null;
 	const tokens = await listTokens(user.id);
-	if (!user.is_admin) return { passkeys, sessions, locations, claude, tokens, admin: null };
+	const barcodeLookup = await lookupEnabled(user.id);
+	if (!user.is_admin) return { passkeys, sessions, locations, claude, tokens, barcodeLookup, admin: null };
 
 	const users = await sql<{ id: string; name: string; is_admin: boolean; created_at: Date; wines: number }[]>`
 		select u.id, u.name, u.is_admin, u.created_at,
@@ -61,7 +63,15 @@ export const load: PageServerLoad = async ({ locals, cookies }) => {
 		order by created_at desc
 	`;
 	// the id is a token hash: fine to use as a handle, it can't be turned back into a link
-	return { passkeys, sessions, locations, claude, tokens, admin: { users, invites, me: user.id } };
+	return {
+		passkeys,
+		sessions,
+		locations,
+		claude,
+		tokens,
+		barcodeLookup,
+		admin: { users, invites, me: user.id }
+	};
 };
 
 export const actions: Actions = {
@@ -69,6 +79,9 @@ export const actions: Actions = {
 		const locale = String((await request.formData()).get('locale'));
 		if (!isLocale(locale)) return fail(400);
 		await sql`update users set locale = ${locale} where id = ${locals.user!.id}`;
+	},
+	barcodeLookup: async ({ request, locals }) => {
+		await setLookup(locals.user!.id, (await request.formData()).get('on') === '1');
 	},
 	createToken: async ({ request, locals }) => {
 		const label = String((await request.formData()).get('label') ?? '')

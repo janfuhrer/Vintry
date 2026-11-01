@@ -51,6 +51,7 @@ const wineSchema = {
 			description: "The user's own rating, if they gave one"
 		},
 		notes: { type: 'string' },
+		barcode: { type: 'string', description: 'EAN/UPC from the bottle, if visible' },
 		wishlist: { type: 'boolean', description: 'Wanted, not bought yet' }
 	},
 	required: ['name'],

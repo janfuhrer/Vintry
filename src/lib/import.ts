@@ -60,7 +60,8 @@ const ALIASES: Record<string, string[]> = {
 	purchased_at: ['purchased at', 'gekauft bei', 'handler', 'shop', 'laden', 'bezugsquelle', 'store'],
 	price: ['price', 'preis', 'kosten', 'prix', 'cost', 'wine price'],
 	gifted_by: ['gifted by', 'geschenk von', 'geschenkt von', 'gift from', 'geschenk'],
-	wishlist: ['wishlist', 'merkliste', 'wunschliste']
+	wishlist: ['wishlist', 'merkliste', 'wunschliste'],
+	barcode: ['barcode', 'ean', 'gtin', 'upc', 'strichcode', 'code barre']
 };
 const FIELD_BY_HEADER = new Map(
 	Object.entries(ALIASES).flatMap(([field, names]) => names.map((n) => [n, field] as const))
