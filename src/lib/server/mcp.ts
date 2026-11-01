@@ -12,6 +12,7 @@ const INSTRUCTIONS = `Vintry is the user's private wine cellar. Use it to look u
 
 - Before adding, search for wines that may already be there. add_wines adds bottles to a wine already in the cellar (same name, producer and vintage) instead of a second entry.
 - name is the wine as a buyer would name it, without producer and vintage. producer is the winery in normal capitalisation.
+- Values you send are stored as given; drinking window and taste values you leave out are suggested from vintage, region, grapes and the label's words. Send them when you know them well, for example from the producer's notes.
 - Fill in only what you can see or know well. Never invent a vintage, alcohol or bottle size; leave fields out instead. Grapes, region and country may come from what is well known about the appellation.
 - country is an ISO 3166-1 alpha-2 code. color is one of ${COLORS.join(', ')}: sparkling, sweet and fortified wines take that style whatever their colour.
 - Tell the user what was added, with the links from the result, and mention entries that were rejected.`;
@@ -39,6 +40,11 @@ const wineSchema = {
 			description: 'Year; suggested from vintage, region and grapes if left out'
 		},
 		drink_to: { type: 'integer' },
+		body: { type: 'integer', minimum: 1, maximum: 5, description: '1 light … 5 full' },
+		acidity: { type: 'integer', minimum: 1, maximum: 5 },
+		tannin: { type: 'integer', minimum: 1, maximum: 5 },
+		sweetness: { type: 'integer', minimum: 1, maximum: 5, description: '1 dry … 5 very sweet' },
+		rating: { type: 'integer', minimum: 1, maximum: 5, description: "The user's own rating, if they gave one" },
 		notes: { type: 'string' },
 		wishlist: { type: 'boolean', description: 'Wanted, not bought yet' }
 	},

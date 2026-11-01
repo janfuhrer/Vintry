@@ -699,6 +699,55 @@ describe('MCP for Claude', () => {
 		assert.equal(bad.isError, true);
 	});
 
+	test('values sent over MCP are kept as given; only what is missing is suggested', async () => {
+		const out = await call('add_wines', {
+			wines: [
+				{
+					name: 'Given All',
+					vintage: 2019,
+					color: 'red',
+					grapes: ['Nebbiolo'],
+					region: 'Barolo',
+					drink_from: 2021,
+					drink_to: 2023,
+					body: 2,
+					acidity: 1,
+					tannin: 2,
+					sweetness: 3,
+					rating: 4
+				},
+				{
+					name: 'Given Some',
+					vintage: 2019,
+					color: 'red',
+					grapes: ['Nebbiolo'],
+					region: 'Barolo',
+					drink_to: 2040,
+					body: 1
+				}
+			],
+			if_exists: 'new_entry'
+		});
+		const wine = async (url) => {
+			const json = await (await alice.req(`${new URL(url).pathname}/__data.json`)).json();
+			return devalue.unflatten(json.nodes.at(-1).data).wine;
+		};
+		const all = await wine(out.structuredContent.results[0].url);
+		assert.deepEqual(
+			[all.drink_from, all.drink_to, all.body, all.acidity, all.tannin, all.sweetness, all.rating],
+			[2021, 2023, 2, 1, 2, 3, 4],
+			'nothing recalculated over what was sent'
+		);
+		const some = await wine(out.structuredContent.results[1].url);
+		assert.equal(some.drink_to, 2040);
+		assert.equal(some.body, 1);
+		assert.ok(
+			some.drink_from >= 2019 && some.drink_from <= 2040,
+			'the missing year is suggested around the given one'
+		);
+		assert.equal(some.tannin, 5, "Nebbiolo's tannin, suggested");
+	});
+
 	test('the Desktop bridge passes messages through', async () => {
 		const { spawn } = await import('node:child_process');
 		const bridge = spawn('node', [new URL('../../static/vintry-mcp.mjs', import.meta.url).pathname], {

@@ -164,18 +164,20 @@ export async function parseBackPhoto(fd: FormData, errors: FieldErrors): Promise
 }
 
 /**
- * Fills the drinking window and taste the way the form suggests them, where the input left
- * them empty. The form does this in the browser; imported rows get it here.
+ * Fills the drinking window and taste the way the form suggests them, value by value, where
+ * the input left them empty; whatever it gives is kept as given. The form does this in the
+ * browser; imported rows and wines added over MCP get it here.
  */
 export function withSuggestions(input: WineInput): WineInput {
 	const out = { ...input };
-	if (out.drink_from === null && out.drink_to === null) {
-		const w = suggestWindow({ ...out, text: out.ocr_text });
-		if (w) [out.drink_from, out.drink_to] = [w.from, w.to];
+	const basis = { ...out, text: out.ocr_text };
+	const w = suggestWindow(basis);
+	if (w) {
+		// a given year stays; the other one is suggested only where it fits around it
+		if (out.drink_from === null && (out.drink_to === null || w.from <= out.drink_to)) out.drink_from = w.from;
+		if (out.drink_to === null && (out.drink_from === null || w.to >= out.drink_from)) out.drink_to = w.to;
 	}
-	if ([out.body, out.acidity, out.tannin, out.sweetness].every((v) => v === null)) {
-		const t = suggestTaste({ ...out, text: out.ocr_text });
-		[out.body, out.acidity, out.tannin, out.sweetness] = [t.body, t.acidity, t.tannin, t.sweetness];
-	}
+	const t = suggestTaste(basis);
+	for (const k of ['body', 'acidity', 'tannin', 'sweetness'] as const) out[k] ??= t[k];
 	return out;
 }
