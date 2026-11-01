@@ -21,6 +21,8 @@ RUN npm ci --omit=dev --ignore-scripts \
     && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
               /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
 COPY --from=build /app/build ./build
+# the reference list of wines, loaded into the database on start
+COPY --from=build /app/data ./data
 USER node
 EXPOSE 3000
 CMD ["node", "build"]

@@ -3,6 +3,7 @@
 import { APP_URL } from '$app/env/private';
 import { COLORS, countryName, normalize, windowStatus } from '#lib/wine.ts';
 import { parseWineForm, withSuggestions } from './wine-form.ts';
+import { enrich } from './reference.ts';
 import { createWine, findDuplicate, listWines, restock } from './wines.ts';
 
 export const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26'];
@@ -139,7 +140,7 @@ async function addWines(userId: string, args: Json) {
 			count.rejected++;
 			continue;
 		}
-		const wine = withSuggestions(input);
+		const wine = withSuggestions(await enrich(input));
 		const existing = ifExists === 'new_entry' ? null : await findDuplicate(userId, wine);
 		if (existing && ifExists === 'skip') {
 			results.push({

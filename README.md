@@ -27,6 +27,7 @@
 ## Features
 
 - **Scan a label.** Text recognition runs on your device (tesseract.js), so no photo leaves your phone. Scan the back label too, or crop a cluttered photo to the label and read it again. Scan a wine you already have and it offers to add a bottle to it.
+- **A reference list of 100,000 wines.** A scanned or imported wine that matches one clearly by producer and name gets its grapes, alcohol, region and country filled in, and with the grapes better taste and window suggestions. It runs on Vintry's server; nothing leaves it.
 - **Barcodes.** A scan also reads the bottle's barcode on the phone and keeps it, so the same bottle is recognised next time. Optionally, per person, Vintry's server looks the barcode up on [Open Food Facts](https://world.openfoodfacts.org) to fill in what the label didn't show (mostly supermarket wines).
 - **Or let Claude read it (optional).** If the server has a Claude API key, each person can choose in settings to have label photos read by Claude instead. It recognises the wine and fills in grapes, drinking window and taste too. Only the photos are sent, only after the person agrees, and each person has a monthly allowance.
 - **Smart defaults.** A built-in table of about 80 grapes and 110 regions, plus the quality and sweetness words on the label and the price, suggests the drinking window, taste profile, serving temperature and food pairings. You can override everything. [How the suggestions are worked out](docs/wine-rules.md).
@@ -144,6 +145,14 @@ See [docs/architecture.md](docs/architecture.md) for how the pieces fit together
 ## Security
 
 Please report vulnerabilities privately. See [SECURITY.md](SECURITY.md).
+
+## Credits
+
+The reference list of wines (`data/`) is built from the X-Wines dataset (CC0): de Azambuja, R.X.;
+Morais, A.J.; Filipe, V. X-Wines: A Wine Dataset for Recommender Systems and Machine Learning.
+_Big Data Cogn. Comput._ 2023, 7, 20. https://doi.org/10.3390/bdcc7010020. Country outlines:
+Natural Earth (public domain), via world-atlas. Barcode lookups, when turned on: Open Food Facts
+(ODbL).
 
 ## License
 

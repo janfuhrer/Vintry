@@ -190,6 +190,12 @@ region's typical grapes; at most five. A sweet wine gets only its style's.
   by hand in the form stay.
 - **Import and MCP** (Claude adding wines): values that are given are kept; only missing ones are
   suggested, one by one. A given year stays and the other is suggested only where it fits.
+- **The reference list** ([`data/`](../data/README.md), about 100,000 wines) comes first: a wine
+  that matches one clearly by producer and name gets the grapes, alcohol, type, country and region
+  it left empty, so the suggestions above work from the real grapes. Clearly means: the name
+  shares at least half its distinctive words with one wine of that producer, well ahead of the
+  next; a red and a rosé of the same name are told apart by the label's colour; without a producer
+  only an unmistakable name counts, and a label from another country never matches.
 - **Claude reading a label** may give its own window and taste for the wine it recognises. They
   are used when plausible (within 100 years of the vintage, taste between 1 and 5); otherwise the
   rules above fill in.

@@ -658,6 +658,50 @@ describe('barcodes', () => {
 	});
 });
 
+describe('reference list of wines', () => {
+	const find = async (body) => (await alice.req('/api/reference', { method: 'POST', json: body })).json();
+
+	test('is loaded on start and finds a wine by producer and name', async () => {
+		// loading runs in the background after start
+		let answer;
+		for (let i = 0; i < 120; i++) {
+			answer = await find({ producer: 'Les Fils de Charles Favre', name: 'Dame de Sion Fendant' });
+			if (answer.found) break;
+			await new Promise((r) => setTimeout(r, 500));
+		}
+		assert.equal(answer.found, true, 'loaded within a minute');
+		assert.deepEqual(answer.fields, {
+			grapes: ['Chasselas'],
+			alcohol: '12',
+			color: 'white',
+			country: 'CH',
+			region: 'Valais'
+		});
+		assert.equal(answer.wine.name, 'Dame de Sion Fendant du Valais');
+	});
+
+	test('no guess when it is not clear', async () => {
+		assert.equal((await find({ name: 'Merlot' })).found, false);
+		assert.equal((await find({ producer: 'Cellier des Dauphins' })).found, false, 'it makes many wines');
+		assert.equal((await find({})).found, false);
+		assert.equal(
+			(await alice.req('/api/reference', { method: 'POST', json: { name: 'x' }, page: false })).status,
+			200
+		);
+	});
+
+	test('a CSV import with only producer and name gets the grapes, and the window from them', async () => {
+		const rows = [{ name: 'Tignanello', producer: 'Antinori', vintage: '2019', color: 'red', quantity: '1' }];
+		const r = await alice.action('/settings?/import', { rows: JSON.stringify(rows), include_owned: 'on' });
+		assert.equal(r.type, 'success');
+		const data = devalue.unflatten((await (await alice.req('/__data.json')).json()).nodes.at(-1).data);
+		const wine = data.wines.find((w) => w.name === 'Tignanello');
+		assert.deepEqual(wine.grapes, ['Cabernet Sauvignon', 'Sangiovese']);
+		assert.equal(wine.region, 'Toscana');
+		assert.ok(wine.drink_from && wine.drink_to, 'window suggested from the grapes');
+	});
+});
+
 describe('MCP for Claude', () => {
 	let token;
 	const rpc = (body, { auth = token, headers = {} } = {}) =>

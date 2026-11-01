@@ -215,6 +215,42 @@
 		}
 	}
 
+	/**
+	 * Vintry's reference list of wines (on the server, nothing leaves it): once producer or
+	 * name are known, fills grapes, alcohol, type, country and region still empty
+	 */
+	async function fromReference(run: number, key: number) {
+		const typed = wineForm?.snapshot();
+		if (!typed || (!typed.producer && !typed.name)) return;
+		try {
+			const res = await fetch('/api/reference', {
+				method: 'POST',
+				headers: { 'content-type': 'application/json' },
+				body: JSON.stringify({
+					producer: typed.producer,
+					name: typed.name,
+					country: typed.country,
+					// only a colour the label showed: the form's default says nothing
+					color: scanned.includes('color') ? typed.color : null
+				})
+			});
+			if (!res.ok) return;
+			const answer = (await res.json()) as {
+				found: boolean;
+				fields: Partial<WineFormValues>;
+				wine?: { producer: string; name: string };
+			};
+			if (!answer.found || run !== scanRun || key !== formKey || !wineForm) return;
+			const filled = wineForm.fillEmpty(answer.fields);
+			if (!filled.length) return;
+			scanned = [...scanned, ...filled];
+			notice =
+				`${notice} ${t('add.refFilled', { n: filled.length, wine: `${answer.wine!.name} (${answer.wine!.producer})` })}`.trim();
+		} catch (err) {
+			console.error(err);
+		}
+	}
+
 	/** Brings a notice into view: Save is at the bottom of a long form */
 	function reveal(node: HTMLElement) {
 		node.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -250,6 +286,8 @@
 			const filled = wineForm.fillEmpty({ ...fields, ...(code ? { barcode: code } : {}), ocr_text: text });
 			scanned = [...scanned, ...filled];
 			notice = filled.length ? t('add.backFilled', { n: filled.length }) : t('add.backNothing');
+			// the back often names the producer the front didn't
+			if (filled.includes('producer') || filled.includes('name')) await fromReference(run, key);
 			if (code) {
 				// a bottle the cellar has already, known by its code
 				const typed = wineForm.snapshot();
@@ -349,12 +387,11 @@
 		}
 		formKey++;
 		step = 'form';
-		// once the form is there: what Open Food Facts knows fills the rest
-		if (code) {
-			const key = formKey;
-			await tick();
-			await lookUp(code, run, key);
-		}
+		// once the form is there: the reference list, then what Open Food Facts knows, fill the rest
+		const key = formKey;
+		await tick();
+		await fromReference(run, key);
+		if (code) await lookUp(code, run, key);
 	}
 
 	function manual() {

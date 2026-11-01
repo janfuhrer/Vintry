@@ -11,6 +11,7 @@ import { deviceLabel } from '#lib/server/device.ts';
 import { createToken, listTokens, revokeToken } from '#lib/server/tokens.ts';
 import { lookupEnabled, setLookup } from '#lib/server/barcode.ts';
 import { parseWineForm, withSuggestions } from '#lib/server/wine-form.ts';
+import { enrich } from '#lib/server/reference.ts';
 import { importWines } from '#lib/server/wines.ts';
 import { sql } from '#lib/server/db.ts';
 import { isLocale } from '#lib/i18n.ts';
@@ -203,7 +204,8 @@ export const actions: Actions = {
 			if (!fd.has('quantity')) fd.set('quantity', '1');
 			const { input, errors } = parseWineForm(fd);
 			if (Object.keys(errors).length) rejected.push(line);
-			else inputs.push(withSuggestions(input));
+			// the reference list fills grapes and the like first, so the suggestions can use them
+			else inputs.push(withSuggestions(await enrich(input)));
 		}
 		const { imported, skipped, restocked } = await importWines(locals.user!.id, inputs, { skipOwned });
 		return { imported, skipped, restocked, rejected: rejected.slice(0, 20), rejectedCount: rejected.length };

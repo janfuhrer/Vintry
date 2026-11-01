@@ -159,5 +159,28 @@ export const migrations: string[] = [
 		data jsonb,
 		fetched_at timestamptz not null default now()
 	);
+	`,
+	/* sql */ `
+	-- a reference list of wines (X-Wines, public domain), loaded from data/xwines.tsv.gz on start
+	create table ref_wines (
+		id serial primary key,
+		producer text not null,
+		name text not null,
+		producer_key text not null,
+		name_key text not null,
+		color text,
+		country text,
+		region text,
+		grapes text[] not null default '{}',
+		alcohol numeric(4, 1),
+		body smallint
+	);
+	create index ref_wines_producer on ref_wines (producer_key text_pattern_ops);
+	create index ref_wines_name on ref_wines (name_key);
+	create table ref_meta (
+		source text primary key,
+		version text not null,
+		loaded_at timestamptz not null default now()
+	);
 	`
 ];

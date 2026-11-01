@@ -121,6 +121,7 @@ const en = {
 	'add.backFilled': 'From the back label: {n} more field(s), marked.',
 	'add.backNothing': 'The back label added nothing new.',
 	'add.offFilled': 'From Open Food Facts: {n} more field(s).',
+	'add.refFilled': 'Found in the wine list as {wine}: {n} more field(s).',
 
 	'form.wine': 'Wine',
 	'form.name': 'Name',
@@ -468,6 +469,7 @@ const de: Record<Key, string> = {
 	'add.backFilled': 'Von der Rückseite: {n} weitere(s) Feld(er), markiert.',
 	'add.backNothing': 'Die Rückseite brachte nichts Neues.',
 	'add.offFilled': 'Von Open Food Facts: {n} weitere(s) Feld(er).',
+	'add.refFilled': 'In der Weinliste gefunden als {wine}: {n} weitere(s) Feld(er).',
 
 	'form.wine': 'Wein',
 	'form.name': 'Name',

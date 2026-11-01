@@ -1,3 +1,4 @@
+import { loadReference } from '#lib/server/reference.ts';
 import { redirect, type RequestEvent } from '@sveltejs/kit';
 import type { Handle, ServerInit } from '@sveltejs/kit/hooks';
 import { building, dev } from '$app/env';
@@ -12,6 +13,8 @@ export const init: ServerInit = async () => {
 	await migrate();
 	await bootstrap();
 	await recoveryLink(RECOVERY_USER);
+	// in the background: the app works without it, and a first load takes a few seconds
+	loadReference().catch((e) => console.error('[vintry] loading the reference list failed', e));
 	setInterval(() => cleanup().catch((e) => console.error('[vintry] cleanup failed', e)), 3_600_000).unref();
 	// adapter-node closes the HTTP server on SIGTERM and then emits this. Open database
 	// connections would keep Node alive until the platform kills it at the end of its grace

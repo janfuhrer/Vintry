@@ -46,6 +46,8 @@ src/
       zip.ts              streamed ZIP writer for the photo export (stored entries, no ZIP64)
       map.ts              a country outline with its regions as points (only the shown one goes to the page)
       barcode.ts, off.ts  Open Food Facts lookups (opt-in), shared cache; product → form fields
+      reference.ts        the reference list of wines: loaded from data/ on start, lookups, enrich()
+      reference-match.ts  producer and name keys, picking a match only when it is clear
       claude.ts           label reading by Claude: who may use it, the call, the monthly allowance
       claude-label.ts     what Claude is asked (prompt, schema) and how its answer is checked
       wine-form.ts        validation of the wine form (also used per row by the import)
@@ -66,6 +68,7 @@ src/
     /api/label            label photos → Claude → form fields (opted-in users only)
     /api/mcp              MCP over Streamable HTTP, bearer token only (never the session cookie)
     /api/barcode          barcode → Open Food Facts → form fields (POST; opted-in users only)
+    /api/reference        producer + name → the reference list → form fields
     /login, /invite/[token], /api/auth/*
     /photo/[id]           owner-only JPEG, immutable caching via a version parameter
     /healthz, /readyz     liveness (process) and readiness (database) probes
@@ -83,6 +86,9 @@ at once.
 - `wine_back_photos`: the back label's JPEG, one per wine
 - `api_tokens`: `id = sha256(token)`, label, last use; personal access tokens for MCP apps
 - `wines.barcode`: the bottle's EAN/UPC; a scan of the same code finds the wine again
+- `ref_wines`, `ref_meta`: the reference list of wines from `data/xwines.tsv.gz` (X-Wines, CC0),
+  about 100,000 rows; loaded in the background on start when the file changed, under an advisory
+  lock, and keyed by producer (without words like Domaine or Weingut) and name
 - `barcode_cache`: Open Food Facts answers per barcode (60 days, 7 when not found), shared and
   without any user reference; only wines are kept
 - `credentials`: passkeys (public key, counter, transports, device label)
