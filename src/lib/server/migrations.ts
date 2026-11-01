@@ -182,5 +182,9 @@ export const migrations: string[] = [
 		version text not null,
 		loaded_at timestamptz not null default now()
 	);
+	`,
+	/* sql */ `
+	-- answers cached before fa9afe0 were stored as a JSON string: unwrap them
+	update barcode_cache set data = (data #>> '{}')::jsonb where jsonb_typeof(data) = 'string';
 	`
 ];
