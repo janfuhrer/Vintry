@@ -80,7 +80,7 @@
 	import Dots from './Dots.svelte';
 	import Icon from './Icon.svelte';
 	import { countries } from '#lib/data/countries.ts';
-	import { preparePhoto } from '#lib/image.ts';
+	import { preparePhoto, resizeImage } from '#lib/image.ts';
 	import { useI18n } from '#lib/i18n.ts';
 	import {
 		COLORS,
@@ -101,6 +101,8 @@
 		scanned = [],
 		photo = $bindable(null),
 		existingPhoto = null,
+		back = $bindable(null),
+		existingBack = null,
 		suggestions = { locations: [], shops: [], givers: [] },
 		errors = {},
 		submitLabel,
@@ -112,6 +114,9 @@
 		scanned?: string[];
 		photo?: Photo | null;
 		existingPhoto?: string | null;
+		/** The back label, 1280 px; no thumbnail of its own */
+		back?: Blob | null;
+		existingBack?: string | null;
 		/** Earlier values for the free-text fields */
 		suggestions?: { locations: string[]; shops: string[]; givers: string[] };
 		errors?: Record<string, string>;
@@ -160,6 +165,7 @@
 		)
 	);
 	let removePhoto = $state(false);
+	let removeBack = $state(false);
 	let saving = $state(false);
 	let grapeDraft = $state('');
 	let tasteOpen = $state(false);
@@ -238,16 +244,48 @@
 		return () => URL.revokeObjectURL(url);
 	});
 	const shownPhoto = $derived(previewUrl ?? (removePhoto ? null : existingPhoto));
+	let backUrl = $state<string | null>(null);
+	$effect(() => {
+		if (!back) return ((backUrl = null), undefined);
+		const url = URL.createObjectURL(back);
+		backUrl = url;
+		return () => URL.revokeObjectURL(url);
+	});
+	const shownBack = $derived(backUrl ?? (removeBack ? null : existingBack));
 
 	async function pickPhoto(e: Event) {
-		const file = (e.currentTarget as HTMLInputElement).files?.[0];
+		const input = e.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		input.value = '';
 		if (!file) return;
 		photo = await preparePhoto(file);
 		removePhoto = false;
 	}
+	async function pickBack(e: Event) {
+		const input = e.currentTarget as HTMLInputElement;
+		const file = input.files?.[0];
+		input.value = '';
+		if (!file) return;
+		back = await resizeImage(file, 1280);
+		removeBack = false;
+	}
 
 	const cls = (field: string) => `input${scanned.includes(field) ? ' scanned' : ''}`;
 </script>
+
+{#snippet slot(label: string, src: string | null, pick: (e: Event) => void, remove: () => void)}
+	<div class="slot">
+		<label class="tile" class:empty={!src}>
+			{#if src}<img {src} alt="" />{:else}<Icon name="camera" size={22} />{/if}
+			<span class="tile-label">{label}</span>
+			<span class="visually-hidden">{src ? t('form.changePhoto') : t('form.addPhoto')}</span>
+			<input class="visually-hidden" type="file" accept="image/*" onchange={pick} />
+		</label>
+		{#if src}
+			<button type="button" class="remove small" onclick={remove}>{t('form.removePhoto')}</button>
+		{/if}
+	</div>
+{/snippet}
 
 <form
 	id="wine-form"
@@ -262,6 +300,8 @@
 			formData.set('thumb', photo.thumb, 'thumb.jpg');
 		}
 		if (removePhoto && !photo) formData.set('remove_photo', '1');
+		if (back) formData.set('back_photo', back, 'back.jpg');
+		if (removeBack && !back) formData.set('remove_back', '1');
 		return async ({ update }) => {
 			await update({ reset: false });
 			saving = false;
@@ -269,25 +309,10 @@
 	}}
 >
 	<section class="card stack">
-		<div class="photo-row">
-			{#if shownPhoto}
-				<img class="photo" src={shownPhoto} alt="" />
-			{/if}
-			<div class="photo-actions">
-				<label class="btn small">
-					<Icon name="camera" size={18} />{shownPhoto ? t('form.changePhoto') : t('form.addPhoto')}
-					<input class="visually-hidden" type="file" accept="image/*" onchange={pickPhoto} />
-				</label>
-				{#if shownPhoto}
-					<button
-						type="button"
-						class="btn small ghost"
-						onclick={() => ((photo = null), (removePhoto = true))}
-					>
-						{t('form.removePhoto')}
-					</button>
-				{/if}
-			</div>
+		<!-- one picker each: on a phone it offers the camera and the photo library -->
+		<div class="photos">
+			{@render slot(t('form.front'), shownPhoto, pickPhoto, () => ((photo = null), (removePhoto = true)))}
+			{@render slot(t('form.back'), shownBack, pickBack, () => ((back = null), (removeBack = true)))}
 		</div>
 		{#if errors.photo}<p class="error">{t('form.invalid')}</p>{/if}
 
@@ -683,22 +708,55 @@
 	.details-body {
 		margin-top: 14px;
 	}
-	.photo-row {
+	.photos {
 		display: flex;
-		gap: 14px;
-		align-items: center;
+		gap: 12px;
 	}
-	.photo {
-		width: 88px;
-		height: 88px;
-		border-radius: 12px;
-		object-fit: cover;
-	}
-	.photo-actions {
+	.slot {
 		display: flex;
 		flex-direction: column;
-		align-items: flex-start;
-		gap: 4px;
+		align-items: center;
+		gap: 2px;
+	}
+	.tile {
+		position: relative;
+		display: grid;
+		place-items: center;
+		width: 104px;
+		height: 104px;
+		border-radius: 12px;
+		overflow: hidden;
+		background: var(--surface-2);
+		color: var(--muted);
+		cursor: pointer;
+	}
+	.tile.empty {
+		border: 1.5px dashed var(--line);
+	}
+	.tile img {
+		position: absolute;
+		inset: 0;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
+	}
+	.tile-label {
+		position: absolute;
+		left: 0;
+		right: 0;
+		bottom: 0;
+		padding: 3px 6px;
+		font-size: 0.75rem;
+		font-weight: 600;
+		text-align: center;
+		color: var(--text);
+		background: color-mix(in srgb, var(--surface) 75%, transparent);
+	}
+	.remove {
+		border: 0;
+		background: none;
+		color: var(--muted);
+		padding: 4px;
 	}
 	.submit {
 		position: sticky;

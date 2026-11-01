@@ -47,7 +47,11 @@ async function* photoEntries(userId: string) {
 	for await (const p of exportPhotos(userId)) {
 		const name = fileName([p.name, p.vintage].filter(Boolean).join(' '));
 		// the id keeps two photos of the same wine and vintage apart
-		yield { name: `${name} ${p.id.slice(0, 8)}.jpg`, data: p.image, date: p.updated_at };
+		yield {
+			name: `${name} ${p.id.slice(0, 8)}${p.back ? ' back' : ''}.jpg`,
+			data: p.image,
+			date: p.updated_at
+		};
 	}
 }
 

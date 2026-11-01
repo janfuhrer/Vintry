@@ -82,6 +82,7 @@ describe('cellar', () => {
 		fd.append('grapes', 'Humagne rouge');
 		fd.append('photo', jpeg(), 'p.jpg');
 		fd.append('thumb', jpeg(), 't.jpg');
+		fd.append('back_photo', jpeg(), 'b.jpg');
 		const r = await alice.req('/add', { method: 'POST', form: fd, page: true });
 		assert.equal(r.status, 303);
 		wineUrl = r.headers.get('location');
@@ -448,6 +449,35 @@ describe('cellar', () => {
 		assert.equal(r.headers.get('content-type'), 'image/jpeg');
 		assert.match(r.headers.get('cache-control'), /private/);
 	});
+
+	test('the back label photo is kept, shown, replaced and removed', async () => {
+		const back = await alice.req(`/photo/${wineId}?side=back&v=1`);
+		assert.equal(back.status, 200);
+		assert.equal(back.headers.get('content-type'), 'image/jpeg');
+		assert.match(await (await alice.req(wineUrl, { page: true })).text(), /side=back&amp;v=\d+/);
+		// another wine without one has none to serve
+		const other = await alice.action('/add', { name: 'No Back', color: 'white', quantity: '1' });
+		const otherId = other.location.split('/').pop();
+		assert.equal((await alice.req(`/photo/${otherId}?side=back&v=1`)).status, 404);
+		// editing without touching it keeps it; remove_back drops it
+		const fields = { name: 'No Back', color: 'white', quantity: '1' };
+		const replace = new FormData();
+		for (const [k, v] of Object.entries(fields)) replace.append(k, v);
+		replace.append('back_photo', jpeg(), 'b.jpg');
+		assert.equal(
+			(await alice.req(`/wine/${otherId}/edit`, { method: 'POST', form: replace, page: true })).status,
+			303
+		);
+		assert.equal((await alice.req(`/photo/${otherId}?side=back&v=2`)).status, 200);
+		assert.equal((await alice.action(`/wine/${otherId}/edit`, fields)).type, 'redirect');
+		assert.equal((await alice.req(`/photo/${otherId}?side=back&v=3`)).status, 200);
+		assert.equal(
+			(await alice.action(`/wine/${otherId}/edit`, { ...fields, remove_back: '1' })).type,
+			'redirect'
+		);
+		assert.equal((await alice.req(`/photo/${otherId}?side=back&v=4`)).status, 404);
+		await alice.action(`/wine/${otherId}?/delete`, {});
+	});
 });
 
 describe('label reading with Claude', () => {
@@ -595,6 +625,10 @@ describe('people', () => {
 		assert.ok(
 			mine.some((n) => n.includes(wineId.slice(0, 8))),
 			"Alice's first wine is in it"
+		);
+		assert.ok(
+			mine.some((n) => n.includes(wineId.slice(0, 8)) && n.endsWith(' back.jpg')),
+			'with its back label'
 		);
 		assert.deepEqual(await entries(bob), [], 'Bob has no photos, and none of hers');
 	});

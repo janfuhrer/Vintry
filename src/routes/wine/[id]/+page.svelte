@@ -63,6 +63,15 @@
 	}
 
 	let photoDialog: HTMLDialogElement | undefined = $state();
+	let gallery: HTMLElement | undefined = $state();
+	const frontSrc = $derived(wine.has_photo ? `/photo/${wine.id}?v=${wine.photo_version ?? 0}` : null);
+	const backSrc = $derived(wine.back_version ? `/photo/${wine.id}?side=back&v=${wine.back_version}` : null);
+	// front and back, swiped through full screen
+	const photos = $derived([frontSrc, backSrc].filter((x) => x !== null));
+	function openPhoto(i: number) {
+		photoDialog?.showModal();
+		gallery?.scrollTo({ left: i * gallery.clientWidth });
+	}
 	let drinkOpen = $state(false);
 	// "Drink one" can be undone for a few seconds, in case it was a mis-tap
 	let undoId = $state<string | null>(null);
@@ -109,15 +118,15 @@
 <svelte:head><title>Vintry · {wine.name}</title></svelte:head>
 
 <main class="page wine-page">
-	<header class="hero" class:has-photo={wine.has_photo}>
-		{#if wine.has_photo}
-			<button
-				type="button"
-				class="hero-btn"
-				aria-label={t('wine.viewPhoto')}
-				onclick={() => photoDialog?.showModal()}
-			>
-				<img class="hero-img" src="/photo/{wine.id}?v={wine.photo_version ?? 0}" alt="" />
+	<header class="hero" class:has-photo={photos.length > 0}>
+		{#if photos.length}
+			<button type="button" class="hero-btn" aria-label={t('wine.viewPhoto')} onclick={() => openPhoto(0)}>
+				<img class="hero-img" src={photos[0]} alt="" />
+			</button>
+		{/if}
+		{#if frontSrc && backSrc}
+			<button type="button" class="back-thumb" aria-label={t('wine.viewBack')} onclick={() => openPhoto(1)}>
+				<img src={backSrc} alt="" />
 			</button>
 		{/if}
 		<div class="hero-bar">
@@ -129,7 +138,7 @@
 	</header>
 
 	<section class="title">
-		{#if !wine.has_photo}<Thumb
+		{#if !photos.length}<Thumb
 				id={wine.id}
 				color={wine.color}
 				hasPhoto={false}
@@ -385,15 +394,19 @@
 	</div>
 {/if}
 
-{#if wine.has_photo}
-	<!-- full-screen photo to read the small print; native pinch-zoom works on the image -->
+{#if photos.length}
+	<!-- full-screen photos to read the small print; swipe between front and back, pinch to zoom -->
 	<dialog
 		bind:this={photoDialog}
 		class="photo-dialog"
 		aria-label={wine.name}
 		onclick={() => photoDialog?.close()}
 	>
-		<img src="/photo/{wine.id}?v={wine.photo_version ?? 0}" alt={wine.name} />
+		<div class="gallery" bind:this={gallery}>
+			{#each photos as src, i (src)}
+				<img {src} alt="{wine.name} · {i === 0 && frontSrc ? t('form.front') : t('form.back')}" />
+			{/each}
+		</div>
 		<button type="button" class="icon-btn close" aria-label={t('common.close')}><Icon name="x" /></button>
 	</dialog>
 {/if}
@@ -558,11 +571,41 @@
 	.photo-dialog::backdrop {
 		background: #000;
 	}
-	.photo-dialog img {
+	.gallery {
+		display: flex;
+		width: 100%;
+		height: 100%;
+		overflow-x: auto;
+		scroll-snap-type: x mandatory;
+		scrollbar-width: none;
+	}
+	.gallery img {
+		flex: none;
 		width: 100%;
 		height: 100%;
 		object-fit: contain;
-		touch-action: pinch-zoom;
+		scroll-snap-align: center;
+		touch-action: pan-x pinch-zoom;
+	}
+	.back-thumb {
+		position: absolute;
+		right: 12px;
+		bottom: 12px;
+		width: 64px;
+		height: 64px;
+		padding: 0;
+		border: 2px solid var(--surface);
+		border-radius: 12px;
+		overflow: hidden;
+		background: var(--surface-2);
+		box-shadow: var(--shadow);
+		cursor: zoom-in;
+	}
+	.back-thumb img {
+		display: block;
+		width: 100%;
+		height: 100%;
+		object-fit: cover;
 	}
 	.photo-dialog .close {
 		position: absolute;

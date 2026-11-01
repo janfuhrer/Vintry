@@ -1,5 +1,5 @@
 import { error, fail, redirect } from '@sveltejs/kit';
-import { parsePhoto, parseWineForm } from '#lib/server/wine-form.ts';
+import { parseBackPhoto, parsePhoto, parseWineForm } from '#lib/server/wine-form.ts';
 import { getWine, suggestions, updateWine } from '#lib/server/wines.ts';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -14,8 +14,9 @@ export const actions: Actions = {
 		const fd = await request.formData();
 		const { input, errors } = parseWineForm(fd);
 		const photo = await parsePhoto(fd, errors);
+		const back = await parseBackPhoto(fd, errors);
 		if (Object.keys(errors).length) return fail(400, { errors });
-		if (!(await updateWine(locals.user!.id, params.id, input, photo))) error(404, 'Not found');
+		if (!(await updateWine(locals.user!.id, params.id, input, photo, back))) error(404, 'Not found');
 		redirect(303, `/wine/${params.id}`);
 	}
 };

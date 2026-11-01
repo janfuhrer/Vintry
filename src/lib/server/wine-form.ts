@@ -146,6 +146,23 @@ export async function parsePhoto(
 	return { image: img, thumb: th };
 }
 
+/** The back label photo: `undefined` keeps the current one, `null` removes it */
+export async function parseBackPhoto(fd: FormData, errors: FieldErrors): Promise<Buffer | null | undefined> {
+	if (fd.get('remove_back') === '1') return null;
+	const image = fd.get('back_photo');
+	if (!(image instanceof File) || !image.size) return undefined;
+	if (image.size > MAX_PHOTO) {
+		errors.photo = 'too_large';
+		return undefined;
+	}
+	const img = Buffer.from(await image.arrayBuffer());
+	if (!isJpeg(img)) {
+		errors.photo = 'invalid';
+		return undefined;
+	}
+	return img;
+}
+
 /**
  * Fills the drinking window and taste the way the form suggests them, where the input left
  * them empty. The form does this in the browser; imported rows get it here.

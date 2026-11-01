@@ -7,6 +7,7 @@
 	let { data, form }: PageProps = $props();
 	const { t } = useI18n();
 	let photo = $state<{ image: Blob; thumb: Blob } | null>(null);
+	let back = $state<Blob | null>(null);
 	const initial = $derived(toValues(data.wine));
 </script>
 
@@ -22,6 +23,10 @@
 		bind:photo
 		existingPhoto={data.wine.has_photo
 			? `/photo/${data.wine.id}?s=t&v=${data.wine.photo_version ?? 0}`
+			: null}
+		bind:back
+		existingBack={data.wine.back_version
+			? `/photo/${data.wine.id}?side=back&v=${data.wine.back_version}`
 			: null}
 		suggestions={data.suggestions}
 		errors={form?.errors ?? {}}

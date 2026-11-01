@@ -6,9 +6,14 @@ import type { RequestHandler } from './$types';
 export const GET: RequestHandler = async ({ params, url, locals }) => {
 	if (!isUuid(params.id)) error(404, 'Not found');
 	const thumb = url.searchParams.get('s') === 't';
+	// ?side=back: the back label, which has no thumbnail of its own
 	const [row] = await sql<{ data: Buffer }[]>`
-		select ${thumb ? sql`p.thumb` : sql`p.image`} as data
-		from wine_photos p join wines w on w.id = p.wine_id
+		${
+			url.searchParams.get('side') === 'back'
+				? sql`select p.image as data from wine_back_photos p`
+				: sql`select ${thumb ? sql`p.thumb` : sql`p.image`} as data from wine_photos p`
+		}
+		join wines w on w.id = p.wine_id
 		where p.wine_id = ${params.id} and w.user_id = ${locals.user!.id}
 	`;
 	if (!row) error(404, 'Not found');

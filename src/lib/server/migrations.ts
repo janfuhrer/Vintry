@@ -127,5 +127,13 @@ export const migrations: string[] = [
 		output_tokens bigint not null default 0,
 		primary key (user_id, month)
 	);
+	`,
+	/* sql */ `
+	-- the back label: alcohol, grapes and the small print are often only there
+	create table wine_back_photos (
+		wine_id uuid primary key references wines on delete cascade,
+		image bytea not null,
+		updated_at timestamptz not null default now()
+	);
 	`
 ];

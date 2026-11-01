@@ -40,6 +40,8 @@
 	// the scanned label is a wine the user already has
 	let same = $state<Owned | null>(null);
 	let photo = $state<{ image: Blob; thumb: Blob } | null>(null);
+	// the back label's photo, kept with the wine once it was scanned
+	let back = $state<Blob | null>(null);
 	let notice = $state(initial ? t('add.copied', { name: initial.name }) : '');
 	let formKey = $state(0);
 	let imageError = $state(false);
@@ -94,6 +96,7 @@
 			same = null;
 			scanned = [];
 			photo = null;
+			back = null;
 			notice = t('add.copied', { name: copy.name });
 			formKey++;
 			step = 'form';
@@ -106,6 +109,7 @@
 		input.value = '';
 		if (!file) return;
 		source = null;
+		back = null;
 		crop = { x: 0.1, y: 0.1, w: 0.8, h: 0.8 };
 		read(async () => {
 			const prepared = await preparePhotoForScan(file);
@@ -201,9 +205,11 @@
 		const key = formKey;
 		backBusy = true;
 		try {
+			const image = await resizeImage(file, 1280);
+			if (run !== scanRun || key !== formKey) return;
+			back = image;
 			// Claude reads both sides together, so each can explain the other
-			const answer =
-				useClaude && photo ? await askClaude([photo.image, await resizeImage(file, 1280)]) : null;
+			const answer = useClaude && photo ? await askClaude([photo.image, image]) : null;
 			if (run !== scanRun || key !== formKey) return;
 			const { fields, text } = answer
 				? { fields: answer.fields, text: '' }
@@ -291,6 +297,7 @@
 	function manual() {
 		scanRun++;
 		stopClaude();
+		back = null;
 		source = null;
 		same = null;
 		values = emptyValues();
@@ -330,11 +337,7 @@
 				{#if useClaude}<span class="small claude-hint"
 						>{t('add.withClaude', { n: data.claude!.scansLeft })}</span
 					>{/if}
-				<input class="visually-hidden" type="file" accept="image/*" capture="environment" onchange={scan} />
-			</label>
-			<!-- no capture attribute: the phone offers its photo library -->
-			<label class="btn block">
-				<Icon name="image" size={18} />{t('add.pickPhoto')}
+				<!-- no capture attribute: the phone offers both, the camera and the photo library -->
 				<input class="visually-hidden" type="file" accept="image/*" onchange={scan} />
 			</label>
 			<button class="btn block" onclick={manual}><Icon name="pen" size={18} />{t('add.manual')}</button>
@@ -467,18 +470,10 @@
 									class="visually-hidden"
 									type="file"
 									accept="image/*"
-									capture="environment"
 									disabled={backBusy}
 									onchange={scanBack}
 								/>
 							</label>
-							{#if !backBusy}
-								<!-- no capture attribute: the phone offers its photo library -->
-								<label class="btn small">
-									<Icon name="image" size={16} />{t('add.pickBack')}
-									<input class="visually-hidden" type="file" accept="image/*" onchange={scanBack} />
-								</label>
-							{/if}
 						</div>
 					{/if}
 				</div>
@@ -489,6 +484,7 @@
 					initial={values}
 					{scanned}
 					bind:photo
+					bind:back
 					suggestions={data.suggestions}
 					errors={form?.errors ?? {}}
 					submitLabel={t('common.save')}

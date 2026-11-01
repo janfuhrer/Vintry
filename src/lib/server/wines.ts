@@ -32,6 +32,8 @@ export interface Wine {
 	wishlist: boolean;
 	has_photo: boolean;
 	photo_version: number | null;
+	/** Set when there is a photo of the back label; changes with it, for the image URL */
+	back_version: number | null;
 	created_at: Date;
 	updated_at: Date;
 }
@@ -58,7 +60,10 @@ export type WineListItem = Pick<
 	| 'photo_version'
 >;
 
-export type WineInput = Omit<Wine, 'id' | 'has_photo' | 'photo_version' | 'created_at' | 'updated_at'> & {
+export type WineInput = Omit<
+	Wine,
+	'id' | 'has_photo' | 'photo_version' | 'back_version' | 'created_at' | 'updated_at'
+> & {
 	ocr_text: string | null;
 };
 
@@ -75,8 +80,11 @@ export async function listWines(userId: string): Promise<WineListItem[]> {
 export async function getWine(userId: string, id: string): Promise<Wine | null> {
 	if (!isUuid(id)) return null;
 	const [row] = await sql<Wine[]>`
-		select w.*, (extract(epoch from p.updated_at) * 1000)::int8 as photo_version
-		from wines w left join wine_photos p on p.wine_id = w.id
+		select w.*, (extract(epoch from p.updated_at) * 1000)::int8 as photo_version,
+			(extract(epoch from b.updated_at) * 1000)::int8 as back_version
+		from wines w
+		left join wine_photos p on p.wine_id = w.id
+		left join wine_back_photos b on b.wine_id = w.id
 		where w.id = ${id} and w.user_id = ${userId}
 	`;
 	if (!row) return null;
@@ -120,7 +128,8 @@ const columns = [
 export async function createWine(
 	userId: string,
 	input: WineInput,
-	photo: { image: Buffer; thumb: Buffer } | null | undefined
+	photo: { image: Buffer; thumb: Buffer } | null | undefined,
+	back?: Buffer | null
 ): Promise<string> {
 	return sql.begin(async (tx) => {
 		const [{ id }] = await tx<{ id: string }[]>`
@@ -130,6 +139,7 @@ export async function createWine(
 		if (photo) {
 			await tx`insert into wine_photos (wine_id, image, thumb) values (${id}, ${photo.image}::bytea, ${photo.thumb}::bytea)`;
 		}
+		if (back) await tx`insert into wine_back_photos (wine_id, image) values (${id}, ${back}::bytea)`;
 		return id;
 	});
 }
@@ -138,7 +148,9 @@ export async function updateWine(
 	userId: string,
 	id: string,
 	input: WineInput,
-	photo: { image: Buffer; thumb: Buffer } | null | undefined
+	photo: { image: Buffer; thumb: Buffer } | null | undefined,
+	/** `undefined`: keep, `null`: remove */
+	back?: Buffer | null
 ): Promise<boolean> {
 	return sql.begin(async (tx) => {
 		const { ocr_text, ...rest } = input;
@@ -159,6 +171,13 @@ export async function updateWine(
 				on conflict (wine_id) do update set image = excluded.image, thumb = excluded.thumb, updated_at = now()
 			`;
 			await tx`update wines set has_photo = true where id = ${id}`;
+		}
+		if (back === null) await tx`delete from wine_back_photos where wine_id = ${id}`;
+		else if (back) {
+			await tx`
+				insert into wine_back_photos (wine_id, image) values (${id}, ${back}::bytea)
+				on conflict (wine_id) do update set image = excluded.image, updated_at = now()
+			`;
 		}
 		return true;
 	});
@@ -437,13 +456,19 @@ export async function suggestions(userId: string): Promise<Suggestions> {
 	return { locations, shops, givers };
 }
 
-/** The user's label photos, one at a time, for the photo export */
+/** The user's label photos, front and back, one at a time, for the photo export */
 export async function* exportPhotos(userId: string) {
-	const cursor = sql<{ id: string; name: string; vintage: number | null; image: Buffer; updated_at: Date }[]>`
-		select w.id, w.name, w.vintage, p.image, p.updated_at
+	const cursor = sql<
+		{ id: string; name: string; vintage: number | null; back: boolean; image: Buffer; updated_at: Date }[]
+	>`
+		select w.id, w.name, w.vintage, false as back, p.image, p.updated_at
 		from wine_photos p join wines w on w.id = p.wine_id
 		where w.user_id = ${userId}
-		order by w.name, w.vintage
+		union all
+		select w.id, w.name, w.vintage, true as back, b.image, b.updated_at
+		from wine_back_photos b join wines w on w.id = b.wine_id
+		where w.user_id = ${userId}
+		order by name, vintage, id, back
 	`.cursor(8);
 	for await (const rows of cursor) yield* rows;
 }
