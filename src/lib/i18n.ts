@@ -84,6 +84,7 @@ const en = {
 	'status.soon': 'Drink soon',
 	'status.past': 'Past peak',
 	'status.unknown': 'No window',
+	'status.finished': 'Finished',
 
 	'install.title': 'Install Vintry',
 	'install.ios': 'Tap Share, then “Add to Home Screen”. It opens like an app.',
@@ -420,6 +421,7 @@ const de: Record<Key, string> = {
 	'status.soon': 'Bald trinken',
 	'status.past': 'Über dem Höhepunkt',
 	'status.unknown': 'Kein Fenster',
+	'status.finished': 'Ausgetrunken',
 
 	'install.title': 'Vintry installieren',
 	'install.ios': 'Tippe auf Teilen und dann «Zum Home-Bildschirm». Es öffnet sich wie eine App.',

@@ -15,7 +15,8 @@
 		pairings,
 		windowStatus,
 		type Color,
-		type WindowStatus
+		type WineStatus,
+		wineStatus
 	} from '#lib/wine.ts';
 	import type { PageProps } from './$types';
 
@@ -27,7 +28,7 @@
 	const GROUPS: Group[] = ['none', 'country', 'grape', 'window', 'location'];
 	type Sort = 'recent' | 'name' | 'vintage' | 'window' | 'rating';
 	const SORTS: Sort[] = ['recent', 'name', 'vintage', 'window', 'rating'];
-	const STATUS_ORDER: WindowStatus[] = ['soon', 'ready', 'wait', 'past', 'unknown'];
+	const STATUS_ORDER: WineStatus[] = ['soon', 'ready', 'wait', 'past', 'unknown', 'finished'];
 
 	let query = $state('');
 	let color = $state<Color | null>(null);
@@ -158,7 +159,7 @@
 		if (group === 'none') return [{ key: '', label: '', wines: filtered }];
 		const grouped = groupBy(filtered, (w) => {
 			if (group === 'country') return w.country ?? '';
-			if (group === 'window') return windowStatus(w.drink_from, w.drink_to);
+			if (group === 'window') return wineStatus(w);
 			if (group === 'location') return w.location?.trim() ?? '';
 			return w.grapes.length ? w.grapes : '';
 		});
@@ -171,7 +172,7 @@
 		const entries = grouped.map(([key, wines]) => ({ key, label: label(key), wines }));
 		if (group === 'window')
 			entries.sort(
-				(a, b) => STATUS_ORDER.indexOf(a.key as WindowStatus) - STATUS_ORDER.indexOf(b.key as WindowStatus)
+				(a, b) => STATUS_ORDER.indexOf(a.key as WineStatus) - STATUS_ORDER.indexOf(b.key as WineStatus)
 			);
 		else
 			entries.sort((a, b) =>

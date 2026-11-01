@@ -8,6 +8,7 @@ import {
 	normalize,
 	suggestTaste,
 	suggestWindow,
+	wineStatus,
 	windowStatus,
 	findCountry,
 	findGrape
@@ -55,6 +56,13 @@ describe('drinking window', () => {
 		expect(suggestWindow({ vintage: 2022, color: 'rose', name: 'Rosado Reserva' })).toEqual(
 			suggestWindow({ vintage: 2022, color: 'rose' })
 		);
+	});
+
+	test('a wine with no bottles left shows as finished, a wish never does', () => {
+		const w = { drink_from: 2020, drink_to: 2026 };
+		expect(wineStatus({ ...w, quantity: 2 }, 2026)).toBe('soon');
+		expect(wineStatus({ ...w, quantity: 0 }, 2026)).toBe('finished');
+		expect(wineStatus({ ...w, quantity: 0, wishlist: true }, 2026)).toBe('soon');
 	});
 
 	test('colour default without grapes', () => {

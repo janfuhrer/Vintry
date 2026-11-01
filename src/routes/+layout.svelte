@@ -4,6 +4,7 @@
 	import { page } from '$app/state';
 	import Icon from '#lib/components/Icon.svelte';
 	import { createI18n, setI18n } from '#lib/i18n.ts';
+	import { rememberStart } from '#lib/nav.ts';
 	import type { LayoutProps } from './$types';
 
 	let { children, data }: LayoutProps = $props();
@@ -17,6 +18,7 @@
 	// without signal the service worker answers with copies saved on this device
 	let offline = $state(false);
 	onMount(() => {
+		rememberStart();
 		offline = !navigator.onLine || document.documentElement.hasAttribute('data-saved');
 		const set = (value: boolean) => () => (offline = value);
 		const onMessage = (e: MessageEvent) => {

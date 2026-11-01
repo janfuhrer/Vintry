@@ -1,6 +1,6 @@
 <script lang="ts">
+	import BackButton from '#lib/components/BackButton.svelte';
 	import Dots from '#lib/components/Dots.svelte';
-	import Icon from '#lib/components/Icon.svelte';
 	import WineRows from '#lib/components/WineRows.svelte';
 	import { useI18n } from '#lib/i18n.ts';
 	import { countryName, findGrape, flag, regionSlug, regionsForGrape } from '#lib/wine.ts';
@@ -18,7 +18,7 @@
 
 <main class="page stack">
 	<header class="head">
-		<a class="icon-btn" href="/grapes" aria-label={t('common.back')}><Icon name="back" /></a>
+		<BackButton fallback="/grapes" />
 		<div>
 			<h1>{grape.name}</h1>
 			{#if grape.synonyms.length}

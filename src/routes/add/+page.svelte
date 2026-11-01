@@ -407,7 +407,7 @@
 									for (const k of KEPT) if (k !== 'quantity') formData.set(k, String(typed[k] ?? ''));
 								}
 								return async ({ result }) => {
-									if (result.type === 'success') await goto(`/wine/${dup.id}`);
+									if (result.type === 'success') await goto(`/wine/${dup.id}`, { replaceState: true });
 									else await applyAction(result);
 								};
 							}}
@@ -446,7 +446,7 @@
 								formData.set('thumb', new File([photo.thumb], 'thumb.jpg', { type: 'image/jpeg' }));
 							}
 							return async ({ result }) => {
-								if (result.type === 'success') await goto(`/wine/${id}`);
+								if (result.type === 'success') await goto(`/wine/${id}`, { replaceState: true });
 								else await applyAction(result);
 							};
 						}}

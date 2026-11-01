@@ -187,6 +187,16 @@ export function windowStatus(
 	return 'ready';
 }
 
+export type WineStatus = WindowStatus | 'finished';
+
+/** The status a wine shows: once the last bottle is drunk there is no window left to watch */
+export function wineStatus(
+	w: { quantity: number; wishlist?: boolean; drink_from: number | null; drink_to: number | null },
+	year = new Date().getFullYear()
+): WineStatus {
+	return w.quantity === 0 && !w.wishlist ? 'finished' : windowStatus(w.drink_from, w.drink_to, year);
+}
+
 /** Canonical grape name if known, else the trimmed input */
 export function canonicalGrape(name: string): string {
 	return findGrape(name)?.name ?? name.trim();

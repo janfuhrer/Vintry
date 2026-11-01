@@ -1,4 +1,5 @@
 <script lang="ts">
+	import BackButton from '#lib/components/BackButton.svelte';
 	import { enhance } from '$app/forms';
 	import CountryMap from '#lib/components/CountryMap.svelte';
 	import Dots from '#lib/components/Dots.svelte';
@@ -8,6 +9,7 @@
 	import StatusPill from '#lib/components/StatusPill.svelte';
 	import Thumb from '#lib/components/Thumb.svelte';
 	import WindowBar from '#lib/components/WindowBar.svelte';
+	import { back } from '#lib/nav.ts';
 	import { localISODate } from '#lib/dates.ts';
 	import { useI18n } from '#lib/i18n.ts';
 	import {
@@ -20,7 +22,7 @@
 		regionSlug,
 		pairings,
 		servingTemp,
-		windowStatus
+		wineStatus
 	} from '#lib/wine.ts';
 	import type { PageProps } from './$types';
 
@@ -31,7 +33,7 @@
 	const wine = $derived(data.wine);
 	const year = new Date().getFullYear();
 	const age = $derived(wine.vintage ? year - wine.vintage : null);
-	const status = $derived(windowStatus(wine.drink_from, wine.drink_to));
+	const status = $derived(wineStatus(wine));
 	const aromaWords = $derived(aromas(wine.grapes, i18n.locale));
 	const temp = $derived(servingTemp(wine.color, wine.body));
 	const foods = $derived(pairings(wine, i18n.locale));
@@ -130,7 +132,7 @@
 			</button>
 		{/if}
 		<div class="hero-bar">
-			<a class="icon-btn glass" href="/" aria-label={t('common.back')}><Icon name="back" /></a>
+			<BackButton fallback="/" class="glass" />
 			<a class="icon-btn glass" href="/wine/{wine.id}/edit" aria-label={t('common.edit')}
 				><Icon name="pen" size={20} /></a
 			>
@@ -368,7 +370,11 @@
 		method="POST"
 		action="?/delete"
 		use:enhance={({ cancel }) => {
-			if (!confirm(t('wine.deleteConfirm'))) cancel();
+			if (!confirm(t('wine.deleteConfirm'))) return cancel();
+			// back to where the wine was opened from, which no longer lists it
+			return async ({ result }) => {
+				if (result.type === 'redirect') back('/');
+			};
 		}}
 	>
 		<button class="btn danger block"><Icon name="trash" size={18} />{t('common.delete')}</button>

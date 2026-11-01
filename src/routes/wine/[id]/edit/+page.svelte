@@ -1,5 +1,5 @@
 <script lang="ts">
-	import Icon from '#lib/components/Icon.svelte';
+	import BackButton from '#lib/components/BackButton.svelte';
 	import WineForm, { toValues } from '#lib/components/WineForm.svelte';
 	import { useI18n } from '#lib/i18n.ts';
 	import type { PageProps } from './$types';
@@ -15,7 +15,7 @@
 
 <main class="page">
 	<header class="head">
-		<a class="icon-btn" href="/wine/{data.wine.id}" aria-label={t('common.back')}><Icon name="back" /></a>
+		<BackButton fallback="/wine/{data.wine.id}" />
 		<h1>{t('common.edit')}</h1>
 	</header>
 	<WineForm
@@ -32,6 +32,7 @@
 		errors={form?.errors ?? {}}
 		submitLabel={t('common.save')}
 		bottles={data.wine.wishlist ? 0 : data.wine.quantity}
+		afterSave="back"
 	/>
 </main>
 

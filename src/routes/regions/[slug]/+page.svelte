@@ -1,6 +1,6 @@
 <script lang="ts">
+	import BackButton from '#lib/components/BackButton.svelte';
 	import CountryMap from '#lib/components/CountryMap.svelte';
-	import Icon from '#lib/components/Icon.svelte';
 	import RegionDetails from '#lib/components/RegionDetails.svelte';
 	import { useI18n } from '#lib/i18n.ts';
 	import { countryName, findRegion, flag, regionSlug } from '#lib/wine.ts';
@@ -20,9 +20,7 @@
 
 <main class="page stack">
 	<header class="head">
-		<button type="button" class="icon-btn" aria-label={t('common.back')} onclick={() => history.back()}
-			><Icon name="back" /></button
-		>
+		<BackButton fallback={explore} />
 		<div>
 			<h1>{region.name}</h1>
 			<p class="muted">{flag(region.country)} {country}</p>

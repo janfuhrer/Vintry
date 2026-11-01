@@ -3,11 +3,11 @@
 	import StatusPill from './StatusPill.svelte';
 	import Icon from './Icon.svelte';
 	import { useI18n } from '#lib/i18n.ts';
-	import { windowStatus } from '#lib/wine.ts';
+	import { wineStatus } from '#lib/wine.ts';
 	import type { WineListItem } from '#lib/server/wines.ts';
 
 	let { wine }: { wine: WineListItem } = $props();
-	const status = $derived(windowStatus(wine.drink_from, wine.drink_to));
+	const status = $derived(wineStatus(wine));
 	const sub = $derived([wine.producer, wine.vintage].filter(Boolean).join(' · '));
 	const { t } = useI18n();
 </script>

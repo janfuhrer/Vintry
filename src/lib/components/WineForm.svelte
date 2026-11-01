@@ -80,6 +80,8 @@
 	import Dots from './Dots.svelte';
 	import Icon from './Icon.svelte';
 	import { countries } from '#lib/data/countries.ts';
+	import { goto } from '$app/navigation';
+	import { canGoBack } from '#lib/nav.ts';
 	import { preparePhoto, resizeImage } from '#lib/image.ts';
 	import { useI18n } from '#lib/i18n.ts';
 	import {
@@ -108,7 +110,8 @@
 		errors = {},
 		submitLabel,
 		action = '',
-		bottles = 0
+		bottles = 0,
+		afterSave = 'replace'
 	}: {
 		initial: WineFormValues;
 		/** Fields filled in from the label, marked for review */
@@ -125,6 +128,11 @@
 		action?: string;
 		/** Bottles the wine has now, when editing: moving it to the wishlist takes them out */
 		bottles?: number;
+		/**
+		 * replace: the saved wine takes this form's place in the history (adding);
+		 * back: return to the page the form was opened from, the wine (editing)
+		 */
+		afterSave?: 'replace' | 'back';
 	} = $props();
 
 	const i18n = useI18n();
@@ -157,14 +165,9 @@
 		}
 		return filled;
 	}
-	// a wine that already has taste values was set by hand
-	let touched = $state(
-		untrack(() =>
-			[initial.body, initial.acidity, initial.tannin, initial.sweetness, initial.drink_from].some(
-				(x) => x !== null && x !== ''
-			)
-		)
-	);
+	// changed by hand in this form: from then on the suggestions leave them alone
+	let windowByHand = $state(false);
+	let tasteByHand = $state(false);
 	let removePhoto = $state(false);
 	let removeBack = $state(false);
 	let saving = $state(false);
@@ -206,32 +209,67 @@
 		(findRegion(v.region)?.grapes ?? []).filter((g) => !v.grapes.includes(g)).map((g) => ({ value: g }))
 	);
 
-	// auto-suggest taste and window until the user changes one of them
+	// Window and taste follow the wine's details. Whatever is still the suggestion for the
+	// details as they were is replaced by the one for the details as they are now, also when
+	// editing a saved wine (adding the vintage later). A window from elsewhere, e.g. Claude or
+	// typed in an earlier edit, moves with a corrected vintage. Changes by hand stay.
+	type Basis = Parameters<typeof suggestWindow>[0];
+	const basis = (): Basis => ({
+		vintage: Number(v.vintage) || null,
+		color: v.color,
+		name: v.name,
+		region: v.region,
+		grapes: [...v.grapes]
+	});
+	const windowText = (w: { from: number; to: number } | null) =>
+		w ? [String(w.from), String(w.to)] : ['', ''];
+	type Levels = Record<'body' | 'acidity' | 'tannin' | 'sweetness', number | null>;
+	const sameTaste = (a: Levels, b: Levels) =>
+		a.body === b.body && a.acidity === b.acidity && a.tannin === b.tannin && a.sweetness === b.sweetness;
+	let before: Basis | null = null;
 	$effect(() => {
-		const input = {
-			vintage: Number(v.vintage) || null,
-			color: v.color,
-			name: v.name,
-			region: v.region,
-			grapes: v.grapes
-		};
-		if (untrack(() => touched)) return;
-		const taste = suggestTaste(input);
-		const win = suggestWindow(input);
+		const now = basis();
 		untrack(() => {
-			v.body = taste.body;
-			v.acidity = taste.acidity;
-			v.tannin = taste.tannin;
-			v.sweetness = taste.sweetness;
-			v.drink_from = win ? String(win.from) : '';
-			v.drink_to = win ? String(win.to) : '';
+			const was = before ?? now;
+			before = now;
+			if (!windowByHand) {
+				const [from, to] = [v.drink_from, v.drink_to];
+				const [oldFrom, oldTo] = windowText(suggestWindow(was));
+				const empty = !from && !to;
+				if (empty || (from === oldFrom && to === oldTo)) {
+					[v.drink_from, v.drink_to] = windowText(suggestWindow(now));
+				} else if (was.vintage && now.vintage && was.vintage !== now.vintage && from && to) {
+					const shift = now.vintage - was.vintage;
+					[v.drink_from, v.drink_to] = [String(Number(from) + shift), String(Number(to) + shift)];
+				}
+			}
+			if (!tasteByHand) {
+				const current = { body: v.body, acidity: v.acidity, tannin: v.tannin, sweetness: v.sweetness };
+				const blank = Object.values(current).every((x) => x === null);
+				if (blank || sameTaste(current, suggestTaste(was))) {
+					const next = suggestTaste(now);
+					[v.body, v.acidity, v.tannin, v.sweetness] = [next.body, next.acidity, next.tannin, next.sweetness];
+				}
+			}
 		});
 	});
+	// "suggested" next to the values while they are what the details give
+	const suggested = $derived.by(() => {
+		const b = basis();
+		const [from, to] = windowText(suggestWindow(b));
+		const t2 = suggestTaste(b);
+		return (
+			(v.drink_from !== '' || v.body !== null) &&
+			v.drink_from === from &&
+			v.drink_to === to &&
+			sameTaste({ body: v.body, acidity: v.acidity, tannin: v.tannin, sweetness: v.sweetness }, t2)
+		);
+	});
 
-	// picking a known region fills in its country
+	// a known region implies its country
 	function onRegion() {
 		const r = findRegion(v.region);
-		if (r && !v.country) v.country = r.country;
+		if (r) v.country = r.country;
 	}
 
 	function addGrape() {
@@ -247,10 +285,6 @@
 		} else if (e.key === 'Backspace' && !grapeDraft && v.grapes.length) {
 			v.grapes.pop();
 		}
-	}
-
-	function touch() {
-		touched = true;
 	}
 
 	let previewUrl = $state<string | null>(null);
@@ -319,7 +353,13 @@
 		if (removePhoto && !photo) formData.set('remove_photo', '1');
 		if (back) formData.set('back_photo', back, 'back.jpg');
 		if (removeBack && !back) formData.set('remove_back', '1');
-		return async ({ update }) => {
+		return async ({ result, update }) => {
+			if (result.type === 'redirect') {
+				// Back from the saved wine leads where the user was before the form, not to the form
+				if (afterSave === 'back' && canGoBack()) history.back();
+				else await goto(result.location, { replaceState: true, invalidateAll: true });
+				return;
+			}
 			await update({ reset: false });
 			saving = false;
 		};
@@ -506,22 +546,44 @@
 			<Icon name="chevron" /></summary
 		>
 		<div class="stack details-body">
-			{#if !touched && (v.body || v.drink_from)}<p class="muted small">{t('form.suggested')}</p>{/if}
+			{#if suggested}<p class="muted small">{t('form.suggested')}</p>{/if}
 			<div class="grid2">
 				<label class="field">
 					{t('form.drinkFrom')}
-					<input class="input" bind:value={v.drink_from} inputmode="numeric" oninput={touch} />
+					<input
+						class="input"
+						bind:value={v.drink_from}
+						inputmode="numeric"
+						oninput={() => (windowByHand = true)}
+					/>
 				</label>
 				<label class="field">
 					{t('form.drinkTo')}
-					<input class="input" bind:value={v.drink_to} inputmode="numeric" oninput={touch} />
+					<input
+						class="input"
+						bind:value={v.drink_to}
+						inputmode="numeric"
+						oninput={() => (windowByHand = true)}
+					/>
 					{#if errors.drink_to}<span class="error">{t('form.invalid')}</span>{/if}
 				</label>
 			</div>
-			<Dots label={t('taste.body')} value={v.body} onchange={(x) => ((v.body = x), touch())} />
-			<Dots label={t('taste.acidity')} value={v.acidity} onchange={(x) => ((v.acidity = x), touch())} />
-			<Dots label={t('taste.tannin')} value={v.tannin} onchange={(x) => ((v.tannin = x), touch())} />
-			<Dots label={t('taste.sweetness')} value={v.sweetness} onchange={(x) => ((v.sweetness = x), touch())} />
+			<Dots label={t('taste.body')} value={v.body} onchange={(x) => ((v.body = x), (tasteByHand = true))} />
+			<Dots
+				label={t('taste.acidity')}
+				value={v.acidity}
+				onchange={(x) => ((v.acidity = x), (tasteByHand = true))}
+			/>
+			<Dots
+				label={t('taste.tannin')}
+				value={v.tannin}
+				onchange={(x) => ((v.tannin = x), (tasteByHand = true))}
+			/>
+			<Dots
+				label={t('taste.sweetness')}
+				value={v.sweetness}
+				onchange={(x) => ((v.sweetness = x), (tasteByHand = true))}
+			/>
 		</div>
 	</details>
 	<!-- auto-suggested values are state, not typed input, so submit them explicitly -->

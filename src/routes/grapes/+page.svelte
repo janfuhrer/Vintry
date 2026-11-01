@@ -1,4 +1,5 @@
 <script lang="ts">
+	import BackButton from '#lib/components/BackButton.svelte';
 	import Icon from '#lib/components/Icon.svelte';
 	import { useI18n } from '#lib/i18n.ts';
 	import { grapes, grapeSlug, normalize } from '#lib/wine.ts';
@@ -24,7 +25,7 @@
 
 <main class="page stack">
 	<header class="head">
-		<a class="icon-btn" href="/" aria-label={t('common.back')}><Icon name="back" /></a>
+		<BackButton fallback="/" />
 		<h1>{t('grapes.title')}</h1>
 	</header>
 	<label class="search">

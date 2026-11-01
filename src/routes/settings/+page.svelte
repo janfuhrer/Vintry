@@ -1,4 +1,5 @@
 <script lang="ts">
+	import BackButton from '#lib/components/BackButton.svelte';
 	import { enhance } from '$app/forms';
 	import { version } from '$app/env';
 	import { page } from '$app/state';
@@ -72,7 +73,7 @@
 
 <main class="page stack">
 	<header class="head">
-		<a class="icon-btn" href="/" aria-label={t('common.back')}><Icon name="back" /></a>
+		<BackButton fallback="/" />
 		<h1>{t('settings.title')}</h1>
 	</header>
 
