@@ -6,7 +6,8 @@ import { parseBackPhoto, parsePhoto, parseWineForm } from '#lib/server/wine-form
 import { createWine, findDuplicate, getWine, ownedWines, suggestions } from '#lib/server/wines.ts';
 import type { Actions, PageServerLoad } from './$types';
 
-export const load: PageServerLoad = async ({ locals, url }) => {
+export const load: PageServerLoad = async ({ locals, url, depends }) => {
+	depends('vintry:scans');
 	const from = url.searchParams.get('from');
 	const copy = from ? await getWine(locals.user!.id, from) : null;
 	const [list, owned, reader] = await Promise.all([

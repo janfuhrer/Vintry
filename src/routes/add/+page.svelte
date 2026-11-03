@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { tick, untrack } from 'svelte';
 	import { applyAction, enhance } from '$app/forms';
-	import { goto } from '$app/navigation';
+	import { goto, invalidate } from '$app/navigation';
 	import Icon from '#lib/components/Icon.svelte';
 	import WineForm, { emptyValues, toValues, type WineFormValues } from '#lib/components/WineForm.svelte';
 	import { useI18n, type Key } from '#lib/i18n.ts';
@@ -578,6 +578,10 @@
 		scans = scans.filter((s) => s.id !== id);
 		await fetch(`/api/scan/${id}`, { method: 'DELETE' }).catch(() => {});
 	}
+	// iOS keeps the app open in the background while the Shortcut runs: look again on return
+	function scansAgain() {
+		if (document.visibilityState === 'visible' && step === 'choose') invalidate('vintry:scans');
+	}
 	async function useScan(scan: (typeof data.scans)[number]) {
 		const front = await photoOf(scan.id, 'front');
 		if (!front) return dropScan(scan.id);
@@ -614,6 +618,7 @@
 </script>
 
 <svelte:head><title>Vintry · {t('add.title')}</title></svelte:head>
+<svelte:document onvisibilitychange={scansAgain} />
 
 <main class="page" style="--form-bottom: calc(var(--nav-h) + var(--safe-b))">
 	<header class="head">
