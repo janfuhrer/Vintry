@@ -9,7 +9,7 @@ export interface OcrPage {
 					lines: {
 						text: string;
 						confidence: number;
-						bbox: { y0: number; y1: number };
+						bbox: { x0?: number; y0: number; x1?: number; y1: number };
 						baseline?: { x0: number; y0: number; x1: number; y1: number };
 					}[];
 				}[];
@@ -24,7 +24,14 @@ export function extractLines(page: OcrPage): OcrLine[] {
 		for (const para of block.paragraphs)
 			for (const line of para.lines)
 				if (line.confidence > 30 && line.text.trim())
-					lines.push({ text: line.text.trim(), height: line.bbox.y1 - line.bbox.y0 });
+					lines.push({
+						text: line.text.trim(),
+						height: line.bbox.y1 - line.bbox.y0,
+						// where the line sits, so text from around the label can be told apart
+						...(line.bbox.x0 !== undefined && line.bbox.x1 !== undefined
+							? { left: line.bbox.x0, width: line.bbox.x1 - line.bbox.x0 }
+							: {})
+					});
 	return lines;
 }
 

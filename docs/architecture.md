@@ -68,6 +68,7 @@ src/
     /api/label            label photos → Claude → form fields (opted-in users only)
     /api/mcp              MCP over Streamable HTTP, bearer token only (never the session cookie)
     /api/barcode          barcode → Open Food Facts → form fields (POST; opted-in users only)
+    /api/scan             photo + text from the iPhone Shortcut (bearer token, JSON); /api/scan/[id] uses it
     /api/reference        producer + name → the reference list → form fields
     /api/reference/candidates   label text → up to three wines it may be ("Is it one of these?")
     /api/reference/suggest      typed producer or wine name → suggestions from the list
@@ -88,6 +89,8 @@ at once.
 - `wine_back_photos`: the back label's JPEG, one per wine
 - `api_tokens`: `id = sha256(token)`, label, last use; personal access tokens for MCP apps
 - `wines.barcode`: the bottle's EAN/UPC; a scan of the same code finds the wine again
+- `pending_scans`: photos and Live Text from the iPhone Shortcut (front, optional back), waiting
+  on the add page; a run's photos share a `batch`; deleted when used or after two days
 - `ref_wines`, `ref_meta`: the reference list of wines from `data/xwines.tsv.gz` (X-Wines, CC0),
   about 100,000 rows; loaded in the background on start when the file changed, under an advisory
   lock, and keyed by producer (without words like Domaine or Weingut) and name
@@ -141,6 +144,13 @@ The rules in full, with all words and numbers: [wine-rules.md](wine-rules.md).
   Users who turned it on get a lookup through `/api/barcode`: the server asks Open Food Facts,
   so the service sees neither the user's address nor their identity, keeps only wines, never
   takes the vintage, and the form fills only empty fields.
+- Real photos (`tests/photos/`): the owner's iPhone photos and what each wine is stay in the
+  ignored `test-data/`; `vision.swift` runs Apple's Live Text engine on them (macOS) and
+  `score.mjs` measures the parser on its lines, with text sizes and as plain text. On those
+  photos the browser's tesseract found 3 of 25 names; Live Text plus the parser about a third,
+  which is why the parser drops text from around the label (lines off the label's centre),
+  keeps addresses, sentences and medals out of name and producer, and the add page offers the
+  label's lines to tap into a field.
 - Parsing (`parse.ts`): accent-stripped matching against grape, region and country names
   (longest match first, in one pass), regexes for vintage, alcohol and bottle size (with common OCR
   misreadings), estate words for the producer, and the tallest line that isn't appellation or origin

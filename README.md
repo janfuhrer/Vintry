@@ -28,6 +28,7 @@
 
 - **Scan a label.** Text recognition runs on your device (tesseract.js), so no photo leaves your phone. Scan the back label too, or crop a cluttered photo to the label and read it again. Scan a wine you already have and it offers to add a bottle to it.
 - **A reference list of 100,000 wines.** A scanned or imported wine that matches one clearly by producer and name gets its grapes, alcohol, region and country filled in, and with the grapes better taste and window suggestions. When a scan is unclear, it offers the wines the label may be; while typing, it suggests producers and wines. It runs on Vintry's server; nothing leaves it.
+- **Scan with the iPhone's Live Text.** The browser's text recognition struggles with real bottle photos; the iPhone's own (Live Text) reads them far better and runs on the phone. An iOS Shortcut sends the photo and the text it read to Vintry, where the scan waits on the add page. Settings explains the setup.
 - **Barcodes.** A scan also reads the bottle's barcode on the phone and keeps it, so the same bottle is recognised next time. Optionally, per person, Vintry's server looks the barcode up on [Open Food Facts](https://world.openfoodfacts.org) to fill in what the label didn't show (mostly supermarket wines).
 - **Or let Claude read it (optional).** If the server has a Claude API key, each person can choose in settings to have label photos read by Claude instead. It recognises the wine and fills in grapes, drinking window and taste too. Only the photos are sent, only after the person agrees, and each person has a monthly allowance.
 - **Smart defaults.** A built-in table of about 80 grapes and 110 regions, plus the quality and sweetness words on the label and the price, suggests the drinking window, taste profile, serving temperature and food pairings. You can override everything. [How the suggestions are worked out](docs/wine-rules.md).
@@ -79,6 +80,16 @@ Passkeys work on `localhost` over plain HTTP. Any other host needs HTTPS.
 | `CLAUDE_MONTHLY_TOKENS` | no                | Tokens each person may spend on Claude per calendar month (UTC); after that, labels are read on the phone again. A scan takes about 5,000. Default: `250000`.                       |
 
 The production server is the SvelteKit Node adapter. Behind a reverse proxy it uses the `Host` header and assumes HTTPS. See the [adapter-node docs](https://svelte.dev/docs/kit/adapter-node) for `PROTOCOL_HEADER`, `HOST_HEADER` and `ADDRESS_HEADER`.
+
+## iPhone Shortcut
+
+Safari gives web pages no access to the iPhone's text recognition, but Shortcuts does ("Extract
+Text from Image", which is Live Text). A Shortcut in the share sheet sends each photo with the
+text it read to `POST /api/scan` as JSON (`image` Base64-encoded, `text`, `batch`; a run's first
+photo is the front, the second the back), authorised with a personal access token from
+**Settings**. The scan waits under **Add** until it is used or two days have passed. **Settings →
+Scan with the iPhone** lists the steps to build the Shortcut. JSON rather than a form, because
+SvelteKit refuses form posts without an `Origin` header, which a Shortcut doesn't send.
 
 ## Claude and other MCP apps
 

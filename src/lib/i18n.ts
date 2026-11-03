@@ -120,6 +120,11 @@ const en = {
 	'add.scanBack': 'Scan the back label too',
 	'add.backFilled': 'From the back label: {n} more field(s), marked.',
 	'add.backNothing': 'The back label added nothing new.',
+	'add.fromIphone': 'From your iPhone',
+	'add.useScan': 'Use',
+	'add.noText': 'no text read',
+	'add.lines': 'Text on the label ({n} lines)',
+	'add.linesInto': 'Tap a line to use it as',
 	'add.candidates': 'Is it one of these from the wine list?',
 	'add.matched': '{n} of {of} words on the label',
 	'add.thisOne': 'This one',
@@ -264,6 +269,25 @@ const en = {
 
 	'settings.title': 'Settings',
 	'settings.language': 'Language',
+	'settings.shortcut': 'Scan with the iPhone',
+	'settings.shortcutHint':
+		'The iPhone reads labels far better than the browser can: its Live Text works on the phone. A Shortcut sends the photo and the text it read to Vintry, where the scan waits under Add. Set it up once:',
+	'settings.shortcutUrl': 'The address the Shortcut sends to.',
+	'settings.shortcut1': 'Create a token under "Connect Claude" above, named e.g. "iPhone", and copy it.',
+	'settings.shortcut2':
+		'In the Shortcuts app, make a new shortcut "Vintry". In its details, turn on "Show in Share Sheet" for Images; if there is no input: Ask for Photos.',
+	'settings.shortcut3':
+		'Add "Current Date", then "Format Date" (Custom: yyyyMMddHHmmss), then "Set Variable" named Batch.',
+	'settings.shortcut4': 'Add "Repeat with Each" for the Shortcut Input, and inside it:',
+	'settings.shortcut4a': '"Extract Text from Image" with the Repeat Item',
+	'settings.shortcut4b':
+		'"Convert Image" (Repeat Item to JPEG), "Resize Image" to width 2000, then "Base64 Encode" (line breaks: none)',
+	'settings.shortcut4c':
+		'"Get Contents of URL": the address above, Method POST, Header Authorization: Bearer and your token',
+	'settings.shortcut4d': 'Request Body JSON: image = Base64 Encoded, text = Extracted Text, batch = Batch',
+	'settings.shortcut5': 'After the repeat, "Show Notification": Sent to Vintry.',
+	'settings.shortcut6':
+		'To scan: in Photos or the Camera pick the front label (then the back), Share → Vintry, then open Vintry → Add.',
 	'settings.barcodes': 'Barcodes',
 	'settings.barcodesHint':
 		"A scan reads the bottle's barcode on your phone and keeps it with the wine, so the same bottle is recognised next time. Looking it up online fills in what the label didn't show, from Open Food Facts, a free database that knows mostly supermarket wines. Only the barcode is sent, by Vintry's server, not by your phone.",
@@ -486,6 +510,11 @@ const de: Record<Key, string> = {
 	'add.scanBack': 'Auch die Rückseite scannen',
 	'add.backFilled': 'Von der Rückseite: {n} weitere(s) Feld(er), markiert.',
 	'add.backNothing': 'Die Rückseite brachte nichts Neues.',
+	'add.fromIphone': 'Vom iPhone',
+	'add.useScan': 'Übernehmen',
+	'add.noText': 'kein Text gelesen',
+	'add.lines': 'Text auf der Etikette ({n} Zeilen)',
+	'add.linesInto': 'Tippe auf eine Zeile für',
 	'add.candidates': 'Ist es einer davon aus der Weinliste?',
 	'add.matched': '{n} von {of} Wörtern auf der Etikette',
 	'add.thisOne': 'Dieser',
@@ -630,6 +659,25 @@ const de: Record<Key, string> = {
 
 	'settings.title': 'Einstellungen',
 	'settings.language': 'Sprache',
+	'settings.shortcut': 'Mit dem iPhone scannen',
+	'settings.shortcutHint':
+		'Das iPhone liest Etiketten viel besser als der Browser: Sein Live Text arbeitet auf dem Handy. Ein Kurzbefehl schickt das Foto und den gelesenen Text an Vintry, wo der Scan unter Hinzufügen wartet. Einmal einrichten:',
+	'settings.shortcutUrl': 'Die Adresse, an die der Kurzbefehl sendet.',
+	'settings.shortcut1': 'Oben unter «Claude verbinden» einen Token erstellen, z. B. «iPhone», und kopieren.',
+	'settings.shortcut2':
+		'In der App Kurzbefehle einen neuen Kurzbefehl «Vintry» anlegen. In den Details «Im Teilen-Menü anzeigen» für Bilder einschalten; ohne Eingabe: nach Fotos fragen.',
+	'settings.shortcut3':
+		'«Aktuelles Datum», dann «Datum formatieren» (Eigenes Format: yyyyMMddHHmmss), dann «Variable festlegen» mit dem Namen Batch.',
+	'settings.shortcut4': '«Wiederholen mit jedem» für die Kurzbefehleingabe, darin:',
+	'settings.shortcut4a': '«Text aus Bild extrahieren» mit dem Wiederholungsobjekt',
+	'settings.shortcut4b':
+		'«Bild konvertieren» (Wiederholungsobjekt in JPEG), «Bildgrösse ändern» auf Breite 2000, dann «Base64-Codierung» (Zeilenumbrüche: keine)',
+	'settings.shortcut4c':
+		'«Inhalte von URL abrufen»: die Adresse oben, Methode POST, Header Authorization: Bearer und dein Token',
+	'settings.shortcut4d': 'Anfragetext JSON: image = Base64-codiert, text = Extrahierter Text, batch = Batch',
+	'settings.shortcut5': 'Nach dem Wiederholen «Mitteilung anzeigen»: An Vintry gesendet.',
+	'settings.shortcut6':
+		'Zum Scannen: in Fotos oder der Kamera die Vorderseite (dann die Rückseite) wählen, Teilen → Vintry, dann Vintry → Hinzufügen öffnen.',
 	'settings.barcodes': 'Strichcodes',
 	'settings.barcodesHint':
 		'Ein Scan liest den Strichcode der Flasche auf deinem Handy und speichert ihn beim Wein, damit dieselbe Flasche nächstes Mal erkannt wird. Online nachschlagen ergänzt, was die Etikette nicht zeigte, aus Open Food Facts, einer freien Datenbank, die vor allem Weine aus dem Supermarkt kennt. Gesendet wird nur der Strichcode, vom Vintry-Server, nicht von deinem Handy.',

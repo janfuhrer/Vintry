@@ -1033,6 +1033,63 @@ describe('people', () => {
 	});
 });
 
+describe('iPhone Shortcut', () => {
+	let token;
+	// as the Shortcut sends it: JSON, the photo Base64-encoded
+	const send = async (fields, auth = token) => {
+		const body = { ...fields };
+		if (fields.image) body.image = Buffer.from(await fields.image.arrayBuffer()).toString('base64');
+		return fetch(`${base}/api/scan`, {
+			method: 'POST',
+			body: JSON.stringify(body),
+			headers: { 'content-type': 'application/json', ...(auth ? { authorization: `Bearer ${auth}` } : {}) }
+		});
+	};
+	const addData = async () =>
+		devalue.unflatten((await (await alice.req('/add/__data.json')).json()).nodes.at(-1).data);
+
+	test('a token is needed, not the browser session; only JPEGs', async () => {
+		token = devalue.unflatten(
+			JSON.parse((await alice.action('/settings?/createToken', { label: 'iPhone' })).data)
+		).token;
+		assert.equal((await send({ image: jpeg(), text: 'x' }, null)).status, 401);
+		const image = Buffer.from(await jpeg().arrayBuffer()).toString('base64');
+		assert.equal(
+			(await alice.req('/api/scan', { method: 'POST', json: { image, text: 'x' } })).status,
+			401,
+			'the cookie is not enough'
+		);
+		assert.equal((await send({ image: new Blob(['<svg/>']), text: 'x' })).status, 400);
+	});
+
+	test("a run's photos make one scan: front, then back; it waits on the add page", async () => {
+		const front = await (
+			await send({ image: jpeg(), text: 'TENUTA POGGIO AI MANDORLI\nCHIANTI CLASSICO\n2017', batch: 'run-1' })
+		).json();
+		assert.equal(front.side, 'front');
+		const back = await (await send({ image: jpeg(), text: '14% VOL\ne 750 ml', batch: 'run-1' })).json();
+		assert.equal(back.side, 'back');
+		const { scans } = await addData();
+		assert.equal(scans.length, 1);
+		assert.equal(scans[0].has_back, true);
+		assert.match(scans[0].front_text, /CHIANTI CLASSICO/);
+		const photo = await alice.req(`/api/scan/${scans[0].id}/back`);
+		assert.equal(photo.status, 200);
+		assert.equal(photo.headers.get('content-type'), 'image/jpeg');
+		assert.equal((await bob.req(`/api/scan/${scans[0].id}/front`)).status, 404, 'not to someone else');
+	});
+
+	test('used or dismissed, it is gone', async () => {
+		const { scans } = await addData();
+		assert.equal((await alice.req(`/api/scan/${scans[0].id}`, { method: 'DELETE' })).status, 204);
+		assert.deepEqual((await addData()).scans, []);
+		const list = devalue.unflatten(
+			(await (await alice.req('/settings/__data.json')).json()).nodes.at(-1).data
+		);
+		await alice.action('/settings?/revokeToken', { id: list.tokens.find((t) => t.label === 'iPhone').id });
+	});
+});
+
 describe('your data', () => {
 	test('export: cellar CSV, history CSV and JSON contain only your own wines', async () => {
 		// Response.text() strips the BOM, so look at the bytes

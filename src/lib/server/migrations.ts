@@ -191,5 +191,20 @@ export const migrations: string[] = [
 	-- the reference list searched by any word read from a label, producer or wine
 	create index ref_wines_words on ref_wines
 		using gin (to_tsvector('simple', producer_key || ' ' || name_key));
+	`,
+	/* sql */ `
+	-- label photos and their text sent by the iPhone Shortcut (Live Text read them on the phone),
+	-- waiting on the add page until used; a run's photos share a batch, the first is the front
+	create table pending_scans (
+		id uuid primary key default gen_random_uuid(),
+		user_id uuid not null references users on delete cascade,
+		batch text not null,
+		front bytea not null,
+		front_text text not null,
+		back bytea,
+		back_text text,
+		created_at timestamptz not null default now(),
+		unique (user_id, batch)
+	);
 	`
 ];

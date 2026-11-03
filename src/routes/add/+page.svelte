@@ -8,7 +8,7 @@
 	import CropBox from '#lib/components/CropBox.svelte';
 	import { prepareCropForScan, preparePhotoForScan, resizeImage, type Crop } from '#lib/image.ts';
 	import { findSameWine, type Owned } from '#lib/match.ts';
-	import { parseLabel } from '#lib/parse.ts';
+	import { labelLines, parseLabel, titleCase } from '#lib/parse.ts';
 	import type { PageProps } from './$types';
 
 	let { form, data }: PageProps = $props();
@@ -181,6 +181,15 @@
 		return null;
 	}
 
+	/**
+	 * Text Live Text already read on the iPhone (the Shortcut): only the parser. Plain text
+	 * has no sizes, so the order on the label decides.
+	 */
+	const readGiven = (text: string) => ({
+		fields: toFields(parseLabel(text.split('\n').map((t) => ({ text: t, height: 1 })))) as Found,
+		text
+	});
+
 	/** Local reading: tesseract on the phone, then the label parser */
 	async function readHere(ocr: Blob, onProgress: (s: 'loading' | 'reading', p: number) => void) {
 		const { readLabel } = await import('#lib/ocr.ts');
@@ -208,7 +217,23 @@
 		}
 		sources = { ...sources, ...add };
 	}
+	// the text read from the labels, front then back, offered as lines to tap into a field
+	let labelText = $state('');
+	let target = $state<'name' | 'producer'>('name');
+	const lines = $derived(labelLines(labelText));
+	function useLine(line: string) {
+		if (!wineForm) return;
+		const value = titleCase(line);
+		wineForm.setFields({ [target]: value });
+		scanned = [...new Set([...scanned, target])];
+		mark([target], 'label', { [target]: value });
+		// the name is usually set first, then the producer
+		if (target === 'name') target = 'producer';
+	}
+
 	function resetSources() {
+		labelText = '';
+		target = 'name';
 		candidates = [];
 		sources = {};
 		filledWith = {};
@@ -385,7 +410,12 @@
 		const input = e.currentTarget as HTMLInputElement;
 		const file = input.files?.[0];
 		input.value = '';
-		if (!file || !wineForm) return;
+		if (file) await readBack(file);
+	}
+
+	/** The back label: a photo, and the text the Shortcut read from it if it came from there */
+	async function readBack(file: Blob, given?: string) {
+		if (!wineForm) return;
 		// a result for a form that was left or replaced meanwhile belongs to another wine
 		const run = scanRun;
 		const key = formKey;
@@ -394,14 +424,18 @@
 			const image = await resizeImage(file, 1280);
 			if (run !== scanRun || key !== formKey) return;
 			back = image;
-			// barcodes are usually on the back
-			const barcode = findBarcode(image);
+			// barcodes are usually on the back; small in the photo, so read from a larger copy
+			// (2200 px finds about a third more than 1280 px on real photos)
+			const barcode = resizeImage(file, 2200).then(findBarcode);
 			// Claude reads both sides together, so each can explain the other
-			const answer = useClaude && photo ? await askClaude([photo.image, image]) : null;
+			const answer = given === undefined && useClaude && photo ? await askClaude([photo.image, image]) : null;
 			if (run !== scanRun || key !== formKey) return;
-			const { fields, text } = answer
-				? { fields: answer.fields, text: '' }
-				: await readHere((await preparePhotoForScan(file)).ocr, () => {});
+			const { fields, text } =
+				given !== undefined
+					? readGiven(given)
+					: answer
+						? { fields: answer.fields, text: '' }
+						: await readHere((await preparePhotoForScan(file)).ocr, () => {});
 			if (run !== scanRun || key !== formKey || !wineForm) return;
 			const found = await barcode;
 			if (run !== scanRun || key !== formKey || !wineForm) return;
@@ -409,6 +443,7 @@
 			const filled = wineForm.fillEmpty({ ...backFields, ocr_text: text });
 			scanned = [...scanned, ...filled];
 			mark(filled, 'back', backFields);
+			if (text) labelText = `${labelText}\n${text}`;
 			codeTried = [...new Set([...codeTried, 'back' as const])];
 			if (found && !code) code = { value: found, where: 'back', lookup: 'off' };
 			notice = filled.length ? t('add.backFilled', { n: filled.length }) : t('add.backNothing');
@@ -440,7 +475,8 @@
 
 	async function read(
 		prepare: () => Promise<{ photo: { image: Blob; thumb: Blob }; ocr: Blob }>,
-		keep: Partial<WineFormValues> = {}
+		keep: Partial<WineFormValues> = {},
+		given?: string
 	) {
 		const run = ++scanRun;
 		stopClaude();
@@ -468,22 +504,26 @@
 		resetSources();
 		try {
 			let answer = null;
-			const tried = useClaude;
+			const tried = useClaude && given === undefined;
 			if (tried) {
 				stage = 'claude';
 				answer = await askClaude([prepared.photo.image]);
 				if (run !== scanRun) return;
 			}
-			const { fields, text } = answer
-				? { fields: answer.fields, text: '' }
-				: await readHere(prepared.ocr, (s, p) => {
-						stage = s;
-						progress = p;
-					});
+			const { fields, text } =
+				given !== undefined
+					? readGiven(given)
+					: answer
+						? { fields: answer.fields, text: '' }
+						: await readHere(prepared.ocr, (s, p) => {
+								stage = s;
+								progress = p;
+							});
 			if (run !== scanRun) return; // cancelled while reading
 			const v = { ...emptyValues(), ...keep, ...fields };
 			const found = Object.keys(fields);
 			v.ocr_text = text.slice(0, 5000);
+			labelText = text;
 			onFront = await barcode;
 			if (run !== scanRun) return;
 			if (onFront) v.barcode = onFront;
@@ -528,6 +568,35 @@
 		if (onFront) await lookUp(onFront, run, key);
 	}
 
+	// photos the iPhone Shortcut sent, read there by Live Text; used once, then gone
+	let scans = $derived(data.scans);
+	async function photoOf(id: string, side: 'front' | 'back') {
+		const res = await fetch(`/api/scan/${id}/${side}`);
+		return res.ok ? res.blob() : null;
+	}
+	async function dropScan(id: string) {
+		scans = scans.filter((s) => s.id !== id);
+		await fetch(`/api/scan/${id}`, { method: 'DELETE' }).catch(() => {});
+	}
+	async function useScan(scan: (typeof data.scans)[number]) {
+		const front = await photoOf(scan.id, 'front');
+		if (!front) return dropScan(scan.id);
+		const backPhoto = scan.has_back ? await photoOf(scan.id, 'back') : null;
+		source = null;
+		back = null;
+		await read(
+			async () => {
+				const prepared = await preparePhotoForScan(front);
+				source = { file: front, preview: prepared.photo.image };
+				return prepared;
+			},
+			{},
+			scan.front_text
+		);
+		if (backPhoto) await readBack(backPhoto, scan.back_text ?? '');
+		await dropScan(scan.id);
+	}
+
 	function manual() {
 		scanRun++;
 		stopClaude();
@@ -564,6 +633,30 @@
 
 	{#if step === 'choose'}
 		<div class="choose">
+			{#if scans.length}
+				<section class="scans card stack">
+					<h2 class="small-title">{t('add.fromIphone')}</h2>
+					{#each scans as s (s.id)}
+						<div class="scan-row">
+							<img src="/api/scan/{s.id}/front" alt="" width="56" height="56" />
+							<span class="scan-text small"
+								>{s.front_text.split('\n').filter(Boolean).slice(0, 2).join(' · ') ||
+									t('add.noText')}{#if s.has_back}
+									<span class="muted"> · {t('form.back')}</span>{/if}</span
+							>
+							<button type="button" class="btn small primary" onclick={() => useScan(s)}
+								>{t('add.useScan')}</button
+							>
+							<button
+								type="button"
+								class="icon-btn"
+								aria-label={t('common.delete')}
+								onclick={() => dropScan(s.id)}><Icon name="x" size={18} /></button
+							>
+						</div>
+					{/each}
+				</section>
+			{/if}
 			{#if imageError}<p class="error notice-error" role="alert">{t('add.badImage')}</p>{/if}
 			<label class="scan-btn">
 				<span class="scan-icon"><Icon name="camera" size={40} /></span>
@@ -761,6 +854,34 @@
 					{/if}
 				</div>
 			{/if}
+			{#if lines.length}
+				<!-- the parser may pick the wrong line: the right one is a tap away -->
+				<details class="lines small" open={!listWine}>
+					<summary>{t('add.lines', { n: lines.length })}</summary>
+					<div class="target" role="group" aria-label={t('add.linesInto')}>
+						<span class="muted">{t('add.linesInto')}</span>
+						<button
+							type="button"
+							class="chip"
+							class:active={target === 'name'}
+							aria-pressed={target === 'name'}
+							onclick={() => (target = 'name')}>{t('form.name')}</button
+						>
+						<button
+							type="button"
+							class="chip"
+							class:active={target === 'producer'}
+							aria-pressed={target === 'producer'}
+							onclick={() => (target = 'producer')}>{t('form.producer')}</button
+						>
+					</div>
+					<div class="line-chips">
+						{#each lines as line (line)}
+							<button type="button" class="chip line" onclick={() => useLine(line)}>{line}</button>
+						{/each}
+					</div>
+				</details>
+			{/if}
 			{#key formKey}
 				<WineForm
 					bind:this={wineForm}
@@ -807,6 +928,25 @@
 		text-align: center;
 		cursor: pointer;
 		box-shadow: 0 10px 30px color-mix(in srgb, var(--accent) 35%, transparent);
+	}
+	.scan-row {
+		display: flex;
+		align-items: center;
+		gap: 10px;
+	}
+	.scan-row img {
+		flex: none;
+		border-radius: 8px;
+		object-fit: cover;
+		background: var(--surface-2);
+	}
+	.scan-text {
+		flex: 1;
+		min-width: 0;
+		overflow-wrap: anywhere;
+	}
+	.small-title {
+		font-size: 1rem;
 	}
 	.claude-hint {
 		margin-top: 4px;
@@ -947,6 +1087,33 @@
 	}
 	.ask {
 		font-weight: 600;
+	}
+	.lines {
+		margin: 0 0 12px;
+		padding: 10px 14px;
+		border-radius: var(--radius-s);
+		background: var(--surface);
+		box-shadow: var(--shadow);
+	}
+	.lines summary {
+		cursor: pointer;
+		font-weight: 600;
+	}
+	.target {
+		display: flex;
+		align-items: center;
+		gap: 6px;
+		margin: 10px 0 8px;
+	}
+	.line-chips {
+		display: flex;
+		flex-wrap: wrap;
+		gap: 6px;
+	}
+	.chip.line {
+		max-width: 100%;
+		overflow-wrap: anywhere;
+		text-align: left;
 	}
 	.sources {
 		list-style: none;

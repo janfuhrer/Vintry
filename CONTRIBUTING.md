@@ -39,6 +39,13 @@ exactly; on small, photographed and tilted ones a field may be missing but never
   `fonts-liberation`, e.g. in a `node:24-bookworm` container).
 - `hardTilt: true` marks a label whose 12° case can't be read yet; it still runs at 4°.
 
+### Real photos
+
+`tests/photos/` measures the parser on real bottle photos: put them in `test-data/` (ignored,
+they stay private) with a `truth.json` describing each wine, run Apple's text recognition on
+them on a Mac (`swiftc -O tests/photos/vision.swift -o /tmp/vision && /tmp/vision
+test-data/*.jpeg > test-data/vision.json`), then `node tests/photos/score.mjs [-v]`.
+
 - Keep pull requests focused on one change.
 - Add user-facing text to **both** dictionaries in `src/lib/i18n.ts` (English and German).
 - Database changes are new entries at the end of `src/lib/server/migrations.ts`. Never edit an applied migration.

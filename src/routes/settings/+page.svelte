@@ -87,6 +87,28 @@
 	</section>
 
 	<section class="card stack">
+		<h2>{t('settings.shortcut')}</h2>
+		<p class="muted small">{t('settings.shortcutHint')}</p>
+		{@render linkBox(`${page.url.origin}/api/scan`, t('settings.shortcutUrl'))}
+		<ol class="steps small">
+			<li>{t('settings.shortcut1')}</li>
+			<li>{t('settings.shortcut2')}</li>
+			<li>{t('settings.shortcut3')}</li>
+			<li>
+				{t('settings.shortcut4')}
+				<ul>
+					<li>{t('settings.shortcut4a')}</li>
+					<li>{t('settings.shortcut4b')}</li>
+					<li>{t('settings.shortcut4c')}</li>
+					<li>{t('settings.shortcut4d')}</li>
+				</ul>
+			</li>
+			<li>{t('settings.shortcut5')}</li>
+			<li>{t('settings.shortcut6')}</li>
+		</ol>
+	</section>
+
+	<section class="card stack">
 		<h2>{t('settings.barcodes')}</h2>
 		<p class="muted small">{t('settings.barcodesHint')}</p>
 		<form method="POST" action="?/barcodeLookup" use:enhance class="row">
@@ -643,5 +665,16 @@
 		padding: 10px 12px;
 		border-radius: var(--radius-s);
 		background: var(--surface-2);
+	}
+	.steps {
+		margin: 0;
+		padding-left: 1.3em;
+		display: flex;
+		flex-direction: column;
+		gap: 6px;
+	}
+	.steps ul {
+		margin: 4px 0 0;
+		padding-left: 1.1em;
 	}
 </style>

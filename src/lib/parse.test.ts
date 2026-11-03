@@ -1,5 +1,5 @@
 import { describe, expect, test } from 'vitest';
-import { parseLabel, type OcrLine } from './parse';
+import { labelLines, parseLabel, type OcrLine } from './parse';
 
 const lines = (...rows: [string, number][]): OcrLine[] => rows.map(([text, height]) => ({ text, height }));
 
@@ -215,4 +215,61 @@ test('an origin line with an adjective is not the name', () => {
 	const p = parseLabel(lines(['Schweizer Rotwein', 60], ['Gamaret', 40]), 2026);
 	expect(p.name).toBe('Gamaret');
 	expect(p.country).toBe('CH');
+});
+
+describe('labelLines', () => {
+	test('short readable lines, each once, without sentences, numbers, alcohol or size', () => {
+		const text = [
+			'"TENUTA POGGIO AI MANDORLI',
+			'COLLEZIONE DI FAMIGLIA',
+			'2017',
+			'CHIANTI CLASSICO',
+			'Questo vino di grande carattere, viene prodotto dai vigneti della tenuta.',
+			'14% VOL',
+			'e 750 ml',
+			'chianti classico',
+			'~~'
+		].join('\n');
+		expect(labelLines(text)).toEqual([
+			'TENUTA POGGIO AI MANDORLI',
+			'COLLEZIONE DI FAMIGLIA',
+			'CHIANTI CLASSICO'
+		]);
+	});
+});
+
+describe('real photos', () => {
+	test('text from a box behind the bottle is not the name', () => {
+		// Apple Vision's lines on a photo: "Soalheiro" printed on a box to the left
+		const lines = [
+			{ text: 'PLANSEL', height: 324, left: 1440, width: 1288 },
+			{ text: 'Goalter', height: 648, left: 432, width: 929 },
+			{ text: 'Selected by', height: 141, left: 1826, width: 514 },
+			{ text: 'BOHM-LINDEMANN FAMILY', height: 162, left: 1526, width: 1133 },
+			{ text: 'TOURIGA FRANCA', height: 184, left: 1568, width: 1080 }
+		];
+		expect(parseLabel(lines).name).toBe('Plansel');
+	});
+
+	test('an address or a founding date is no producer; a lone "Domaine" takes the next line', () => {
+		expect(
+			parseLabel([{ text: 'Quinta da Boavista - 2580-081 Portugal', height: 20 }]).producer
+		).toBeUndefined();
+		expect(parseLabel([{ text: 'MAISON FONDÉE EN 1950', height: 20 }]).producer).toBeUndefined();
+		const derron = parseLabel([
+			{ text: 'DOMAINE', height: 60 },
+			{ text: 'DERRON', height: 60 },
+			{ text: 'CHASSELAS', height: 50 }
+		]);
+		expect(derron.producer).toBe('Domaine Derron');
+	});
+
+	test('a sentence or a medal is no name', () => {
+		const p = parseLabel([
+			{ text: 'INTERNATIONAL WINE AWARD', height: 300 },
+			{ text: 'our childhood among vineyards', height: 200 },
+			{ text: 'LUALMA', height: 180 }
+		]);
+		expect(p.name).toBe('Lualma');
+	});
 });

@@ -4,8 +4,11 @@ import { findRegion, grapeIndex, normalize, regionIndex } from './wine';
 
 export interface OcrLine {
 	text: string;
-	/** Line box height in px; the tallest line is usually the wine's name */
+	/** Text size in px (a line box's smaller side); the biggest text is usually the name */
 	height: number;
+	/** Where the line's box starts and how wide it is, in px, when the reader says */
+	left?: number;
+	width?: number;
 }
 
 export interface Parsed {
@@ -170,7 +173,7 @@ function matchAll<T>(text: string, keys: Map<string, T>, minLength = 4): T[] {
 	return found;
 }
 
-function titleCase(s: string): string {
+export function titleCase(s: string): string {
 	const letters = s.replace(/[^\p{L}]/gu, '');
 	if (!letters || letters !== letters.toUpperCase()) return s;
 	return s.toLowerCase().replace(/(^|[\s\-'’(])(\p{L})/gu, (_, sep, c) => sep + c.toUpperCase());
@@ -199,6 +202,60 @@ export function joinSplitCaps(line: string): string {
 	// only right after a word of 2+ letters (or at the start), so initials like "J P MOUEIX"
 	// stay apart; A, À, E, É, I, O, Y are words themselves ("I SODI", "ROSSO E BIANCO")
 	return line.replace(/(^|\p{L}{2,}\s)([^\sAÀEÉIOY\P{Lu}])\s(?=\p{Lu}{3,})/gu, '$1$2');
+}
+
+/**
+ * Drops text from around the bottle: a box behind it, a neighbouring bottle. A label's lines
+ * share one centre; a line further off than half the label's widest line belongs to something
+ * else. Only when the reader gave positions, and enough lines to tell.
+ */
+export function dropBackground(lines: OcrLine[]): OcrLine[] {
+	const placed = lines.filter((l) => l.left !== undefined && l.width !== undefined);
+	if (placed.length < 4) return lines;
+	const centre = (l: OcrLine) => l.left! + l.width! / 2;
+	const centres = placed.map(centre).sort((a, b) => a - b);
+	const middle = centres[Math.floor(centres.length / 2)];
+	const widths = placed.map((l) => l.width!).sort((a, b) => a - b);
+	// the widest label lines, not a stray wide one: the 80th percentile
+	const labelWidth = widths[Math.floor(widths.length * 0.8)];
+	return lines.filter((l) => l.left === undefined || Math.abs(centre(l) - middle) <= labelWidth * 0.5);
+}
+
+// Sentences, addresses and company details: back-label prose, never a name or a producer
+const PROSE = /[.;:!?]$|,|\b\d{4}-\d{3}\b|\b\d{4,5}\b.*\b[a-z]{3,}|www\.|@|https?:/i;
+const COMPANY =
+	/\b(lda|ld[aª]|soc|s\.?a\.?|s\.?l\.?|s\.?r\.?l\.?|s\.?p\.?a\.?|gmbh|ag|sarl|sas|ltd|inc)\b\.?/i;
+const FOUNDED = /\b(fondee|founded|depuis|since|seit|dal|desde|est)\b/;
+// medals and awards on the bottle: "Mundus Vini", "Wine Award", "Médaille d'or"
+const AWARD =
+	/\b(award|awards|medaille|medal|medaglia|medalla|concours|mundus|gold|silver|bronze|decanter|challenge)\b/;
+
+function looksLikeProse(s: string): boolean {
+	const words = s.split(/\s+/);
+	if (words.length > 5) return true;
+	// mostly lower-case words in a row: running text, not a label heading
+	const lower = words.filter((w) => /^\p{Ll}/u.test(w)).length;
+	return words.length >= 3 && lower >= words.length - 1;
+}
+
+/**
+ * The lines worth offering to tap into name or producer: short, readable, no sentences or
+ * pure numbers, each once, in the order read. The parser may pick the wrong one; with these
+ * the right one is a tap away.
+ */
+export function labelLines(text: string, max = 14): string[] {
+	const seen = new Set<string>();
+	const out: string[] = [];
+	for (const raw of text.split('\n')) {
+		const line = clean(joinSplitCaps(raw)).replace(VINTAGE, '').replace(/\s+/g, ' ').trim();
+		const key = normalize(line);
+		if (!line || line.length > 40 || seen.has(key) || looksLikeProse(line) || PROSE.test(line)) continue;
+		if (ALCOHOL.test(line) || ALCOHOL_INT.test(line) || SIZE.test(line)) continue;
+		seen.add(key);
+		out.push(line);
+		if (out.length >= max) break;
+	}
+	return out;
 }
 
 export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): Parsed {
@@ -264,15 +321,42 @@ export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): P
 	if (out.alcohol !== undefined && out.alcohol > 16.5 && out.color !== 'fortified' && out.color !== 'sweet')
 		delete out.alcohol;
 
-	// producer: a line naming an estate
-	const cleaned = lines.map((l) => ({ text: clean(l.text), height: l.height })).filter((l) => l.text);
+	// producer and name: from the label only, not a box behind the bottle (alcohol, vintage
+	// and the like above come from all lines: a back label's columns would look off-centre)
+	const cleaned = dropBackground(lines)
+		.map((l) => ({ text: clean(l.text), height: l.height }))
+		.filter((l) => l.text);
 	// bottling, import and distribution lines name a company, not the wine's producer
 	const BOTTLING =
 		/^(mis en bouteille|mise en bouteille|imbottigliato|abgefullt|embotellado|bottled|estate bottled|produced|prodotto|elabore|imported|importe|importiert|importato|importado|distributed|vertrieb)/;
-	const producerLine = cleaned.find((l) => {
+	const isProducer = (l: { text: string }) => {
 		const n = normalize(l.text);
-		return !BOTTLING.test(n) && n.split(' ').some((w) => PRODUCER_WORDS.includes(w));
-	});
+		return (
+			!BOTTLING.test(n) &&
+			!FOUNDED.test(n) &&
+			!PROSE.test(l.text) &&
+			!COMPANY.test(l.text) &&
+			!looksLikeProse(l.text) &&
+			n.split(' ').length <= 6 &&
+			n.split(' ').some((w) => PRODUCER_WORDS.includes(w))
+		);
+	};
+	let producerLine = cleaned.find(isProducer);
+	// "DOMAINE" on a line of its own, the name on the next: "Domaine Derron"
+	if (producerLine && normalize(producerLine.text).split(' ').length === 1) {
+		const next = cleaned[cleaned.indexOf(producerLine) + 1];
+		if (
+			next &&
+			!PROSE.test(next.text) &&
+			normalize(next.text).split(' ').length <= 4 &&
+			!/\d/.test(next.text)
+		)
+			producerLine = {
+				text: `${producerLine.text} ${next.text}`,
+				height: Math.max(producerLine.height, next.height)
+			};
+		else producerLine = undefined;
+	}
 	if (producerLine) out.producer = titleCase(producerLine.text);
 
 	// name: the tallest line that isn't just metadata
@@ -321,7 +405,18 @@ export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): P
 		);
 	};
 	const candidates = cleaned
-		.filter((l) => l !== producerLine && !isMeta(l.text))
+		.filter(
+			(l) =>
+				l !== producerLine &&
+				(!producerLine || !producerLine.text.includes(l.text)) &&
+				!isMeta(l.text) &&
+				!looksLikeProse(l.text) &&
+				!PROSE.test(l.text) &&
+				!COMPANY.test(l.text) &&
+				!FOUNDED.test(normalize(l.text)) &&
+				!AWARD.test(normalize(l.text))
+		)
+		// biggest first; without sizes (all alike) the order on the label decides
 		.sort((a, b) => b.height - a.height);
 	// on château/domaine labels the estate is the biggest text and is the wine's name
 	const nameLine =

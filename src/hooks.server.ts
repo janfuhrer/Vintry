@@ -28,6 +28,8 @@ const PUBLIC_PREFIXES = ['/login', '/invite/', '/api/auth/', '/icons/', '/ocr/',
 // /api/mcp checks its own bearer token instead of the session cookie
 const PUBLIC_FILES = new Set([
 	'/api/mcp',
+	// the iPhone Shortcut's upload checks its own bearer token too
+	'/api/scan',
 	'/manifest.webmanifest',
 	'/favicon.svg',
 	'/logo.svg',
