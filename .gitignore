@@ -33,3 +33,6 @@ vite.config.ts.timestamp-*
 
 # tesseract caches language data in the working directory when the OCR tests run
 /*.traineddata
+
+# the owner's own label photos for testing; private, never committed
+/test-data/
