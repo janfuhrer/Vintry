@@ -1036,13 +1036,13 @@ describe('people', () => {
 describe('iPhone Shortcut', () => {
 	let token;
 	// as the Shortcut sends it: JSON, the photo Base64-encoded
-	const send = async (fields, auth = token) => {
+	const send = async (fields, auth = token, scheme = 'Bearer ') => {
 		const body = { ...fields };
 		if (fields.image) body.image = Buffer.from(await fields.image.arrayBuffer()).toString('base64');
 		return fetch(`${base}/api/scan`, {
 			method: 'POST',
 			body: JSON.stringify(body),
-			headers: { 'content-type': 'application/json', ...(auth ? { authorization: `Bearer ${auth}` } : {}) }
+			headers: { 'content-type': 'application/json', ...(auth ? { authorization: `${scheme}${auth}` } : {}) }
 		});
 	};
 	const addData = async () =>
@@ -1059,7 +1059,15 @@ describe('iPhone Shortcut', () => {
 			401,
 			'the cookie is not enough'
 		);
-		assert.equal((await send({ image: new Blob(['<svg/>']), text: 'x' })).status, 400);
+		const notJpeg = await send({ image: new Blob(['<svg/>']), text: 'x' });
+		assert.equal(notJpeg.status, 400);
+		assert.match((await notJpeg.json()).error, /Repeat Item/);
+		assert.equal(
+			(await send({ image: new Blob(['<svg/>']), text: 'x' }, token, '')).status,
+			400,
+			'token without "Bearer"'
+		);
+		assert.equal((await send({ image: jpeg(), text: 'x' }, 'vintry_nope', '')).status, 401);
 	});
 
 	test("a run's photos make one scan: front, then back; it waits on the add page", async () => {

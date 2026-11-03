@@ -16,7 +16,8 @@ const MAX_PHOTO = 1_450_000;
  * header as cross-site, and a Shortcut sends none.
  */
 export const POST: RequestHandler = async ({ request }) => {
-	const token = request.headers.get('authorization')?.match(/^Bearer\s+(\S+)$/i)?.[1];
+	// "Bearer " is easily left out in the Shortcut's header field; the token alone counts too
+	const token = request.headers.get('authorization')?.match(/^(?:Bearer\s+)?(\S+)$/i)?.[1];
 	const user = token ? await userForToken(token) : null;
 	if (!user)
 		return json(
@@ -31,8 +32,12 @@ export const POST: RequestHandler = async ({ request }) => {
 	const bytes = typeof body?.image === 'string' ? Buffer.from(body.image, 'base64') : Buffer.alloc(0);
 	if (!bytes.length || bytes.length > MAX_PHOTO)
 		return json({ error: 'Send the photo Base64-encoded as "image", resized to 2000 px.' }, { status: 400 });
+	// Shortcuts fills in the previous result, so "Convert Image" easily gets the Extracted Text
 	if (!(bytes[0] === 0xff && bytes[1] === 0xd8 && bytes[2] === 0xff))
-		return json({ error: 'Convert the photo to JPEG in the Shortcut.' }, { status: 400 });
+		return json(
+			{ error: 'Not a JPEG photo: "Convert Image" needs the Repeat Item, not the Extracted Text.' },
+			{ status: 400 }
+		);
 	const saved = await addPhoto(user.id, batch, bytes, typeof text === 'string' ? text.slice(0, 10_000) : '');
 	if (!saved) return json({ error: 'Ten scans are already waiting in Vintry.' }, { status: 429 });
 	return json({ ok: true, side: saved.side, open: `${APP_URL}/add` });

@@ -281,9 +281,9 @@ const en = {
 	'settings.shortcut4': 'Add "Repeat with Each" for the Shortcut Input, and inside it:',
 	'settings.shortcut4a': '"Extract Text from Image" with the Repeat Item',
 	'settings.shortcut4b':
-		'"Convert Image" (Repeat Item to JPEG), "Resize Image" to width 2000, then "Base64 Encode" (line breaks: none)',
+		'"Convert Image" to JPEG: tap its input and pick Repeat Item (Shortcuts puts in the Extracted Text by itself). Then "Resize Image" to width 2000 and "Base64 Encode" (line breaks: none)',
 	'settings.shortcut4c':
-		'"Get Contents of URL": the address above, Method POST, Header Authorization: Bearer and your token',
+		'"Get Contents of URL": the address above, Method POST, a header Authorization with your token as its value',
 	'settings.shortcut4d': 'Request Body JSON: image = Base64 Encoded, text = Extracted Text, batch = Batch',
 	'settings.shortcut5': 'After the repeat, "Show Notification": Sent to Vintry.',
 	'settings.shortcut6':
@@ -671,9 +671,9 @@ const de: Record<Key, string> = {
 	'settings.shortcut4': '«Wiederholen mit jedem» für die Kurzbefehleingabe, darin:',
 	'settings.shortcut4a': '«Text aus Bild extrahieren» mit dem Wiederholungsobjekt',
 	'settings.shortcut4b':
-		'«Bild konvertieren» (Wiederholungsobjekt in JPEG), «Bildgrösse ändern» auf Breite 2000, dann «Base64-Codierung» (Zeilenumbrüche: keine)',
+		'«Bild konvertieren» in JPEG: auf die Eingabe tippen und Wiederholungsobjekt wählen (Kurzbefehle setzt von selbst den extrahierten Text ein). Dann «Bildgrösse ändern» auf Breite 2000 und «Base64-Codierung» (Zeilenumbrüche: keine)',
 	'settings.shortcut4c':
-		'«Inhalte von URL abrufen»: die Adresse oben, Methode POST, Header Authorization: Bearer und dein Token',
+		'«Inhalte von URL abrufen»: die Adresse oben, Methode POST, ein Header Authorization mit deinem Token als Wert',
 	'settings.shortcut4d': 'Anfragetext JSON: image = Base64-codiert, text = Extrahierter Text, batch = Batch',
 	'settings.shortcut5': 'Nach dem Wiederholen «Mitteilung anzeigen»: An Vintry gesendet.',
 	'settings.shortcut6':
