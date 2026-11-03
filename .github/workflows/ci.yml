@@ -15,7 +15,9 @@ concurrency:
 jobs:
   check:
     name: Lint, type-check, test, build
-    runs-on: ubuntu-latest
+    # pinned: test:ocr renders its labels with the system fonts, and ubuntu-latest's newer
+    # fonts make tesseract misread two tilted labels; move on once they read again
+    runs-on: ubuntu-24.04
     timeout-minutes: 15
     steps:
       - uses: step-security/harden-runner@46b06cea07f9e64621fdf066ba77ac6915163d43 # v2.22.3
