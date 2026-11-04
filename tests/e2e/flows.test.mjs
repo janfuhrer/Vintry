@@ -783,7 +783,7 @@ describe('MCP for Claude', () => {
 		assert.match(init.instructions, /wine cellar/);
 		assert.equal((await rpc({ jsonrpc: '2.0', method: 'notifications/initialized' })).status, 202);
 		const tools = (await (await rpc({ jsonrpc: '2.0', id: 2, method: 'tools/list' })).json()).result.tools;
-		assert.deepEqual(tools.map((t) => t.name).sort(), ['add_wines', 'search_wines']);
+		assert.deepEqual(tools.map((t) => t.name).sort(), ['add_wines', 'search_wines', 'update_wines']);
 		const unknown = await (await rpc({ jsonrpc: '2.0', id: 3, method: 'nope' })).json();
 		assert.equal(unknown.error.code, -32601);
 	});
@@ -892,6 +892,63 @@ describe('MCP for Claude', () => {
 		assert.equal(some.tannin, 5, "Nebbiolo's tannin, suggested");
 	});
 
+	test('update_wines changes only what is sent; photos go to the upload link', async () => {
+		const [added] = (
+			await call('add_wines', {
+				wines: [{ name: 'Photo Test', producer: 'Tester', vintage: 2020, color: 'red', price: 12 }],
+				if_exists: 'new_entry'
+			})
+		).structuredContent.results;
+		assert.match(added.photo_upload, /\/api\/photo\/[\w-]+$/);
+		const changed = (
+			await call('update_wines', {
+				wines: [
+					{ url: added.url, quantity: 2, price: 30, purchased_at: 'Vinothek', grapes: ['Syrah'] },
+					{ url: added.url.replace(/.{4}$/, '0000') }
+				]
+			})
+		).structuredContent;
+		assert.equal(changed.updated, 1);
+		assert.equal(changed.rejected, 1, 'an unknown wine');
+		const wine = async () => {
+			const json = await (await alice.req(`${new URL(added.url).pathname}/__data.json`)).json();
+			return devalue.unflatten(json.nodes.at(-1).data).wine;
+		};
+		const after = await wine();
+		assert.deepEqual(
+			[after.name, after.producer, after.vintage, after.quantity, Number(after.price), after.purchased_at],
+			['Photo Test', 'Tester', 2020, 2, 30, 'Vinothek'],
+			'sent fields changed, the rest kept'
+		);
+		assert.deepEqual(after.grapes, ['Syrah']);
+		assert.equal(
+			(await call('update_wines', { wines: [{ url: added.url, price: null }] })).structuredContent.updated,
+			1
+		);
+		assert.equal((await wine()).price, null, 'null clears');
+
+		// a real photo, sideways as phones store them: the EXIF orientation is applied
+		const { default: sharp } = await import('sharp');
+		const photo = await sharp({ create: { width: 3000, height: 2000, channels: 3, background: '#7a1f2b' } })
+			.jpeg()
+			.withMetadata({ orientation: 6 })
+			.toBuffer();
+		const link = changed.results[0].photo_upload;
+		const put = (url, body) => fetch(url, { method: 'PUT', body, headers: { 'content-type': 'image/jpeg' } });
+		const front = await put(link, photo);
+		assert.equal(front.status, 200);
+		assert.equal((await put(`${link}?side=back`, photo)).status, 200);
+		assert.equal((await put(`${link}?side=top`, photo)).status, 400);
+		assert.equal((await put(link, new Uint8Array(randomBytes(500)))).status, 400, 'not an image');
+		assert.equal((await put(link.replace(/.{4}$/, 'xxxx'), photo)).status, 404, 'unknown link');
+		const photoPath = `/photo/${new URL(added.url).pathname.split('/').at(-1)}`;
+		const stored = await alice.req(photoPath);
+		assert.equal(stored.status, 200);
+		const meta = await sharp(Buffer.from(await stored.arrayBuffer())).metadata();
+		assert.deepEqual([meta.width, meta.height], [853, 1280], 'upright, at the app size');
+		assert.ok((await wine()).back_version, 'back label stored');
+	});
+
 	test('the Desktop bridge passes messages through', async () => {
 		const { spawn } = await import('node:child_process');
 		const bridge = spawn('node', [new URL('../../static/vintry-mcp.mjs', import.meta.url).pathname], {
@@ -907,7 +964,7 @@ describe('MCP for Claude', () => {
 		assert.equal(lines.length, 1, 'no answer to the notification');
 		const answer = JSON.parse(lines[0]);
 		assert.equal(answer.id, 7);
-		assert.equal(answer.result.tools.length, 2);
+		assert.equal(answer.result.tools.length, 3);
 	});
 
 	test('a revoked token stops working; the wines stay private to their owner', async () => {

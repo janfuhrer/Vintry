@@ -191,6 +191,32 @@ export async function deleteWine(userId: string, id: string) {
 	await sql`delete from wines where id = ${id} and user_id = ${userId}`;
 }
 
+/** A label photo sent for a wine (front with its thumbnail, or back), replacing the one there */
+export async function setPhoto(
+	userId: string,
+	id: string,
+	side: 'front' | 'back',
+	photo: { image: Buffer; thumb: Buffer }
+): Promise<boolean> {
+	return sql.begin(async (tx) => {
+		const [wine] = await tx`select id from wines where id = ${id} and user_id = ${userId} for update`;
+		if (!wine) return false;
+		if (side === 'back') {
+			await tx`
+				insert into wine_back_photos (wine_id, image) values (${id}, ${photo.image}::bytea)
+				on conflict (wine_id) do update set image = excluded.image, updated_at = now()
+			`;
+			return true;
+		}
+		await tx`
+			insert into wine_photos (wine_id, image, thumb) values (${id}, ${photo.image}::bytea, ${photo.thumb}::bytea)
+			on conflict (wine_id) do update set image = excluded.image, thumb = excluded.thumb, updated_at = now()
+		`;
+		await tx`update wines set has_photo = true, updated_at = now() where id = ${id}`;
+		return true;
+	});
+}
+
 export async function setQuantity(userId: string, id: string, delta: number) {
 	if (!isUuid(id)) return;
 	await sql`

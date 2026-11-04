@@ -206,5 +206,15 @@ export const migrations: string[] = [
 		created_at timestamptz not null default now(),
 		unique (user_id, batch)
 	);
+	`,
+	/* sql */ `
+	-- links for sending a wine's label photos over MCP: the app (e.g. Claude) uploads the file
+	-- itself, since a model can't write megabytes into a tool call. Only the hash is stored.
+	create table photo_uploads (
+		token_hash text primary key,
+		user_id uuid not null references users on delete cascade,
+		wine_id uuid not null references wines on delete cascade,
+		expires_at timestamptz not null
+	);
 	`
 ];

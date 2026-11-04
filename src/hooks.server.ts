@@ -24,7 +24,17 @@ export const init: ServerInit = async () => {
 	});
 };
 
-const PUBLIC_PREFIXES = ['/login', '/invite/', '/api/auth/', '/icons/', '/ocr/', '/_app/', '/screenshots/'];
+const PUBLIC_PREFIXES = [
+	'/login',
+	'/invite/',
+	'/api/auth/',
+	// a photo upload link from MCP carries its own one-hour token
+	'/api/photo/',
+	'/icons/',
+	'/ocr/',
+	'/_app/',
+	'/screenshots/'
+];
 // /api/mcp checks its own bearer token instead of the session cookie
 const PUBLIC_FILES = new Set([
 	'/api/mcp',

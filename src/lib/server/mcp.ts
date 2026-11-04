@@ -4,7 +4,8 @@ import { APP_URL } from '$app/env/private';
 import { COLORS, countryName, normalize, windowStatus } from '#lib/wine.ts';
 import { parseWineForm, withSuggestions } from './wine-form.ts';
 import { enrich } from './reference.ts';
-import { createWine, findDuplicate, listWines, restock } from './wines.ts';
+import { uploadLink } from './photo-uploads.ts';
+import { createWine, findDuplicate, getWine, listWines, restock, updateWine } from './wines.ts';
 
 export const PROTOCOL_VERSIONS = ['2025-11-25', '2025-06-18', '2025-03-26'];
 const MAX_WINES = 200;
@@ -16,7 +17,9 @@ const INSTRUCTIONS = `Vintry is the user's private wine cellar. Use it to look u
 - Values you send are stored as given; drinking window and taste values you leave out are suggested from vintage, region, grapes and the label's words. Send them when you know them well, for example from the producer's notes.
 - Fill in only what you can see or know well. Never invent a vintage, alcohol or bottle size; leave fields out instead. Grapes, region and country may come from what is well known about the appellation.
 - country is an ISO 3166-1 alpha-2 code. color is one of ${COLORS.join(', ')}: sparkling, sweet and fortified wines take that style whatever their colour.
-- Tell the user what was added, with the links from the result, and mention entries that were rejected.`;
+- To change wines already there, use update_wines with each wine's url and only the fields to change; the others stay as they are, and a field sent as null is cleared.
+- Label photos: every wine in a result has a photo_upload link, valid for an hour. If you can run commands, upload the file there: \`curl -sS -T label.jpg -H "content-type: image/jpeg" "<photo_upload>?side=front"\`, and side=back for the back label. JPEG, PNG or WebP of at most 2 MB, so resize first (on a Mac: \`sips -Z 2000 -s format jpeg IMG.HEIC --out label.jpg\`). update_wines with only a wine's url gives a link for a wine already there. Without a way to upload files, leave photos out.
+- Tell the user what was added or changed, with the links from the result, and mention entries that were rejected.`;
 
 const wineSchema = {
 	type: 'object',
@@ -59,6 +62,16 @@ const wineSchema = {
 	additionalProperties: false
 };
 
+const updateSchema = {
+	...wineSchema,
+	properties: {
+		url: { type: 'string', description: "The wine's url from search_wines or add_wines" },
+		...wineSchema.properties
+	},
+	required: ['url']
+};
+const FIELDS = Object.keys(wineSchema.properties);
+
 const TOOLS = [
 	{
 		name: 'search_wines',
@@ -91,6 +104,18 @@ const TOOLS = [
 			additionalProperties: false
 		},
 		annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: false }
+	},
+	{
+		name: 'update_wines',
+		title: 'Change wines',
+		description: `Changes up to ${MAX_WINES} wines already in the cellar: only the fields sent, the others stay; null clears one. Checked like the app's own form. Each wine in the result has a photo_upload link, also when nothing else was sent.`,
+		inputSchema: {
+			type: 'object',
+			properties: { wines: { type: 'array', items: updateSchema, minItems: 1, maxItems: MAX_WINES } },
+			required: ['wines'],
+			additionalProperties: false
+		},
+		annotations: { readOnlyHint: false, destructiveHint: false, idempotentHint: true }
 	}
 ];
 
@@ -148,7 +173,8 @@ async function addWines(userId: string, args: Json) {
 				vintage: wine.vintage,
 				status: 'skipped',
 				reason: 'already there',
-				url: link(existing.id)
+				url: link(existing.id),
+				photo_upload: await uploadLink(userId, existing.id)
 			});
 			count.skipped++;
 		} else if (existing && wine.quantity > 0 && !wine.wishlist) {
@@ -158,7 +184,8 @@ async function addWines(userId: string, args: Json) {
 				vintage: wine.vintage,
 				status: 'bottles_added',
 				bottles: wine.quantity,
-				url: link(existing.id)
+				url: link(existing.id),
+				photo_upload: await uploadLink(userId, existing.id)
 			});
 			count.bottles_added_to_existing++;
 		} else if (existing) {
@@ -168,7 +195,8 @@ async function addWines(userId: string, args: Json) {
 				vintage: wine.vintage,
 				status: 'skipped',
 				reason: 'already there',
-				url: link(existing.id)
+				url: link(existing.id),
+				photo_upload: await uploadLink(userId, existing.id)
 			});
 			count.skipped++;
 		} else {
@@ -178,10 +206,63 @@ async function addWines(userId: string, args: Json) {
 				vintage: wine.vintage,
 				status: 'added',
 				bottles: wine.quantity,
-				url: link(id)
+				url: link(id),
+				photo_upload: await uploadLink(userId, id)
 			});
 			count.added++;
 		}
+	}
+	return { ...count, results };
+}
+
+/** The wine's id in its url (or the id itself) */
+const idIn = (ref: unknown) =>
+	typeof ref === 'string'
+		? (ref.match(/[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i)?.[0] ?? null)
+		: null;
+
+/** A stored value as the tool would send it */
+const asSent = (v: unknown) => (v instanceof Date ? v.toISOString().slice(0, 10) : v);
+
+async function updateWines(userId: string, args: Json) {
+	const wines = args.wines;
+	if (!Array.isArray(wines) || !wines.length) throw new ToolError('wines must be a non-empty list');
+	if (wines.length > MAX_WINES) throw new ToolError(`at most ${MAX_WINES} wines per call`);
+	const results = [];
+	const count = { updated: 0, unchanged: 0, rejected: 0 };
+	for (const w of wines) {
+		const id = w && typeof w === 'object' ? idIn((w as Json).url) : null;
+		const current = id ? await getWine(userId, id) : null;
+		if (!id || !current) {
+			results.push({ url: (w as Json)?.url ?? null, status: 'rejected', reason: 'no such wine' });
+			count.rejected++;
+			continue;
+		}
+		const sent = FIELDS.filter((k) => k in (w as Json));
+		// the wine as it is, with what was sent on top, checked as a whole like the form does
+		const merged: Json = {};
+		for (const k of FIELDS)
+			merged[k] = sent.includes(k) ? (w as Json)[k] : asSent((current as unknown as Json)[k]);
+		const { input, errors } = parseWineForm(toForm(merged));
+		if (Object.keys(errors).length) {
+			results.push({
+				url: link(id),
+				status: 'rejected',
+				reason: `invalid ${Object.keys(errors).join(', ')}`
+			});
+			count.rejected++;
+			continue;
+		}
+		if (sent.length) await updateWine(userId, id, input, undefined);
+		results.push({
+			name: input.name,
+			vintage: input.vintage,
+			status: sent.length ? 'updated' : 'unchanged',
+			changed: sent,
+			url: link(id),
+			photo_upload: await uploadLink(userId, id)
+		});
+		count[sent.length ? 'updated' : 'unchanged']++;
 	}
 	return { ...count, results };
 }
@@ -261,8 +342,12 @@ export async function handleMessage(userId: string, msg: unknown): Promise<Json 
 			return result({ tools: TOOLS });
 		case 'tools/call': {
 			const args = (params.arguments ?? {}) as Json;
-			const run =
-				params.name === 'add_wines' ? addWines : params.name === 'search_wines' ? searchWines : null;
+			const tools: Record<string, (userId: string, args: Json) => Promise<unknown>> = {
+				add_wines: addWines,
+				update_wines: updateWines,
+				search_wines: searchWines
+			};
+			const run = Object.hasOwn(tools, String(params.name)) ? tools[String(params.name)] : null;
 			if (!run) return rpcError(id, -32602, `Unknown tool: ${String(params.name)}`);
 			try {
 				const out = await run(userId, args);

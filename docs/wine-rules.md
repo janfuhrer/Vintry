@@ -190,6 +190,8 @@ region's typical grapes; at most five. A sweet wine gets only its style's.
   by hand in the form stay.
 - **Import and MCP** (Claude adding wines): values that are given are kept; only missing ones are
   suggested, one by one. A given year stays and the other is suggested only where it fits.
+  Changing a wine over MCP (`update_wines`) changes only the values sent: the window and taste
+  stay as they are unless they are sent too.
 - **The reference list** ([`data/`](../data/README.md), about 100,000 wines) comes first: a wine
   that matches one clearly by producer and name gets the grapes, alcohol, type, country and region
   it left empty, so the suggestions above work from the real grapes. Clearly means: the name

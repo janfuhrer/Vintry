@@ -162,6 +162,7 @@ export async function cleanup() {
 	await sql`delete from invites where used_at is null and expires_at < now() - interval '30 days'`;
 	// scans from the iPhone Shortcut that were never used
 	await sql`delete from pending_scans where created_at < now() - interval '2 days'`;
+	await sql`delete from photo_uploads where expires_at < now()`;
 }
 
 /** The id (token hash) of the current request's session, to mark "this device" */

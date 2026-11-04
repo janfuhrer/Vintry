@@ -54,7 +54,8 @@ src/
       device.ts           user agent → "iPhone · Safari"
       ratelimit.ts        in-memory limiter for /api/auth/* and /api/mcp
       tokens.ts           personal access tokens for MCP apps (stored as sha256)
-      mcp.ts              the MCP server: protocol messages, search_wines, add_wines
+      mcp.ts              the MCP server: protocol messages, search_wines, add_wines, update_wines
+      photo-uploads.ts    one-hour upload links for photos sent over MCP; sharp makes photo and thumbnail
   routes/
     /                     cellar (search, colour filter, grouping run client-side)
     /add                  scan or enter manually
@@ -68,6 +69,7 @@ src/
     /api/label            label photos → Claude → form fields (opted-in users only)
     /api/mcp              MCP over Streamable HTTP, bearer token only (never the session cookie)
     /api/barcode          barcode → Open Food Facts → form fields (POST; opted-in users only)
+    /api/photo/[token]    a wine's label photo from an MCP app (PUT or POST the file; the link is the key)
     /api/scan             photo + text from the iPhone Shortcut (bearer token, JSON); /api/scan/[id] uses it
     /api/reference        producer + name → the reference list → form fields
     /api/reference/candidates   label text → up to three wines it may be ("Is it one of these?")
@@ -91,6 +93,7 @@ at once.
 - `wines.barcode`: the bottle's EAN/UPC; a scan of the same code finds the wine again
 - `pending_scans`: photos and Live Text from the iPhone Shortcut (front, optional back), waiting
   on the add page; a run's photos share a `batch`; deleted when used or after two days
+- `photo_uploads`: `token_hash = sha256(token)`, user, wine, expiry; MCP photo links, one hour
 - `ref_wines`, `ref_meta`: the reference list of wines from `data/xwines.tsv.gz` (X-Wines, CC0),
   about 100,000 rows; loaded in the background on start when the file changed, under an advisory
   lock, and keyed by producer (without words like Domaine or Weingut) and name

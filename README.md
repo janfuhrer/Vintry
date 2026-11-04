@@ -94,8 +94,12 @@ SvelteKit refuses form posts without an `Origin` header, which a Shortcut doesn'
 ## Claude and other MCP apps
 
 Vintry answers the [Model Context Protocol](https://modelcontextprotocol.io) at `/api/mcp`
-(Streamable HTTP). It offers two tools, `search_wines` and `add_wines` (up to 200 wines per call,
-checked like the form; a wine already in the cellar gets the bottles added). Each user creates a
+(Streamable HTTP). It offers three tools: `search_wines`, `add_wines` (up to 200 wines per call,
+checked like the form; a wine already in the cellar gets the bottles added) and `update_wines`
+(changes only the fields sent). Each wine in a result comes with a photo link, valid for an hour:
+an app that can run commands uploads the label there (`curl -T label.jpg -H "content-type: image/jpeg" "<link>?side=back"`),
+since a model can't put a photo into a tool call. The server turns it upright and stores it at the
+app's size with a thumbnail ([sharp](https://sharp.pixelplumbing.com)). Each user creates a
 personal access token under **Settings → Connect Claude**; it acts for that user only and can be
 revoked there.
 
