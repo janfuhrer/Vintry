@@ -52,7 +52,7 @@
 		"@tesseract.js-data/eng": "^1.0.0",
 		"@tesseract.js-data/fra": "^1.0.0",
 		"@types/node": "^26",
-		"devalue": "^5.9.4",
+		"devalue": "^6.0.3",
 		"eslint": "^9.39.5",
 		"eslint-config-prettier": "^10.1.8",
 		"eslint-plugin-svelte": "^3.23.1",
