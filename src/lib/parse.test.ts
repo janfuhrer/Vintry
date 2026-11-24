@@ -168,6 +168,11 @@ describe('OCR digit and letter confusions', () => {
 		expect(parseLabel(lines(['11', 20], ['°', 20], ['vol 75 cl', 20]), 2026).alcohol).toBe(11);
 		expect(parseLabel(lines(['Servir à 16°', 20]), 2026).alcohol).toBeUndefined();
 	});
+
+	test('"14% vol" that lost its 1 is dropped, Moscato d\'Asti keeps its 4.5 %', () => {
+		expect(parseLabel(lines(['4% vol. 750 ml', 20]), 2026).alcohol).toBeUndefined();
+		expect(parseLabel(lines(["Moscato d'Asti", 40], ['4,5% vol', 20]), 2026).alcohol).toBe(4.5);
+	});
 });
 
 test('origin adjectives name the country', () => {

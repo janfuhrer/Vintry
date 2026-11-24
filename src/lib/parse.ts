@@ -273,7 +273,9 @@ export function parseLabel(input: OcrLine[], year = new Date().getFullYear()): P
 		const alcInt = raw.match(ALCOHOL_INT);
 		if (alcInt) out.alcohol = Number(alcInt[1]);
 	}
-	if (out.alcohol !== undefined && (out.alcohol < 4 || out.alcohol > 25)) delete out.alcohol;
+	// 4.5 % is the lowest still wine (Moscato d'Asti); below it is mostly a lost leading 1
+	// ("14% vol" read as "4% vol"), which is better left empty than filled wrong
+	if (out.alcohol !== undefined && (out.alcohol < 4.5 || out.alcohol > 25)) delete out.alcohol;
 
 	// the first size that is a real bottle: "Depuis 1898 L'Esprit…" reads as "1898 L" before "75 cl"
 	const sizes = [
