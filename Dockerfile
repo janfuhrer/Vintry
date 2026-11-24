@@ -14,15 +14,26 @@ ENV NODE_ENV=production \
     BODY_SIZE_LIMIT=2M
 WORKDIR /app
 COPY package.json package-lock.json .npmrc ./
-# npm is only needed to install; removing it (and corepack) from the runtime image drops a
-# whole dependency tree the app never runs, and every CVE scanners report in it
-RUN npm ci --omit=dev --ignore-scripts \
+# Alpine fixes (OpenSSL, zlib, …) land before the Node image is rebuilt, so take them here.
+# npm, corepack and yarn are only needed to install, and apk only to upgrade: removing them
+# drops tools the app never runs, every CVE scanners report in them, and a way to install
+# anything into a running container. apk's database stays, so scanners still see packages.
+RUN apk upgrade --no-cache \
+    && npm ci --omit=dev --ignore-scripts \
     && npm cache clean --force \
-    && rm -rf /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
-              /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack
+    && rm -rf /root/.npm /tmp/* \
+              /usr/local/lib/node_modules/npm /usr/local/lib/node_modules/corepack \
+              /usr/local/bin/npm /usr/local/bin/npx /usr/local/bin/corepack \
+              /opt/yarn-* /usr/local/bin/yarn /usr/local/bin/yarnpkg \
+    && apk del --no-cache apk-tools
 COPY --from=build /app/build ./build
 # the reference list of wines, loaded into the database on start
 COPY --from=build /app/data ./data
-USER node
+# everything above is owned by root and read-only for the app; numeric, so Kubernetes can
+# check runAsNonRoot without a passwd lookup
+USER 1000:1000
 EXPOSE 3000
+# for plain Docker; Kubernetes ignores it and uses its own probes on the same path
+HEALTHCHECK --interval=30s --timeout=3s --start-period=20s --retries=3 \
+    CMD wget -q -O /dev/null http://127.0.0.1:3000/healthz || exit 1
 CMD ["node", "build"]

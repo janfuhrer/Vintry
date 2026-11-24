@@ -207,4 +207,6 @@ show the previous person's cellar. Settings, forms and exports are never saved; 
   fresh invite link next to text the user typed, the mix compression side channels need.
 - On SIGTERM adapter-node stops accepting requests; the database pool is closed afterwards so the
   process exits promptly.
-- The container runs as an unprivileged user and works with a read-only root filesystem.
+- The container runs as an unprivileged user (uid 1000) and works with a read-only root
+  filesystem and no capabilities. The runtime image takes Alpine's fixes on build and leaves out
+  npm, yarn and apk; Node bundles its own OpenSSL, zlib and CA list, so the system copies go too.

@@ -118,11 +118,13 @@ revoked there.
 
 ## Deployment
 
-The `Dockerfile` builds a small production image that runs as a non-root user on port 3000:
+The `Dockerfile` builds a small production image that runs as a non-root user (uid 1000) on
+port 3000, without npm, yarn or a package manager, and with a health check on `/healthz`. It
+needs no writable filesystem and no capabilities:
 
 ```sh
 docker build -t vintry .
-docker run -p 3000:3000 \
+docker run -p 3000:3000 --read-only --cap-drop ALL --security-opt no-new-privileges \
   -e DATABASE_URL=postgres://user:pass@db/vintry \
   -e APP_URL=https://vintry.example.com \
   vintry
