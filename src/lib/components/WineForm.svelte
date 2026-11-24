@@ -575,8 +575,10 @@
 						type="button"
 						class="icon-btn"
 						aria-label="−1"
-						onclick={() => (v.quantity = Math.max(0, v.quantity - 1))}><Icon name="minus" /></button
+						onclick={() => (v.quantity = Math.max(0, v.quantity - 1))}
 					>
+						<Icon name="minus" />
+					</button>
 					<input
 						class="input qty"
 						name="quantity"
@@ -586,9 +588,14 @@
 						bind:value={v.quantity}
 						aria-label={t('form.quantity')}
 					/>
-					<button type="button" class="icon-btn" aria-label="+1" onclick={() => (v.quantity = v.quantity + 1)}
-						><Icon name="plus" /></button
+					<button
+						type="button"
+						class="icon-btn"
+						aria-label="+1"
+						onclick={() => (v.quantity = v.quantity + 1)}
 					>
+						<Icon name="plus" />
+					</button>
 				</div>
 			</div>
 		{/if}
@@ -617,10 +624,10 @@
 	</section>
 
 	<details class="card" bind:open={tasteOpen}>
-		<summary
-			><h2>{t('form.taste')}</h2>
-			<Icon name="chevron" /></summary
-		>
+		<summary>
+			<h2>{t('form.taste')}</h2>
+			<Icon name="chevron" />
+		</summary>
 		<div class="stack details-body">
 			{#if suggested}<p class="muted small">{t('form.suggested')}</p>{/if}
 			<div class="grid2">
@@ -668,10 +675,10 @@
 	{/each}
 
 	<details class="card" bind:open={privateOpen}>
-		<summary
-			><h2>{t('form.private')}</h2>
-			<Icon name="chevron" /></summary
-		>
+		<summary>
+			<h2>{t('form.private')}</h2>
+			<Icon name="chevron" />
+		</summary>
 		<div class="stack details-body">
 			<div class="grid2">
 				<label class="field">

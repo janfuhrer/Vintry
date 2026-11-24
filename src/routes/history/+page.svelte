@@ -50,14 +50,18 @@
 						class="icon-btn"
 						aria-label={t('history.prevYear')}
 						disabled={year === years.at(-1)}
-						onclick={() => step(-1)}><Icon name="back" size={18} /></button
+						onclick={() => step(-1)}
 					>
+						<Icon name="back" size={18} />
+					</button>
 					<button
 						class="icon-btn next"
 						aria-label={t('history.nextYear')}
 						disabled={year === years[0]}
-						onclick={() => step(1)}><Icon name="back" size={18} /></button
+						onclick={() => step(1)}
 					>
+						<Icon name="back" size={18} />
+					</button>
 				{/if}
 			</div>
 			<dl>
@@ -108,9 +112,9 @@
 		<section>
 			<h2 class="month">
 				{m.label}
-				<span class="muted small"
-					>{m.drinks.length === 1 ? t('cellar.bottle') : t('history.count', { n: m.drinks.length })}</span
-				>
+				<span class="muted small">
+					{m.drinks.length === 1 ? t('cellar.bottle') : t('history.count', { n: m.drinks.length })}
+				</span>
 			</h2>
 			<div class="card list">
 				{#each m.drinks as d (d.id)}

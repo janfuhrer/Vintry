@@ -13,10 +13,8 @@ updates:
       # svelte-check supports TypeScript up to 6
       - dependency-name: typescript
         update-types: ['version-update:semver-major']
-      # wait for eslint-plugin-svelte to support ESLint 10
-      - dependency-name: eslint
-        update-types: ['version-update:semver-major']
-      - dependency-name: '@eslint/js'
+      # the e2e tests parse what SvelteKit serialises, so stay on the devalue major kit uses
+      - dependency-name: devalue
         update-types: ['version-update:semver-major']
   - package-ecosystem: github-actions
     directory: /

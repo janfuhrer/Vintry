@@ -188,19 +188,19 @@
 			<form method="POST" action="?/reader" use:enhance class="stack">
 				<label class="option">
 					<input type="radio" name="reader" value="local" bind:group={reader} />
-					<span
-						><strong>{t('settings.readerLocal')}</strong><br /><span class="muted small"
-							>{t('settings.readerLocalHint')}</span
-						></span
-					>
+					<span>
+						<strong>{t('settings.readerLocal')}</strong><br /><span class="muted small">
+							{t('settings.readerLocalHint')}
+						</span>
+					</span>
 				</label>
 				<label class="option">
 					<input type="radio" name="reader" value="claude" bind:group={reader} />
-					<span
-						><strong>{t('settings.readerClaude')}</strong><br /><span class="muted small"
-							>{t('settings.readerClaudeHint')}</span
-						></span
-					>
+					<span>
+						<strong>{t('settings.readerClaude')}</strong><br /><span class="muted small">
+							{t('settings.readerClaudeHint')}
+						</span>
+					</span>
 				</label>
 				{#if reader === 'claude' && claude.reader !== 'claude'}
 					<label class="option consent small">
@@ -253,8 +253,9 @@
 									aria-label={t('settings.rename')}
 									autofocus
 								/>
-								<button class="icon-btn" aria-label={t('common.save')}><Icon name="check" size={18} /></button
-								>
+								<button class="icon-btn" aria-label={t('common.save')}>
+									<Icon name="check" size={18} />
+								</button>
 							</form>
 						{:else}
 							<button type="button" class="link-like" onclick={() => (renaming = p.id)}>
@@ -269,8 +270,9 @@
 					{#if data.passkeys.length > 1}
 						<form method="POST" action="?/deletePasskey" use:enhance>
 							<input type="hidden" name="id" value={p.id} />
-							<button class="icon-btn" aria-label={t('common.delete')}><Icon name="trash" size={18} /></button
-							>
+							<button class="icon-btn" aria-label={t('common.delete')}>
+								<Icon name="trash" size={18} />
+							</button>
 						</form>
 					{/if}
 				</li>
@@ -295,8 +297,10 @@
 					<div class="grow">
 						<div>
 							{s.device ?? t('settings.unknownDevice')}{#if s.current}<span class="sep">·</span><span
-									class="muted">{t('settings.thisDevice')}</span
-								>{/if}
+									class="muted"
+								>
+									{t('settings.thisDevice')}
+								</span>{/if}
 						</div>
 						<div class="muted small">{t('settings.lastSeen', { date: fmt(s.last_seen_at) })}</div>
 					</div>
@@ -367,9 +371,9 @@
 					<li class="row">
 						<div class="grow">
 							<div>
-								{u.name}{#if u.is_admin}<span class="sep">·</span><span class="muted"
-										>{t('settings.admin')}</span
-									>{/if}
+								{u.name}{#if u.is_admin}<span class="sep">·</span><span class="muted">
+										{t('settings.admin')}
+									</span>{/if}
 							</div>
 							<div class="muted small">{fmt(u.created_at)} · {u.wines} 🍷</div>
 						</div>
@@ -425,9 +429,9 @@
 										aria-label={t('settings.rename')}
 										autofocus
 									/>
-									<button class="icon-btn" aria-label={t('common.save')}
-										><Icon name="check" size={18} /></button
-									>
+									<button class="icon-btn" aria-label={t('common.save')}>
+										<Icon name="check" size={18} />
+									</button>
 								</form>
 							{:else}
 								<button type="button" class="link-like" onclick={() => (renaming = `loc:${l.name}`)}>
@@ -448,18 +452,18 @@
 	<section class="card stack">
 		<h2>{t('settings.data')}</h2>
 		<div class="downloads">
-			<a class="btn small" href="/export/wines.csv" download data-sveltekit-reload
-				>{t('settings.exportWines')}</a
-			>
-			<a class="btn small" href="/export/drinks.csv" download data-sveltekit-reload
-				>{t('settings.exportDrinks')}</a
-			>
-			<a class="btn small" href="/export/vintry.json" download data-sveltekit-reload
-				>{t('settings.exportJson')}</a
-			>
-			<a class="btn small" href="/export/photos.zip" download data-sveltekit-reload
-				>{t('settings.exportPhotos')}</a
-			>
+			<a class="btn small" href="/export/wines.csv" download data-sveltekit-reload>
+				{t('settings.exportWines')}
+			</a>
+			<a class="btn small" href="/export/drinks.csv" download data-sveltekit-reload>
+				{t('settings.exportDrinks')}
+			</a>
+			<a class="btn small" href="/export/vintry.json" download data-sveltekit-reload>
+				{t('settings.exportJson')}
+			</a>
+			<a class="btn small" href="/export/photos.zip" download data-sveltekit-reload>
+				{t('settings.exportPhotos')}
+			</a>
 		</div>
 		<p class="muted small">{t('settings.exportHint')}</p>
 	</section>
@@ -500,11 +504,9 @@
 				<p class="error">{t('import.noName')}</p>
 			{:else}
 				<p>
-					<strong
-						>{preview.rows.length === 1
-							? t('import.foundOne')
-							: t('import.found', { n: preview.rows.length })}</strong
-					>
+					<strong>
+						{preview.rows.length === 1 ? t('import.foundOne') : t('import.found', { n: preview.rows.length })}
+					</strong>
 				</p>
 				<div class="small">
 					<span class="muted">{t('import.columns')}:</span>
@@ -518,8 +520,10 @@
 					{#each preview.rows.slice(0, 5) as r, i (i)}
 						<li>
 							{r.name}{#if r.vintage}<span class="sep">·</span>{r.vintage}{/if}{#if r.producer}<span
-									class="sep">·</span
-								><span class="muted">{r.producer}</span>{/if}
+									class="sep"
+								>
+									·
+								</span><span class="muted">{r.producer}</span>{/if}
 						</li>
 					{/each}
 					{#if preview.rows.length > 5}<li class="muted">…</li>{/if}

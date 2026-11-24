@@ -133,9 +133,9 @@
 		{/if}
 		<div class="hero-bar">
 			<BackButton fallback="/" class="glass" />
-			<a class="icon-btn glass" href="/wine/{wine.id}/edit" aria-label={t('common.edit')}
-				><Icon name="pen" size={20} /></a
-			>
+			<a class="icon-btn glass" href="/wine/{wine.id}/edit" aria-label={t('common.edit')}>
+				<Icon name="pen" size={20} />
+			</a>
 		</div>
 	</header>
 
@@ -154,22 +154,23 @@
 	</section>
 
 	<div class="chips">
-		<span class="chip"
-			><span class="dot swatch-{wine.color}" style="background: var(--swatch)"></span>{t(
+		<span class="chip">
+			<span class="dot swatch-{wine.color}" style="background: var(--swatch)"></span>{t(
 				`color.${wine.color}`
-			)}</span
-		>
+			)}
+		</span>
 		{#if wine.vintage}
-			<span class="chip"
-				>{wine.vintage}{#if age !== null && age > 0}<span class="sep">·</span>{age === 1
+			<span class="chip">
+				{wine.vintage}{#if age !== null && age > 0}<span class="sep">·</span>{age === 1
 						? t('wine.year')
-						: t('wine.years', { n: age })}{/if}</span
-			>
+						: t('wine.years', { n: age })}{/if}
+			</span>
 		{/if}
 		{#if wine.region && findRegion(wine.region)}
-			<a class="chip link-chip" href="/regions/{regionSlug(findRegion(wine.region)!.name)}"
-				>{flag(wine.country)} {wine.region}</a
-			>
+			<a class="chip link-chip" href="/regions/{regionSlug(findRegion(wine.region)!.name)}">
+				{flag(wine.country)}
+				{wine.region}
+			</a>
 		{:else if wine.country || wine.region}
 			<span class="chip">{flag(wine.country)} {wine.region || countryName(wine.country, i18n.locale)}</span>
 		{/if}
@@ -181,9 +182,9 @@
 			{/if}
 		{/each}
 		{#if wine.alcohol}<span class="chip">{wine.alcohol}%</span>{/if}
-		{#if wine.size_ml && wine.size_ml !== 750}<span class="chip"
-				>{wine.size_ml >= 1000 ? `${wine.size_ml / 1000} l` : `${wine.size_ml / 10} cl`}</span
-			>{/if}
+		{#if wine.size_ml && wine.size_ml !== 750}<span class="chip">
+				{wine.size_ml >= 1000 ? `${wine.size_ml / 1000} l` : `${wine.size_ml / 10} cl`}
+			</span>{/if}
 	</div>
 
 	{#if wine.wishlist}
@@ -203,9 +204,9 @@
 				</div>
 				<span class="spacer"></span>
 				<form method="POST" action="?/quantity" use:enhance class="stepper">
-					<button class="icon-btn" name="delta" value="-1" aria-label="−1" disabled={wine.quantity === 0}
-						><Icon name="minus" /></button
-					>
+					<button class="icon-btn" name="delta" value="-1" aria-label="−1" disabled={wine.quantity === 0}>
+						<Icon name="minus" />
+					</button>
 					<span class="qty" aria-live="polite">{wine.quantity}</span>
 					<button class="icon-btn" name="delta" value="1" aria-label="+1"><Icon name="plus" /></button>
 				</form>
@@ -228,8 +229,10 @@
 					<a class="chip" class:finished={v.quantity === 0 && !v.wishlist} href="/wine/{v.id}">
 						{v.vintage ?? t('wine.noVintage')}
 						{#if v.wishlist}<Icon name="bookmark" size={14} label={t('cellar.wishlist')} />{:else}<span
-								class="n">×{v.quantity}</span
-							>{/if}
+								class="n"
+							>
+								×{v.quantity}
+							</span>{/if}
 					</a>
 				{/each}
 			</div>
@@ -279,9 +282,9 @@
 			<div class="row">
 				<h2>{t('map.title')}</h2>
 				<span class="spacer"></span>
-				<a class="small" href="/regions?country={data.map.country}&region={regionSlug(region.name)}"
-					>{t('map.explore', { country: countryName(data.map.country, i18n.locale) })}</a
-				>
+				<a class="small" href="/regions?country={data.map.country}&region={regionSlug(region.name)}">
+					{t('map.explore', { country: countryName(data.map.country, i18n.locale) })}
+				</a>
 			</div>
 			<!-- to the regions page with this one picked, to look around from there -->
 			<a href="/regions?country={data.map.country}&region={regionSlug(region.name)}" class="map-link">
@@ -359,11 +362,9 @@
 
 	<div class="row actions">
 		<a class="btn grow-btn" href="/add?from={wine.id}"><Icon name="plus" size={18} />{t('wine.buyAgain')}</a>
-		<button type="button" class="btn grow-btn" onclick={share}
-			><Icon name={shared ? 'check' : 'share'} size={18} />{shared
-				? t('wine.shared')
-				: t('wine.share')}</button
-		>
+		<button type="button" class="btn grow-btn" onclick={share}>
+			<Icon name={shared ? 'check' : 'share'} size={18} />{shared ? t('wine.shared') : t('wine.share')}
+		</button>
 	</div>
 
 	<form

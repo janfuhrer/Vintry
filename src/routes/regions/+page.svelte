@@ -65,8 +65,11 @@
 				href="?country={c.code}"
 				data-sveltekit-noscroll
 				data-sveltekit-replacestate
-				use:reveal={c.code === data.country}>{flag(c.code)} {c.label}</a
+				use:reveal={c.code === data.country}
 			>
+				{flag(c.code)}
+				{c.label}
+			</a>
 		{/each}
 	</nav>
 

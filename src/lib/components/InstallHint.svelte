@@ -60,9 +60,9 @@
 		{#if mode === 'prompt'}
 			<button class="btn small primary" onclick={install}>{t('install.button')}</button>
 		{/if}
-		<button class="icon-btn" aria-label={t('common.close')} onclick={dismiss}
-			><Icon name="x" size={18} /></button
-		>
+		<button class="icon-btn" aria-label={t('common.close')} onclick={dismiss}>
+			<Icon name="x" size={18} />
+		</button>
 	</aside>
 {/if}
 

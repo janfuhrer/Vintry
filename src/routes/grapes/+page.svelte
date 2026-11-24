@@ -48,11 +48,11 @@
 								</span>
 								<span class="muted small">{g.aroma[i18n.locale].slice(0, 2).join(', ')}</span>
 								{#if data.bottles[g.name]}
-									<span class="mine"
-										><span aria-hidden="true">×{data.bottles[g.name]}</span><span class="visually-hidden"
-											>{t('history.count', { n: data.bottles[g.name] })}</span
-										></span
-									>
+									<span class="mine">
+										<span aria-hidden="true">×{data.bottles[g.name]}</span><span class="visually-hidden">
+											{t('history.count', { n: data.bottles[g.name] })}
+										</span>
+									</span>
 								{/if}
 							</a>
 						</li>

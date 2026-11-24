@@ -217,15 +217,19 @@
 				<button
 					class="chip"
 					class:active={!color && !wishOnly}
-					onclick={() => ((color = null), (wishOnly = false))}>{t('cellar.all')}</button
+					onclick={() => ((color = null), (wishOnly = false))}
 				>
+					{t('cellar.all')}
+				</button>
 				{#if wishCount}
 					<button
 						class="chip"
 						class:active={wishOnly}
 						onclick={() => ((wishOnly = !wishOnly), (color = null))}
-						><Icon name="bookmark" size={14} />{t('cellar.wishlist')} {wishCount}</button
 					>
+						<Icon name="bookmark" size={14} />{t('cellar.wishlist')}
+						{wishCount}
+					</button>
 				{/if}
 				{#each colorsPresent as c (c)}
 					<button
@@ -253,9 +257,9 @@
 				</label>
 				<span class="spacer"></span>
 				{#if hasEmpty}
-					<label class="row small muted"
-						><input type="checkbox" bind:checked={showEmpty} />{t('cellar.showEmpty')}</label
-					>
+					<label class="row small muted">
+						<input type="checkbox" bind:checked={showEmpty} />{t('cellar.showEmpty')}
+					</label>
 				{/if}
 			</div>
 		</div>
@@ -270,9 +274,9 @@
 						{@const status = windowStatus(w.drink_from, w.drink_to)}
 						<a class="now-card status-{status}" href="/wine/{w.id}">
 							<span class="now-name">{w.name}</span>
-							<span class="small muted"
-								>{[w.vintage, w.drink_to && `→ ${w.drink_to}`].filter(Boolean).join(' ')}</span
-							>
+							<span class="small muted">
+								{[w.vintage, w.drink_to && `→ ${w.drink_to}`].filter(Boolean).join(' ')}
+							</span>
 							<span class="now-status small"><span class="dot"></span>{t(`status.${status}`)}</span>
 						</a>
 					{/each}

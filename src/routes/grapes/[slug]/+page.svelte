@@ -45,9 +45,10 @@
 			<h2>{t('grapes.regions')}</h2>
 			<div class="chips">
 				{#each regions as r (r.name)}
-					<a class="chip" href="/regions/{regionSlug(r.name)}" title={countryName(r.country, i18n.locale)}
-						>{flag(r.country)} {r.name}</a
-					>
+					<a class="chip" href="/regions/{regionSlug(r.name)}" title={countryName(r.country, i18n.locale)}>
+						{flag(r.country)}
+						{r.name}
+					</a>
 				{/each}
 			</div>
 		</section>

@@ -15,6 +15,6 @@
 	}
 </script>
 
-<a class="icon-btn {cls}" href={fallback} aria-label={t('common.back')} onclick={click}
-	><Icon name="back" /></a
->
+<a class="icon-btn {cls}" href={fallback} aria-label={t('common.back')} onclick={click}>
+	<Icon name="back" />
+</a>

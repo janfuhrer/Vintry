@@ -623,15 +623,17 @@
 <main class="page" style="--form-bottom: calc(var(--nav-h) + var(--safe-b))">
 	<header class="head">
 		{#if step === 'crop'}
-			<button class="icon-btn" aria-label={t('common.back')} onclick={() => (step = 'form')}
-				><Icon name="back" /></button
-			>
+			<button class="icon-btn" aria-label={t('common.back')} onclick={() => (step = 'form')}>
+				<Icon name="back" />
+			</button>
 		{:else if step === 'form' || step === 'scanning'}
 			<button
 				class="icon-btn"
 				aria-label={t('common.back')}
-				onclick={() => (scanRun++, stopClaude(), (step = 'choose'))}><Icon name="back" /></button
+				onclick={() => (scanRun++, stopClaude(), (step = 'choose'))}
 			>
+				<Icon name="back" />
+			</button>
 		{/if}
 		<h1>{t('add.title')}</h1>
 	</header>
@@ -644,20 +646,22 @@
 					{#each scans as s (s.id)}
 						<div class="scan-row">
 							<img src="/api/scan/{s.id}/front" alt="" width="56" height="56" />
-							<span class="scan-text small"
-								>{s.front_text.split('\n').filter(Boolean).slice(0, 2).join(' · ') ||
+							<span class="scan-text small">
+								{s.front_text.split('\n').filter(Boolean).slice(0, 2).join(' · ') ||
 									t('add.noText')}{#if s.has_back}
-									<span class="muted"> · {t('form.back')}</span>{/if}</span
-							>
-							<button type="button" class="btn small primary" onclick={() => useScan(s)}
-								>{t('add.useScan')}</button
-							>
+									<span class="muted"> · {t('form.back')}</span>{/if}
+							</span>
+							<button type="button" class="btn small primary" onclick={() => useScan(s)}>
+								{t('add.useScan')}
+							</button>
 							<button
 								type="button"
 								class="icon-btn"
 								aria-label={t('common.delete')}
-								onclick={() => dropScan(s.id)}><Icon name="x" size={18} /></button
+								onclick={() => dropScan(s.id)}
 							>
+								<Icon name="x" size={18} />
+							</button>
 						</div>
 					{/each}
 				</section>
@@ -667,9 +671,9 @@
 				<span class="scan-icon"><Icon name="camera" size={40} /></span>
 				<span class="scan-title">{t('add.scan')}</span>
 				<span class="muted small">{t('add.scanHint')}</span>
-				{#if useClaude}<span class="small claude-hint"
-						>{t('add.withClaude', { n: data.claude!.scansLeft })}</span
-					>{/if}
+				{#if useClaude}<span class="small claude-hint">
+						{t('add.withClaude', { n: data.claude!.scansLeft })}
+					</span>{/if}
 				<!-- no capture attribute: the phone offers both, the camera and the photo library -->
 				<input class="visually-hidden" type="file" accept="image/*" onchange={scan} />
 			</label>
@@ -749,9 +753,9 @@
 							<button class="btn primary small">{t('add.addBottles', { n: form.bottles || 1 })}</button>
 						</form>
 						<!-- submits the wine form itself, once more, with the go-ahead -->
-						<button class="btn small" type="submit" form="wine-form" name="allow_duplicate" value="1"
-							>{t('add.saveSeparately')}</button
-						>
+						<button class="btn small" type="submit" form="wine-form" name="allow_duplicate" value="1">
+							{t('add.saveSeparately')}
+						</button>
 					</div>
 				</div>
 			{/if}
@@ -799,9 +803,9 @@
 									<strong>{c.name}</strong>
 									<span class="muted">{c.producer} · {t('add.matched', { n: c.matched, of: c.total })}</span>
 								</span>
-								<button type="button" class="btn small primary" onclick={() => choose(c)}
-									>{t('add.thisOne')}</button
-								>
+								<button type="button" class="btn small primary" onclick={() => choose(c)}>
+									{t('add.thisOne')}
+								</button>
 							</li>
 						{/each}
 					</ul>
@@ -816,16 +820,16 @@
 						<ul class="sources">
 							{#each groups as g (g.source)}
 								<li>
-									<span class="src"
-										>{g.source === 'list'
+									<span class="src">
+										{g.source === 'list'
 											? t('add.from.list', { wine: listWine })
-											: t(`add.from.${g.source}`)}:</span
-									>
+											: t(`add.from.${g.source}`)}:
+									</span>
 									{g.fields.join(', ')}
 									{#if g.source !== 'label'}
-										<button type="button" class="undo" onclick={() => undo(g.source)}
-											>{t('common.undo')}</button
-										>
+										<button type="button" class="undo" onclick={() => undo(g.source)}>
+											{t('common.undo')}
+										</button>
 									{/if}
 								</li>
 							{/each}
@@ -842,9 +846,9 @@
 					{/if}
 					{#if source}
 						<div class="notice-actions">
-							<button class="btn small" disabled={backBusy} onclick={() => (step = 'crop')}
-								>{t('add.recrop')}</button
-							>
+							<button class="btn small" disabled={backBusy} onclick={() => (step = 'crop')}>
+								{t('add.recrop')}
+							</button>
 							<label class="btn small" aria-disabled={backBusy}>
 								<Icon name="camera" size={16} />{backBusy ? t('add.reading') : t('add.scanBack')}
 								<input
@@ -870,15 +874,19 @@
 							class="chip"
 							class:active={target === 'name'}
 							aria-pressed={target === 'name'}
-							onclick={() => (target = 'name')}>{t('form.name')}</button
+							onclick={() => (target = 'name')}
 						>
+							{t('form.name')}
+						</button>
 						<button
 							type="button"
 							class="chip"
 							class:active={target === 'producer'}
 							aria-pressed={target === 'producer'}
-							onclick={() => (target = 'producer')}>{t('form.producer')}</button
+							onclick={() => (target = 'producer')}
 						>
+							{t('form.producer')}
+						</button>
 					</div>
 					<div class="line-chips">
 						{#each lines as line (line)}
